@@ -23,6 +23,91 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+# Function to start application in foreground
+start_foreground() {
+    echo ""
+    echo -e "${GREEN}🚀 Starting the application...${NC}"
+    echo -e "${BLUE}   Access URL: http://$HOST:$PORT${NC}"
+    echo -e "${BLUE}   Health Check: http://$HOST:$PORT/health${NC}"
+    echo -e "${BLUE}   AI Config: http://$HOST:$PORT/ai-config${NC}"
+    echo ""
+    echo -e "${YELLOW}Press Ctrl+C to stop the server${NC}"
+    echo ""
+    
+    # Start the application
+    python app.py
+}
+
+# Function to setup systemd service
+setup_systemd_service() {
+    local SERVICE_NAME="ai-doctor-matching"
+    local SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
+    local CURRENT_DIR=$(pwd)
+    local VENV_PATH="$CURRENT_DIR/venv"
+    local APP_USER=${SUDO_USER:-$(whoami)}
+    
+    echo -e "${YELLOW}🔧 Creating systemd service...${NC}"
+    
+    # Create service file
+    cat > "$SERVICE_FILE" << EOF
+[Unit]
+Description=AI Doctor Matching System
+After=network.target
+
+[Service]
+Type=simple
+User=$APP_USER
+WorkingDirectory=$CURRENT_DIR
+Environment=PATH=$VENV_PATH/bin
+EnvironmentFile=$CURRENT_DIR/.env
+ExecStart=$VENV_PATH/bin/python app.py
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    
+    # Set proper permissions
+    chmod 644 "$SERVICE_FILE"
+    
+    # Reload systemd and enable service
+    systemctl daemon-reload
+    systemctl enable "$SERVICE_NAME"
+    
+    echo -e "${GREEN}✅ Service created: $SERVICE_NAME${NC}"
+    echo -e "${BLUE}Service commands:${NC}"
+    echo -e "  Start:   systemctl start $SERVICE_NAME"
+    echo -e "  Stop:    systemctl stop $SERVICE_NAME"
+    echo -e "  Status:  systemctl status $SERVICE_NAME"
+    echo -e "  Logs:    journalctl -u $SERVICE_NAME -f"
+    echo ""
+    
+    # Ask if user wants to start the service now
+    read -p "Start the service now? (Y/n): " -n 1 -r
+    echo ""
+    
+    if [[ ! $REPLY =~ ^[Nn]$ ]]; then
+        systemctl start "$SERVICE_NAME"
+        sleep 2
+        
+        # Check service status
+        if systemctl is-active --quiet "$SERVICE_NAME"; then
+            echo -e "${GREEN}✅ Service started successfully!${NC}"
+            echo -e "${BLUE}   Access URL: http://$HOST:$PORT${NC}"
+            echo -e "${BLUE}   Health Check: http://$HOST:$PORT/health${NC}"
+            echo -e "${BLUE}   AI Config: http://$HOST:$PORT/ai-config${NC}"
+            echo ""
+            echo -e "${YELLOW}Check logs with: journalctl -u $SERVICE_NAME -f${NC}"
+        else
+            echo -e "${RED}❌ Service failed to start. Check logs:${NC}"
+            echo -e "${YELLOW}journalctl -u $SERVICE_NAME -n 20${NC}"
+        fi
+    else
+        echo -e "${YELLOW}Service created but not started. Use: systemctl start $SERVICE_NAME${NC}"
+    fi
+}
+
 echo -e "${BLUE}🏥 AI Doctor Matching System - Deployment Script${NC}"
 echo -e "${BLUE}=================================================${NC}"
 echo ""
@@ -117,14 +202,25 @@ else
     echo -e "${YELLOW}⚠️  Doctors database not found at assets/finddoc_doctors_detailed 2.csv${NC}"
 fi
 
-echo ""
-echo -e "${GREEN}🚀 Starting the application...${NC}"
-echo -e "${BLUE}   Access URL: http://$HOST:$PORT${NC}"
-echo -e "${BLUE}   Health Check: http://$HOST:$PORT/health${NC}"
-echo -e "${BLUE}   AI Config: http://$HOST:$PORT/ai-config${NC}"
-echo ""
-echo -e "${YELLOW}Press Ctrl+C to stop the server${NC}"
-echo ""
-
-# Start the application
-python app.py
+# Check if running as root or with sudo (typical for web servers)
+if [ "$EUID" -eq 0 ] || [ -n "$SUDO_USER" ]; then
+    echo -e "${YELLOW}🔧 Detected elevated privileges (web server environment)${NC}"
+    echo -e "${YELLOW}Would you like to set up this application as a system service?${NC}"
+    echo -e "${BLUE}This will:${NC}"
+    echo -e "  - Create a systemd service file"
+    echo -e "  - Enable auto-start on boot"
+    echo -e "  - Run as a daemon in the background"
+    echo ""
+    read -p "Setup as service? (y/N): " -n 1 -r
+    echo ""
+    
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        setup_systemd_service
+    else
+        echo -e "${YELLOW}Skipping service setup. Starting in foreground mode...${NC}"
+        start_foreground
+    fi
+else
+    echo -e "${YELLOW}Running in development mode${NC}"
+    start_foreground
+fi

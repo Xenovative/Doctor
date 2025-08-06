@@ -116,6 +116,31 @@ if exist "assets\finddoc_doctors_detailed 2.csv" (
     echo ⚠️ Doctors database not found at assets\finddoc_doctors_detailed 2.csv
 )
 
+REM Check if running as administrator (typical for web servers)
+net session >nul 2>&1
+if %errorLevel% == 0 (
+    echo 🔧 Detected administrator privileges (web server environment)
+    echo Would you like to set up this application as a Windows service?
+    echo This will:
+    echo   - Create a Windows service
+    echo   - Enable auto-start on boot
+    echo   - Run as a background service
+    echo.
+    set /p "setup_service=Setup as service? (y/N): "
+    
+    if /i "!setup_service!"=="y" (
+        call :setup_windows_service
+    ) else (
+        echo Skipping service setup. Starting in foreground mode...
+        call :start_foreground
+    )
+) else (
+    echo Running in development mode
+    call :start_foreground
+)
+goto :eof
+
+:start_foreground
 echo.
 echo 🚀 Starting the application...
 echo    Access URL: http://%HOST%:%PORT%
@@ -124,6 +149,98 @@ echo    AI Config: http://%HOST%:%PORT%/ai-config
 echo.
 echo Press Ctrl+C to stop the server
 echo.
-
-REM Start the application
 python app.py
+goto :eof
+
+:setup_windows_service
+echo 🔧 Setting up Windows service...
+echo.
+echo Installing python-windows-service package...
+pip install python-windows-service pywin32
+
+REM Create service wrapper script
+echo Creating service wrapper...
+(
+echo import sys
+echo import os
+echo import win32serviceutil
+echo import win32service
+echo import win32event
+echo import servicemanager
+echo import socket
+echo import subprocess
+echo.
+echo class AIDoctorService^(win32serviceutil.ServiceFramework^):
+echo     _svc_name_ = "AIDoctorMatching"
+echo     _svc_display_name_ = "AI Doctor Matching System"
+echo     _svc_description_ = "AI-powered doctor matching and recommendation system"
+echo.
+echo     def __init__^(self, args^):
+echo         win32serviceutil.ServiceFramework.__init__^(self, args^)
+echo         self.hWaitStop = win32event.CreateEvent^(None, 0, 0, None^)
+echo         socket.setdefaulttimeout^(60^)
+echo         self.process = None
+echo.
+echo     def SvcStop^(self^):
+echo         self.ReportServiceStatus^(win32service.SERVICE_STOP_PENDING^)
+echo         if self.process:
+echo             self.process.terminate^(^)
+echo         win32event.SetEvent^(self.hWaitStop^)
+echo.
+echo     def SvcDoRun^(self^):
+echo         servicemanager.LogMsg^(servicemanager.EVENTLOG_INFORMATION_TYPE,
+echo                               servicemanager.PYS_SERVICE_STARTED,
+echo                               ^(self._svc_name_, ''^^)^)
+echo         self.main^(^)
+echo.
+echo     def main^(self^):
+echo         # Change to application directory
+echo         os.chdir^(r'%CD%'^)
+echo         
+echo         # Start the Flask application
+echo         self.process = subprocess.Popen^([
+echo             r'%CD%\venv\Scripts\python.exe',
+echo             'app.py'
+echo         ]^)
+echo         
+ echo         # Wait for stop signal
+echo         win32event.WaitForSingleObject^(self.hWaitStop, win32event.INFINITE^)
+echo.
+echo if __name__ == '__main__':
+echo     win32serviceutil.HandleCommandLine^(AIDoctorService^)
+) > service_wrapper.py
+
+echo ✅ Service wrapper created
+echo.
+echo Installing Windows service...
+python service_wrapper.py install
+
+if %errorLevel% == 0 (
+    echo ✅ Service installed successfully: AIDoctorMatching
+    echo.
+    echo Service commands:
+    echo   Start:   net start AIDoctorMatching
+    echo   Stop:    net stop AIDoctorMatching
+    echo   Remove:  python service_wrapper.py remove
+    echo.
+    
+    set /p "start_service=Start the service now? (Y/n): "
+    if /i not "!start_service!"=="n" (
+        net start AIDoctorMatching
+        if !errorLevel! == 0 (
+            echo ✅ Service started successfully!
+            echo    Access URL: http://%HOST%:%PORT%
+            echo    Health Check: http://%HOST%:%PORT%/health
+            echo    AI Config: http://%HOST%:%PORT%/ai-config
+            echo.
+            echo Check Windows Event Viewer for service logs
+        ) else (
+            echo ❌ Service failed to start. Check Event Viewer for details.
+        )
+    ) else (
+        echo Service created but not started. Use: net start AIDoctorMatching
+    )
+) else (
+    echo ❌ Failed to install service
+)
+goto :eof

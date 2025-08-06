@@ -51,9 +51,15 @@ chmod +x deploy.sh
    - Checks AI provider setup
    - Validates doctors database
 
-4. **Application Launch**
-   - Starts Flask development server
-   - Displays access URLs
+4. **Service Setup (Web Server Mode)**
+   - Detects elevated privileges
+   - Offers system service installation
+   - Creates systemd service (Linux) or Windows service
+   - Configures auto-start on boot
+
+5. **Application Launch**
+   - Starts as system service or foreground process
+   - Displays access URLs and management commands
 
 ## Manual Configuration
 
@@ -127,6 +133,54 @@ If you need to manually configure the application:
 - Health status: `http://localhost:8081/health`
 - AI configuration: `http://localhost:8081/ai-config`
 
+## Service Deployment
+
+### Automatic Service Setup
+
+When running the deployment script with elevated privileges (sudo/administrator), you'll be prompted to set up the application as a system service.
+
+**Linux (systemd):**
+```bash
+sudo ./deploy.sh 8081 0.0.0.0 openrouter
+# Will prompt for service setup
+```
+
+**Windows (Windows Service):**
+```cmd
+# Run as Administrator
+deploy.bat 8081 0.0.0.0 openrouter
+# Will prompt for service setup
+```
+
+### Service Management
+
+**Linux:**
+```bash
+# Service commands
+sudo systemctl start ai-doctor-matching
+sudo systemctl stop ai-doctor-matching
+sudo systemctl status ai-doctor-matching
+sudo systemctl enable ai-doctor-matching   # Auto-start on boot
+sudo systemctl disable ai-doctor-matching  # Disable auto-start
+
+# View logs
+journalctl -u ai-doctor-matching -f
+```
+
+**Windows:**
+```cmd
+# Service commands
+net start AIDoctorMatching
+net stop AIDoctorMatching
+sc query AIDoctorMatching
+
+# Remove service
+python service_wrapper.py remove
+
+# View logs in Event Viewer
+# Windows Logs > Application
+```
+
 ## Production Deployment
 
 For production deployment, consider:
@@ -134,7 +188,7 @@ For production deployment, consider:
 1. **Use production WSGI server:**
    ```bash
    pip install gunicorn
-   gunicorn -w 4 -b 0.0.0.0:8081 app:app
+   gunicorn -w 4 -b 0.0.0.0:8081 wsgi:application
    ```
 
 2. **Set production environment:**
@@ -143,7 +197,24 @@ For production deployment, consider:
    ```
 
 3. **Use reverse proxy (nginx/Apache)**
+   ```nginx
+   server {
+       listen 80;
+       server_name your-domain.com;
+       
+       location / {
+           proxy_pass http://127.0.0.1:8081;
+           proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
+       }
+   }
+   ```
 
 4. **Set up SSL/HTTPS**
 
 5. **Configure firewall and security**
+
+6. **Use systemd service for production:**
+   - The deployment script creates production-ready systemd services
+   - Services automatically restart on failure
+   - Logs are managed by systemd/journald
