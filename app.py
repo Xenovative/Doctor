@@ -27,30 +27,14 @@ def load_doctors_data():
     """載入醫生資料"""
     csv_path = os.path.join('assets', 'finddoc_doctors_detailed 2.csv')
     try:
-        print(f"正在載入醫生資料: {csv_path}")
-        if not os.path.exists(csv_path):
-            print(f"警告: CSV文件不存在: {csv_path}")
-            return []
-        
         df = pd.read_csv(csv_path)
-        print(f"成功載入 {len(df)} 位醫生資料")
         return df.to_dict('records')
     except Exception as e:
         print(f"載入醫生資料時發生錯誤: {e}")
-        import traceback
-        traceback.print_exc()
         return []
 
-# 全局變數存儲醫生資料 - 延遲載入以避免啟動時掛起
-DOCTORS_DATA = []
-
-def get_doctors_data():
-    """獲取醫生資料，支援延遲載入"""
-    global DOCTORS_DATA
-    if not DOCTORS_DATA:
-        print("延遲載入醫生資料...")
-        DOCTORS_DATA = load_doctors_data()
-    return DOCTORS_DATA
+# 全局變數存儲醫生資料
+DOCTORS_DATA = load_doctors_data()
 
 def generate_user_summary(age: int, symptoms: str, chronic_conditions: str, detailed_health_info: Dict) -> str:
     """生成用戶輸入數據摘要"""
@@ -460,7 +444,7 @@ def health_check():
     
     return jsonify({
         'status': 'healthy',
-        'doctors_loaded': len(get_doctors_data()),
+        'doctors_loaded': len(DOCTORS_DATA),
         'ai_provider': provider,
         'ai_status': ai_status,
         'ai_config': {
@@ -486,8 +470,7 @@ def get_ai_config():
     return jsonify(config_info)
 
 if __name__ == '__main__':
-    doctors_data = get_doctors_data()
-    print(f"已載入 {len(doctors_data)} 位醫生資料")
+    print(f"已載入 {len(DOCTORS_DATA)} 位醫生資料")
     print("正在啟動AI香港醫療配對系統...")
     print(f"當前AI提供商: {AI_CONFIG['provider']}")
     
