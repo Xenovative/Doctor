@@ -509,7 +509,12 @@ start_services() {
         
         # Check status
         if systemctl is-active --quiet $SERVICE_NAME; then
-        log_info "Application service started ✓"
+            log_info "Application service started ✓"
+        else
+            log_error "Failed to start application service"
+            systemctl status $SERVICE_NAME
+            exit 1
+        fi
     else
         sudo systemctl start $SERVICE_NAME
         
