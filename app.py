@@ -484,4 +484,9 @@ if __name__ == '__main__':
         print(f"Ollama模型: {AI_CONFIG['ollama']['model']}")
         print("請確保Ollama服務正在運行：ollama serve")
     
-    app.run(debug=True, host='0.0.0.0', port=8081)
+    # Get host and port from environment variables
+    host = os.getenv('FLASK_HOST', '0.0.0.0')
+    port = int(os.getenv('FLASK_PORT', '8081'))
+    debug = os.getenv('FLASK_DEBUG', 'True').lower() == 'true'
+    
+    app.run(debug=debug, host=host, port=port)
