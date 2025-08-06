@@ -11,10 +11,17 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 APP_NAME="ai-doctor-matching"
-APP_PORT=8081
 SERVICE_NAME="ai-doctor-matching"
 
+# Try to detect the actual port from service file or environment
+if [[ -f "/etc/systemd/system/$SERVICE_NAME.service" ]]; then
+    APP_PORT=$(grep -o 'bind 0.0.0.0:[0-9]*' /etc/systemd/system/$SERVICE_NAME.service | cut -d: -f2 || echo "8081")
+else
+    APP_PORT=${1:-8081}  # Allow port as first argument, default to 8081
+fi
+
 echo -e "${BLUE}🔍 AI Doctor Matching System - Troubleshooting${NC}"
+echo -e "${BLUE}Checking port: $APP_PORT${NC}"
 echo ""
 
 log_info() {

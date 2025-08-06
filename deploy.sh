@@ -2,6 +2,10 @@
 
 # AI Doctor Matching System - Server Deployment Script
 # Usage: ./deploy.sh [production|staging] [ollama|openrouter]
+# Environment variables:
+#   DOMAIN=your-domain.com    - Set domain name
+#   PORT=8080                 - Set custom port (default: 8081)
+#   OPENROUTER_API_KEY=key    - OpenRouter API key (if using OpenRouter)
 
 set -e  # Exit on any error
 
@@ -303,6 +307,47 @@ EOF
     fi
     
     log_info "Systemd service created ✓"
+}
+
+# Prompt for port configuration
+prompt_port() {
+    echo ""
+    log_info "Setting up port configuration..."
+    
+    # Check if port is already set via environment variable
+    if [[ -z "$PORT" ]]; then
+        echo -e "${YELLOW}Please enter the port number (or press Enter for default 8081):${NC}"
+        read -p "Port: " user_port
+        
+        if [[ -n "$user_port" ]]; then
+            # Validate port number
+            if [[ "$user_port" =~ ^[0-9]+$ ]] && [ "$user_port" -ge 1024 ] && [ "$user_port" -le 65535 ]; then
+                # Check if port is already in use
+                if netstat -tlnp | grep ":$user_port " > /dev/null 2>&1; then
+                    log_warn "Port $user_port is already in use. Please choose a different port."
+                    echo -e "${YELLOW}Enter a different port number:${NC}"
+                    read -p "Port: " user_port
+                    if [[ "$user_port" =~ ^[0-9]+$ ]] && [ "$user_port" -ge 1024 ] && [ "$user_port" -le 65535 ]; then
+                        APP_PORT="$user_port"
+                    else
+                        log_error "Invalid port number. Using default 8081."
+                        APP_PORT=8081
+                    fi
+                else
+                    APP_PORT="$user_port"
+                fi
+            else
+                log_error "Invalid port number. Must be between 1024-65535. Using default 8081."
+                APP_PORT=8081
+            fi
+        else
+            APP_PORT=8081
+        fi
+    else
+        APP_PORT="$PORT"
+    fi
+    
+    log_info "Using port: $APP_PORT"
 }
 
 # Prompt for domain name
@@ -627,6 +672,7 @@ main() {
     
     check_root
     check_requirements
+    prompt_port
     prompt_domain
     create_app_user
     setup_app_directory
