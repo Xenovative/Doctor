@@ -414,31 +414,64 @@ setup_firewall() {
     if command -v ufw &> /dev/null; then
         log_info "Configuring firewall..."
         
+        # Check if UFW is already active
+        UFW_STATUS=$(ufw status | head -n1)
+        
         if [[ $RUNNING_AS_ROOT == true ]]; then
-            ufw allow ssh
-            ufw allow 80/tcp
-            ufw allow 443/tcp
-            
-            if [[ "$AI_PROVIDER" == "ollama" ]]; then
-                ufw allow 11434/tcp  # Ollama port
+            # Reset UFW to clean state if there are conflicts
+            if ! ufw status &>/dev/null; then
+                log_warn "UFW has conflicts, resetting to clean state..."
+                ufw --force reset
+                sleep 2
             fi
             
-            # Enable firewall if not already enabled
-            ufw --force enable
+            # Configure rules
+            ufw allow ssh || log_warn "Failed to add SSH rule"
+            ufw allow 80/tcp || log_warn "Failed to add HTTP rule"
+            ufw allow 443/tcp || log_warn "Failed to add HTTPS rule"
+            
+            if [[ "$AI_PROVIDER" == "ollama" ]]; then
+                ufw allow 11434/tcp || log_warn "Failed to add Ollama rule"
+            fi
+            
+            # Enable firewall with error handling
+            if ufw --force enable; then
+                log_info "Firewall enabled successfully ✓"
+            else
+                log_warn "Failed to enable UFW - continuing without firewall"
+            fi
         else
-            sudo ufw allow ssh
-            sudo ufw allow 80/tcp
-            sudo ufw allow 443/tcp
-            
-            if [[ "$AI_PROVIDER" == "ollama" ]]; then
-                sudo ufw allow 11434/tcp  # Ollama port
+            # Reset UFW to clean state if there are conflicts
+            if ! sudo ufw status &>/dev/null; then
+                log_warn "UFW has conflicts, resetting to clean state..."
+                sudo ufw --force reset
+                sleep 2
             fi
             
-            # Enable firewall if not already enabled
-            sudo ufw --force enable
+            # Configure rules
+            sudo ufw allow ssh || log_warn "Failed to add SSH rule"
+            sudo ufw allow 80/tcp || log_warn "Failed to add HTTP rule"
+            sudo ufw allow 443/tcp || log_warn "Failed to add HTTPS rule"
+            
+            if [[ "$AI_PROVIDER" == "ollama" ]]; then
+                sudo ufw allow 11434/tcp || log_warn "Failed to add Ollama rule"
+            fi
+            
+            # Enable firewall with error handling
+            if sudo ufw --force enable; then
+                log_info "Firewall enabled successfully ✓"
+            else
+                log_warn "Failed to enable UFW - continuing without firewall"
+            fi
         fi
         
-        log_info "Firewall configured ✓"
+        # Show final status
+        if [[ $RUNNING_AS_ROOT == true ]]; then
+            ufw status || log_warn "Could not get UFW status"
+        else
+            sudo ufw status || log_warn "Could not get UFW status"
+        fi
+        
     else
         log_warn "UFW not installed - skipping firewall setup"
     fi
@@ -571,6 +604,17 @@ show_summary() {
     
     if [[ "$AI_PROVIDER" == "openrouter" ]] && [[ -z "$OPENROUTER_API_KEY" ]]; then
         echo -e "${YELLOW}⚠️  Don't forget to set OPENROUTER_API_KEY in $APP_DIR/.env${NC}"
+        echo ""
+    fi
+    
+    # Check if UFW had issues
+    if ! ufw status &>/dev/null && command -v ufw &>/dev/null; then
+        echo -e "${YELLOW}⚠️  UFW Firewall Issues Detected${NC}"
+        echo "If you encountered UFW errors, try these manual fixes:"
+        echo "  • Reset UFW: sudo ufw --force reset"
+        echo "  • Flush iptables: sudo iptables -F"
+        echo "  • Restart networking: sudo systemctl restart networking"
+        echo "  • Reconfigure UFW: sudo ufw allow ssh && sudo ufw allow 80/tcp && sudo ufw --force enable"
         echo ""
     fi
 }
