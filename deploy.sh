@@ -429,6 +429,7 @@ setup_firewall() {
             ufw allow ssh || log_warn "Failed to add SSH rule"
             ufw allow 80/tcp || log_warn "Failed to add HTTP rule"
             ufw allow 443/tcp || log_warn "Failed to add HTTPS rule"
+            ufw allow $APP_PORT/tcp || log_warn "Failed to add application port rule"
             
             if [[ "$AI_PROVIDER" == "ollama" ]]; then
                 ufw allow 11434/tcp || log_warn "Failed to add Ollama rule"
@@ -452,6 +453,7 @@ setup_firewall() {
             sudo ufw allow ssh || log_warn "Failed to add SSH rule"
             sudo ufw allow 80/tcp || log_warn "Failed to add HTTP rule"
             sudo ufw allow 443/tcp || log_warn "Failed to add HTTPS rule"
+            sudo ufw allow $APP_PORT/tcp || log_warn "Failed to add application port rule"
             
             if [[ "$AI_PROVIDER" == "ollama" ]]; then
                 sudo ufw allow 11434/tcp || log_warn "Failed to add Ollama rule"
