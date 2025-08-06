@@ -79,6 +79,14 @@ activate_venv() {
 install_dependencies() {
     print_header "Installing Python dependencies..."
     pip install --upgrade pip
+    
+    # Fix numpy/pandas compatibility issues
+    print_status "Installing numpy first to avoid compatibility issues..."
+    pip uninstall -y numpy pandas 2>/dev/null || true
+    pip install numpy==1.24.3
+    pip install pandas==2.0.3
+    
+    # Install remaining dependencies
     pip install -r requirements.txt
     print_status "Dependencies installed successfully"
 }

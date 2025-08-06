@@ -42,6 +42,14 @@ REM Install dependencies
 echo.
 echo [INFO] Installing Python dependencies...
 python -m pip install --upgrade pip
+
+REM Fix numpy/pandas compatibility issues
+echo [INFO] Installing numpy first to avoid compatibility issues...
+pip uninstall -y numpy pandas >nul 2>&1
+pip install numpy==1.24.3
+pip install pandas==2.0.3
+
+REM Install remaining dependencies
 pip install -r requirements.txt
 pip install python-dotenv
 echo [INFO] Dependencies installed successfully
