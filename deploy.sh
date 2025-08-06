@@ -198,10 +198,30 @@ check_requirements() {
         fi
     fi
     
-    # Validate Python version
-    if [[ "$PYTHON_VERSION" < "3.9" ]]; then
+    # Validate Python version (proper version comparison)
+    PYTHON_MAJOR=$(echo $PYTHON_VERSION | cut -d. -f1)
+    PYTHON_MINOR=$(echo $PYTHON_VERSION | cut -d. -f2)
+    
+    if [[ $PYTHON_MAJOR -lt 3 ]] || [[ $PYTHON_MAJOR -eq 3 && $PYTHON_MINOR -lt 9 ]]; then
         log_error "Python $PYTHON_VERSION is too old. Minimum required: 3.9"
-        exit 1
+        log_info "Attempting to install Python 3.11..."
+        install_python
+        
+        # Re-check after installation
+        for py_version in python3.11 python3.10 python3.9 python3.12 python3; do
+            if command -v $py_version &> /dev/null; then
+                PYTHON_CMD=$py_version
+                PYTHON_VERSION=$($py_version --version 2>&1 | cut -d' ' -f2)
+                PYTHON_MAJOR=$(echo $PYTHON_VERSION | cut -d. -f1)
+                PYTHON_MINOR=$(echo $PYTHON_VERSION | cut -d. -f2)
+                break
+            fi
+        done
+        
+        if [[ $PYTHON_MAJOR -lt 3 ]] || [[ $PYTHON_MAJOR -eq 3 && $PYTHON_MINOR -lt 9 ]]; then
+            log_error "Still no compatible Python version found after installation."
+            exit 1
+        fi
     fi
     
     log_info "Using Python $PYTHON_VERSION ($PYTHON_CMD) ✓"
