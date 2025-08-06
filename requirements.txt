@@ -1,4 +1,18 @@
-Flask==2.3.3
-numpy==1.24.3
-pandas==2.0.3
+# Core web framework
+Flask==3.0.0
+Werkzeug==3.0.1
+
+# Data processing
+pandas==2.1.4
+numpy==1.24.4
+
+# HTTP requests
 requests==2.31.0
+charset-normalizer==3.3.2
+idna==3.6
+urllib3==2.1.0
+certifi==2023.11.17
+
+# Production server (will be installed separately)
+# gunicorn==21.2.0
+# python-dotenv==1.0.0

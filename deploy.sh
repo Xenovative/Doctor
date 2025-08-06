@@ -45,6 +45,43 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
+# Install Python if not found
+install_python() {
+    log_info "Installing Python 3.11..."
+    
+    # Detect OS
+    if [[ -f /etc/debian_version ]]; then
+        # Debian/Ubuntu
+        if [[ $RUNNING_AS_ROOT == true ]]; then
+            apt update
+            apt install -y software-properties-common
+            add-apt-repository ppa:deadsnakes/ppa -y
+            apt update
+            apt install -y python3.11 python3.11-venv python3.11-dev python3.11-distutils
+        else
+            sudo apt update
+            sudo apt install -y software-properties-common
+            sudo add-apt-repository ppa:deadsnakes/ppa -y
+            sudo apt update
+            sudo apt install -y python3.11 python3.11-venv python3.11-dev python3.11-distutils
+        fi
+    elif [[ -f /etc/redhat-release ]]; then
+        # RHEL/CentOS/Fedora
+        if [[ $RUNNING_AS_ROOT == true ]]; then
+            yum install -y epel-release
+            yum install -y python311 python311-pip python311-devel
+        else
+            sudo yum install -y epel-release
+            sudo yum install -y python311 python311-pip python311-devel
+        fi
+    else
+        log_error "Unsupported OS. Please install Python 3.11 manually."
+        return 1
+    fi
+    
+    log_info "Python installation completed"
+}
+
 # Check if running as root and adapt accordingly
 check_root() {
     if [[ $EUID -eq 0 ]]; then
@@ -60,15 +97,59 @@ check_root() {
 check_requirements() {
     log_info "Checking system requirements..."
     
-    # Check Python
-    if ! command -v python3 &> /dev/null; then
-        log_error "Python 3 is not installed"
+    # Find the best Python version (3.9, 3.10, 3.11, or 3.12)
+    PYTHON_CMD=""
+    PYTHON_VERSION=""
+    
+    for py_version in python3.11 python3.10 python3.9 python3.12 python3; do
+        if command -v $py_version &> /dev/null; then
+            PYTHON_CMD=$py_version
+            PYTHON_VERSION=$($py_version --version 2>&1 | cut -d' ' -f2)
+            break
+        fi
+    done
+    
+    if [[ -z "$PYTHON_CMD" ]]; then
+        log_error "Python 3.9+ is required but not found"
+        log_info "Attempting to install Python 3.11..."
+        install_python
+        
+        # Re-check after installation
+        for py_version in python3.11 python3.10 python3.9 python3.12 python3; do
+            if command -v $py_version &> /dev/null; then
+                PYTHON_CMD=$py_version
+                PYTHON_VERSION=$($py_version --version 2>&1 | cut -d' ' -f2)
+                break
+            fi
+        done
+        
+        if [[ -z "$PYTHON_CMD" ]]; then
+            log_error "Failed to install Python. Please install manually."
+            exit 1
+        fi
+    fi
+    
+    # Validate Python version
+    if [[ "$PYTHON_VERSION" < "3.9" ]]; then
+        log_error "Python $PYTHON_VERSION is too old. Minimum required: 3.9"
         exit 1
     fi
     
+    log_info "Using Python $PYTHON_VERSION ($PYTHON_CMD) ✓"
+    
+    # Check if python3-venv is installed
+    if ! $PYTHON_CMD -m venv --help &> /dev/null; then
+        log_info "Installing python3-venv..."
+        if [[ $RUNNING_AS_ROOT == true ]]; then
+            apt update && apt install -y python3-venv python3-dev
+        else
+            sudo apt update && sudo apt install -y python3-venv python3-dev
+        fi
+    fi
+    
     # Check pip
-    if ! command -v pip3 &> /dev/null; then
-        log_error "pip3 is not installed"
+    if ! $PYTHON_CMD -m pip --version &> /dev/null; then
+        log_error "pip is not available for $PYTHON_CMD"
         exit 1
     fi
     
@@ -129,59 +210,51 @@ setup_app_directory() {
     fi
 }
 
-# Fix numpy/pandas compatibility issues
-fix_numpy_pandas() {
-    log_info "Fixing numpy/pandas compatibility..."
-    
-    if [[ $RUNNING_AS_ROOT == true ]]; then
-        # Uninstall problematic packages
-        su - $APP_USER -c "$APP_DIR/venv/bin/pip uninstall -y numpy pandas" || true
-        
-        # Install compatible versions in correct order
-        su - $APP_USER -c "$APP_DIR/venv/bin/pip install --no-cache-dir numpy==1.24.3"
-        su - $APP_USER -c "$APP_DIR/venv/bin/pip install --no-cache-dir pandas==2.0.3"
-    else
-        # Uninstall problematic packages
-        sudo -u $APP_USER $APP_DIR/venv/bin/pip uninstall -y numpy pandas || true
-        
-        # Install compatible versions in correct order
-        sudo -u $APP_USER $APP_DIR/venv/bin/pip install --no-cache-dir numpy==1.24.3
-        sudo -u $APP_USER $APP_DIR/venv/bin/pip install --no-cache-dir pandas==2.0.3
-    fi
-    
-    log_info "Numpy/pandas compatibility fixed ✓"
-}
-
 # Install Python dependencies
 install_dependencies() {
-    log_info "Installing Python dependencies..."
+    log_info "Installing Python dependencies with $PYTHON_CMD..."
     
     if [[ $RUNNING_AS_ROOT == true ]]; then
-        # Create virtual environment
-        su - $APP_USER -c "python3 -m venv $APP_DIR/venv"
+        # Create virtual environment with specific Python version
+        log_info "Creating virtual environment..."
+        su - $APP_USER -c "$PYTHON_CMD -m venv $APP_DIR/venv --clear"
         
-        # Install dependencies
-        su - $APP_USER -c "$APP_DIR/venv/bin/pip install --upgrade pip"
-        su - $APP_USER -c "$APP_DIR/venv/bin/pip install --no-cache-dir -r $APP_DIR/requirements.txt"
+        # Upgrade pip first
+        log_info "Upgrading pip..."
+        su - $APP_USER -c "$APP_DIR/venv/bin/python -m pip install --upgrade pip setuptools wheel"
+        
+        # Install application dependencies
+        log_info "Installing application dependencies..."
+        su - $APP_USER -c "$APP_DIR/venv/bin/pip install -r $APP_DIR/requirements.txt"
         
         # Install production dependencies
-        su - $APP_USER -c "$APP_DIR/venv/bin/pip install --no-cache-dir gunicorn supervisor"
+        log_info "Installing production dependencies..."
+        su - $APP_USER -c "$APP_DIR/venv/bin/pip install gunicorn==21.2.0 python-dotenv==1.0.0"
         
-        # Fix numpy/pandas compatibility if needed
-        fix_numpy_pandas
+        # Verify installation
+        log_info "Verifying installation..."
+        su - $APP_USER -c "$APP_DIR/venv/bin/python -c 'import flask, pandas, requests; print(\"Core dependencies OK\")'"
+        
     else
-        # Create virtual environment
-        sudo -u $APP_USER python3 -m venv $APP_DIR/venv
+        # Create virtual environment with specific Python version
+        log_info "Creating virtual environment..."
+        sudo -u $APP_USER $PYTHON_CMD -m venv $APP_DIR/venv --clear
         
-        # Install dependencies
-        sudo -u $APP_USER $APP_DIR/venv/bin/pip install --upgrade pip
-        sudo -u $APP_USER $APP_DIR/venv/bin/pip install --no-cache-dir -r $APP_DIR/requirements.txt
+        # Upgrade pip first
+        log_info "Upgrading pip..."
+        sudo -u $APP_USER $APP_DIR/venv/bin/python -m pip install --upgrade pip setuptools wheel
+        
+        # Install application dependencies
+        log_info "Installing application dependencies..."
+        sudo -u $APP_USER $APP_DIR/venv/bin/pip install -r $APP_DIR/requirements.txt
         
         # Install production dependencies
-        sudo -u $APP_USER $APP_DIR/venv/bin/pip install --no-cache-dir gunicorn supervisor
+        log_info "Installing production dependencies..."
+        sudo -u $APP_USER $APP_DIR/venv/bin/pip install gunicorn==21.2.0 python-dotenv==1.0.0
         
-        # Fix numpy/pandas compatibility if needed
-        fix_numpy_pandas
+        # Verify installation
+        log_info "Verifying installation..."
+        sudo -u $APP_USER $APP_DIR/venv/bin/python -c "import flask, pandas, requests; print('Core dependencies OK')"
     fi
     
     log_info "Dependencies installed ✓"
