@@ -1,0 +1,827 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    color: #333;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 40px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    padding: 40px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.header-content i {
+    font-size: 3rem;
+    color: #667eea;
+    margin-bottom: 20px;
+}
+
+.header h1 {
+    font-size: 2.5rem;
+    color: #333;
+    margin-bottom: 10px;
+    font-weight: 700;
+}
+
+.header p {
+    font-size: 1.2rem;
+    color: #666;
+    font-weight: 300;
+}
+
+.main-content {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 30px;
+}
+
+.form-container {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    padding: 40px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.form-container h2 {
+    font-size: 1.8rem;
+    margin-bottom: 30px;
+    color: #333;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.form-container h2 i {
+    color: #667eea;
+}
+
+.form-group {
+    margin-bottom: 25px;
+}
+
+.form-group label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #333;
+    font-size: 1.1rem;
+}
+
+.form-group label i {
+    color: #667eea;
+    width: 20px;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 15px;
+    border: 2px solid #e1e5e9;
+    border-radius: 10px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background: #fff;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.submit-btn {
+    width: 100%;
+    padding: 18px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 1.2rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.submit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+}
+
+.submit-btn:active {
+    transform: translateY(0);
+}
+
+.loading {
+    text-align: center;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    padding: 40px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.results-container {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    padding: 40px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.results-container h2 {
+    font-size: 1.8rem;
+    margin-bottom: 30px;
+    color: #333;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.results-container h2 i {
+    color: #667eea;
+}
+
+.doctor-card {
+    background: white;
+    border-radius: 15px;
+    padding: 25px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    border: 1px solid #e8ecef;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.doctor-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    border-color: #3498db;
+}
+
+.doctor-card:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.doctor-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.doctor-avatar {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+    margin-right: 15px;
+}
+
+.doctor-info h3 {
+    font-size: 1.3rem;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.doctor-specialty {
+    color: #667eea;
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.doctor-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.detail-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.detail-item i {
+    color: #667eea;
+    margin-top: 3px;
+    width: 16px;
+}
+
+.detail-item strong {
+    color: #333;
+    margin-right: 5px;
+}
+
+.match-score {
+    position: absolute;
+    top: -10px;
+    right: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    box-shadow: 0 3px 10px rgba(102, 126, 234, 0.3);
+}
+
+.whatsapp-hint {
+    position: absolute;
+    top: -10px;
+    left: 20px;
+    background: #25D366;
+    color: white;
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    box-shadow: 0 3px 10px rgba(37, 211, 102, 0.3);
+    opacity: 0.9;
+    transition: opacity 0.3s ease;
+}
+
+.doctor-card:hover .whatsapp-hint {
+    opacity: 1;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.ai-analysis {
+    background: #f8f9ff;
+    border-radius: 10px;
+    padding: 15px;
+    margin-top: 15px;
+    border-left: 4px solid #667eea;
+}
+
+.ai-analysis h4 {
+    color: #667eea;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ai-analysis p {
+    color: #666;
+    line-height: 1.6;
+}
+
+.user-summary-card {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    border-radius: 15px;
+    padding: 25px;
+    margin-bottom: 20px;
+    color: white;
+    box-shadow: 0 8px 25px rgba(79, 172, 254, 0.3);
+    transition: all 0.3s ease;
+}
+
+.user-summary-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 35px rgba(79, 172, 254, 0.4);
+}
+
+.summary-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.summary-icon {
+    width: 50px;
+    height: 50px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 15px;
+    font-size: 1.5rem;
+}
+
+.summary-title h3 {
+    margin: 0;
+    font-size: 1.4rem;
+    font-weight: 600;
+}
+
+.summary-content {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 20px;
+    backdrop-filter: blur(10px);
+}
+
+.summary-text {
+    font-size: 1rem;
+    line-height: 1.6;
+    font-weight: 400;
+}
+
+.diagnosis-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 20px;
+    padding: 30px;
+    margin-bottom: 30px;
+    color: white;
+    box-shadow: 0 15px 35px rgba(102, 126, 234, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.diagnosis-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 25px;
+    position: relative;
+    z-index: 1;
+}
+
+.diagnosis-icon {
+    width: 70px;
+    height: 70px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 20px;
+    backdrop-filter: blur(10px);
+}
+
+.diagnosis-icon i {
+    font-size: 2rem;
+    color: white;
+}
+
+.diagnosis-title h3 {
+    font-size: 1.8rem;
+    margin-bottom: 8px;
+    font-weight: 700;
+}
+
+.recommended-specialty {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-size: 1rem;
+    font-weight: 600;
+    display: inline-block;
+    backdrop-filter: blur(10px);
+}
+
+.diagnosis-content {
+    position: relative;
+    z-index: 1;
+    margin-bottom: 25px;
+}
+
+.diagnosis-text {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    padding: 25px;
+    line-height: 1.8;
+    font-size: 1.1rem;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.diagnosis-disclaimer {
+    background: rgba(255, 193, 7, 0.2);
+    border: 1px solid rgba(255, 193, 7, 0.3);
+    border-radius: 10px;
+    padding: 15px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    position: relative;
+    z-index: 1;
+    backdrop-filter: blur(10px);
+}
+
+.diagnosis-disclaimer i {
+    color: #ffc107;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.diagnosis-disclaimer strong {
+    color: #ffc107;
+}
+
+.required-note {
+    color: #e74c3c;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.optional-note {
+    color: #95a5a6;
+    font-size: 0.9rem;
+    font-weight: 400;
+}
+
+.input-hint {
+    font-size: 0.85rem;
+    color: #7f8c8d;
+    margin-top: 5px;
+    font-style: italic;
+}
+
+.chronic-conditions-container {
+    background: #f8f9fa;
+    border: 2px solid #e9ecef;
+    border-radius: 10px;
+    padding: 15px;
+    margin-top: 8px;
+}
+
+.checkbox-group {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 15px;
+}
+
+.checkbox-item {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    background: white;
+    border: 1px solid #dee2e6;
+    position: relative;
+}
+
+.checkbox-item:hover {
+    background: #e3f2fd;
+    border-color: #2196f3;
+    transform: translateY(-1px);
+}
+
+.checkbox-item input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+}
+
+.checkmark {
+    height: 18px;
+    width: 18px;
+    background-color: #fff;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    margin-right: 10px;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.checkbox-item:hover .checkmark {
+    border-color: #2196f3;
+}
+
+.checkbox-item input:checked ~ .checkmark {
+    background-color: #2196f3;
+    border-color: #2196f3;
+}
+
+.checkmark:after {
+    content: "";
+    position: absolute;
+    display: none;
+    left: 5px;
+    top: 2px;
+    width: 4px;
+    height: 8px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.checkbox-item input:checked ~ .checkmark:after {
+    display: block;
+}
+
+.other-condition-input {
+    margin-top: 10px;
+}
+
+.other-condition-input input {
+    width: 100%;
+    padding: 10px;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: border-color 0.3s ease;
+}
+
+.other-condition-input input:focus {
+    outline: none;
+    border-color: #2196f3;
+    box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+}
+
+/* 更多資料按鈕和表單樣式 */
+.more-info-toggle {
+    margin-top: 15px;
+    text-align: center;
+}
+
+.more-info-button {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 25px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.more-info-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.more-info-button:active {
+    transform: translateY(0);
+}
+
+.more-info-button i {
+    margin-right: 8px;
+    transition: transform 0.3s ease;
+}
+
+.more-info-button.expanded i {
+    transform: rotate(45deg);
+}
+
+.more-info-section {
+    margin-top: 20px;
+    background: #f8f9fa;
+    border: 2px solid #e9ecef;
+    border-radius: 15px;
+    padding: 25px;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        max-height: 0;
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+    to {
+        opacity: 1;
+        max-height: 1000px;
+        padding-top: 25px;
+        padding-bottom: 25px;
+    }
+}
+
+.more-info-header {
+    text-align: center;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.more-info-header h4 {
+    color: #495057;
+    margin: 0 0 10px 0;
+    font-size: 1.3rem;
+}
+
+.more-info-header p {
+    color: #6c757d;
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+.detailed-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.detailed-info-grid .form-group.full-width {
+    grid-column: span 2;
+}
+
+.detailed-info-grid .form-group label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.detailed-info-grid .form-group input,
+.detailed-info-grid .form-group textarea {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: border-color 0.3s ease;
+    box-sizing: border-box;
+}
+
+.detailed-info-grid .form-group input:focus,
+.detailed-info-grid .form-group textarea:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.detailed-info-grid .form-group textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+
+.checkbox-group-detailed {
+    grid-column: span 2;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.checkbox-item-detailed {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 12px 15px;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+    background: white;
+    border: 2px solid #dee2e6;
+    position: relative;
+}
+
+.checkbox-item-detailed:hover {
+    background: #e3f2fd;
+    border-color: #2196f3;
+    transform: translateY(-1px);
+}
+
+.checkbox-item-detailed input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+}
+
+.checkmark-detailed {
+    height: 20px;
+    width: 20px;
+    background-color: #fff;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    margin-right: 12px;
+    position: relative;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+}
+
+.checkbox-item-detailed:hover .checkmark-detailed {
+    border-color: #2196f3;
+}
+
+.checkbox-item-detailed input:checked ~ .checkmark-detailed {
+    background-color: #667eea;
+    border-color: #667eea;
+}
+
+.checkmark-detailed:after {
+    content: "";
+    position: absolute;
+    display: none;
+    left: 6px;
+    top: 2px;
+    width: 5px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.checkbox-item-detailed input:checked ~ .checkmark-detailed:after {
+    display: block;
+}
+
+@media (max-width: 768px) {
+    .detailed-info-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .detailed-info-grid .form-group.full-width {
+        grid-column: span 1;
+    }
+    
+    .checkbox-group-detailed {
+        grid-column: span 1;
+        grid-template-columns: 1fr;
+    }
+}
+
+/* 隱藏醫生卡片中的聯絡詳情 */
+.doctor-details .detail-item .fa-phone,
+.doctor-details .detail-item .fa-envelope,
+.doctor-details .detail-item .fa-map-marker-alt {
+    display: none;
+}
+
+/* 隱藏包含這些圖標的整個detail-item */
+.doctor-details .detail-item:nth-child(2),  /* 電話 */
+.doctor-details .detail-item:nth-child(3),  /* 電郵 */
+.doctor-details .detail-item:nth-child(4) { /* 地址 */
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 15px;
+    }
+    
+    .header {
+        padding: 30px 20px;
+    }
+    
+    .header h1 {
+        font-size: 2rem;
+    }
+    
+    .form-container,
+    .results-container {
+        padding: 25px;
+    }
+    
+    .doctor-details {
+        grid-template-columns: 1fr;
+    }
+}

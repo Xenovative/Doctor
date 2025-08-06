@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI香港醫療配對系統</title>
+    <link rel="stylesheet" href="static/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-content">
+                <i class="fas fa-stethoscope"></i>
+                <h1>AI香港醫療配對系統</h1>
+                <p>智能分析病徵，精準配對專科醫生</p>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="form-container">
+                <h2><i class="fas fa-user-md"></i> 病人資料</h2>
+                <form id="patientForm">
+                    <div class="form-group">
+                        <label for="age">
+                            <i class="fas fa-birthday-cake"></i>
+                            年齡
+                        </label>
+                        <input type="number" id="age" name="age" min="1" max="120" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="symptoms">
+                            <i class="fas fa-stethoscope"></i>
+                            症狀描述 <span class="required-note">(至少需要3個症狀)</span>
+                        </label>
+                        <textarea id="symptoms" name="symptoms" required placeholder="請詳細描述您的症狀，例如：頭痛、發燒、咳嗽、疲勞等（至少3個症狀以便AI準確分析）"></textarea>
+                        <div class="input-hint">請盡量詳細描述症狀，包括持續時間、嚴重程度等</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="chronic-conditions">
+                            <i class="fas fa-heart-pulse"></i>
+                            長期病史 <span class="optional-note">(可選)</span>
+                        </label>
+                        <div class="chronic-conditions-container">
+                            <div class="checkbox-group">
+                                <label class="checkbox-item">
+                                    <input type="checkbox" name="chronic-condition" value="血壓高">
+                                    <span class="checkmark"></span>
+                                    血壓高
+                                </label>
+                                <label class="checkbox-item">
+                                    <input type="checkbox" name="chronic-condition" value="糖尿病">
+                                    <span class="checkmark"></span>
+                                    糖尿病
+                                </label>
+                                <label class="checkbox-item">
+                                    <input type="checkbox" name="chronic-condition" value="胆固醇高">
+                                    <span class="checkmark"></span>
+                                    胆固醇高
+                                </label>
+                                <label class="checkbox-item">
+                                    <input type="checkbox" name="chronic-condition" value="心臟病">
+                                    <span class="checkmark"></span>
+                                    心臟病
+                                </label>
+                                <label class="checkbox-item">
+                                    <input type="checkbox" name="chronic-condition" value="中風">
+                                    <span class="checkmark"></span>
+                                    中風
+                                </label>
+                                <label class="checkbox-item">
+                                    <input type="checkbox" name="chronic-condition" value="哮喘">
+                                    <span class="checkmark"></span>
+                                    哮喘
+                                </label>
+                                <label class="checkbox-item">
+                                    <input type="checkbox" name="chronic-condition" value="慢性肺病">
+                                    <span class="checkmark"></span>
+                                    慢性肺病
+                                </label>
+                                <label class="checkbox-item">
+                                    <input type="checkbox" name="chronic-condition" value="乙型肝炎">
+                                    <span class="checkmark"></span>
+                                    乙型肝炎
+                                </label>
+                                <label class="checkbox-item">
+                                    <input type="checkbox" name="chronic-condition" value="其他" id="other-condition-checkbox">
+                                    <span class="checkmark"></span>
+                                    其他長期疾病
+                                </label>
+                            </div>
+                            <div class="other-condition-input" id="other-condition-input" style="display: none;">
+                                <input type="text" id="other-condition-text" placeholder="請輸入其他長期疾病">
+                            </div>
+                        </div>
+                        <div class="input-hint">可選擇多項，如無長期病史可不選</div>
+                        
+                        <!-- 更多資料按鈕 -->
+                        <div class="more-info-toggle">
+                            <button type="button" id="more-info-btn" class="more-info-button">
+                                <i class="fas fa-plus-circle"></i>
+                                更多資料
+                            </button>
+                        </div>
+                        
+                        <!-- 更多資料表單 -->
+                        <div id="more-info-section" class="more-info-section" style="display: none;">
+                            <div class="more-info-header">
+                                <h4><i class="fas fa-clipboard-list"></i> 詳細健康資料</h4>
+                                <p>以下資料可協助AI更精準地分析您的病情</p>
+                            </div>
+                            
+                            <div class="detailed-info-grid">
+                                <div class="form-group">
+                                    <label for="height">
+                                        <i class="fas fa-ruler-vertical"></i>
+                                        身高 (cm)
+                                    </label>
+                                    <input type="number" id="height" name="height" placeholder="例如：170">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="weight">
+                                        <i class="fas fa-weight"></i>
+                                        體重 (kg)
+                                    </label>
+                                    <input type="number" id="weight" name="weight" placeholder="例如：65">
+                                </div>
+                                
+                                <div class="form-group full-width">
+                                    <label for="medications">
+                                        <i class="fas fa-pills"></i>
+                                        有服用任何長期藥物嗎？ 如有，請提供藥物種類名稱。
+                                    </label>
+                                    <textarea id="medications" name="medications" placeholder="例如：降血壓藥、糖尿病藥物等"></textarea>
+                                </div>
+                                
+                                <div class="form-group full-width">
+                                    <label for="allergies">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        有食物/藥物敏感嗎？ 如有，請提供
+                                    </label>
+                                    <textarea id="allergies" name="allergies" placeholder="例如：花生、盤尼西林等"></textarea>
+                                </div>
+                                
+                                <div class="form-group full-width">
+                                    <label for="surgeries">
+                                        <i class="fas fa-user-md"></i>
+                                        請問客人曾經有冒做過手術？如有，請提供
+                                    </label>
+                                    <textarea id="surgeries" name="surgeries" placeholder="例如：盲腺手術、2020年等"></textarea>
+                                </div>
+                                
+                                <div class="checkbox-group-detailed">
+                                    <label class="checkbox-item-detailed">
+                                        <input type="checkbox" id="blood-thinner" name="blood-thinner">
+                                        <span class="checkmark-detailed"></span>
+                                        有服薄血藥嗎？
+                                    </label>
+                                    
+                                    <label class="checkbox-item-detailed">
+                                        <input type="checkbox" id="recent-visit" name="recent-visit">
+                                        <span class="checkmark-detailed"></span>
+                                        三個月內有否就診？
+                                    </label>
+                                    
+                                    <label class="checkbox-item-detailed">
+                                        <input type="checkbox" id="cpap-machine" name="cpap-machine">
+                                        <span class="checkmark-detailed"></span>
+                                        睡覺時需要用呼吸機嗎？
+                                    </label>
+                                    
+                                    <label class="checkbox-item-detailed">
+                                        <input type="checkbox" id="loose-teeth" name="loose-teeth">
+                                        <span class="checkmark-detailed"></span>
+                                        有沒有已知，但未處理嘉鬆牙？
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="language">
+                            <i class="fas fa-language"></i>
+                            偏好語言
+                        </label>
+                        <select id="language" name="language" required>
+                            <option value="">請選擇語言</option>
+                            <option value="廣東話">廣東話</option>
+                            <option value="英語">英語</option>
+                            <option value="普通話">普通話</option>
+                            <option value="法語">法語</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="location">
+                            <i class="fas fa-map-marker-alt"></i>
+                            所在地區
+                        </label>
+                        <select id="location" name="location" required>
+                            <option value="">請選擇地區</option>
+                            <option value="香港島">香港島</option>
+                            <option value="九龍">九龍</option>
+                            <option value="新界">新界</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="submit-btn">
+                        <i class="fas fa-search"></i>
+                        尋找合適醫生
+                    </button>
+                </form>
+            </div>
+
+            <div class="loading" id="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p>AI正在分析您的症狀並配對合適的醫生...</p>
+            </div>
+
+            <div class="results-container" id="results" style="display: none;">
+                <h2><i class="fas fa-user-doctor"></i> 推薦醫生</h2>
+                <div id="doctorList"></div>
+            </div>
+        </main>
+    </div>
+
+    <script src="static/script.js"></script>
+</body>
+</html>
