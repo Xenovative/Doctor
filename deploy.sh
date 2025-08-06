@@ -49,37 +49,106 @@ log_error() {
 install_python() {
     log_info "Installing Python 3.11..."
     
-    # Detect OS
+    # Detect OS and install Python
     if [[ -f /etc/debian_version ]]; then
         # Debian/Ubuntu
+        log_info "Detected Debian/Ubuntu system"
         if [[ $RUNNING_AS_ROOT == true ]]; then
             apt update
-            apt install -y software-properties-common
-            add-apt-repository ppa:deadsnakes/ppa -y
-            apt update
-            apt install -y python3.11 python3.11-venv python3.11-dev python3.11-distutils
+            apt install -y software-properties-common curl wget gnupg
+            
+            # Try deadsnakes PPA first
+            if add-apt-repository ppa:deadsnakes/ppa -y; then
+                apt update
+                apt install -y python3.11 python3.11-venv python3.11-dev python3.11-distutils python3.11-pip
+            else
+                log_warn "Failed to add deadsnakes PPA, trying alternative method..."
+                # Fallback to building from source or using system packages
+                apt install -y python3 python3-venv python3-dev python3-pip
+            fi
         else
             sudo apt update
-            sudo apt install -y software-properties-common
-            sudo add-apt-repository ppa:deadsnakes/ppa -y
-            sudo apt update
-            sudo apt install -y python3.11 python3.11-venv python3.11-dev python3.11-distutils
+            sudo apt install -y software-properties-common curl wget gnupg
+            
+            # Try deadsnakes PPA first
+            if sudo add-apt-repository ppa:deadsnakes/ppa -y; then
+                sudo apt update
+                sudo apt install -y python3.11 python3.11-venv python3.11-dev python3.11-distutils python3.11-pip
+            else
+                log_warn "Failed to add deadsnakes PPA, trying alternative method..."
+                # Fallback to building from source or using system packages
+                sudo apt install -y python3 python3-venv python3-dev python3-pip
+            fi
         fi
-    elif [[ -f /etc/redhat-release ]]; then
-        # RHEL/CentOS/Fedora
+        
+    elif [[ -f /etc/redhat-release ]] || [[ -f /etc/centos-release ]] || [[ -f /etc/fedora-release ]]; then
+        # RHEL/CentOS/Fedora/Rocky/AlmaLinux
+        log_info "Detected RHEL/CentOS/Fedora system"
+        
+        if command -v dnf &> /dev/null; then
+            # Modern Fedora/RHEL 8+
+            if [[ $RUNNING_AS_ROOT == true ]]; then
+                dnf install -y epel-release
+                dnf install -y python3.11 python3.11-pip python3.11-devel python3.11-venv || \
+                dnf install -y python3 python3-pip python3-devel python3-venv
+            else
+                sudo dnf install -y epel-release
+                sudo dnf install -y python3.11 python3.11-pip python3.11-devel python3.11-venv || \
+                sudo dnf install -y python3 python3-pip python3-devel python3-venv
+            fi
+        else
+            # Older CentOS/RHEL with yum
+            if [[ $RUNNING_AS_ROOT == true ]]; then
+                yum install -y epel-release
+                yum install -y python311 python311-pip python311-devel || \
+                yum install -y python3 python3-pip python3-devel
+            else
+                sudo yum install -y epel-release
+                sudo yum install -y python311 python311-pip python311-devel || \
+                sudo yum install -y python3 python3-pip python3-devel
+            fi
+        fi
+        
+    elif [[ -f /etc/arch-release ]]; then
+        # Arch Linux
+        log_info "Detected Arch Linux system"
         if [[ $RUNNING_AS_ROOT == true ]]; then
-            yum install -y epel-release
-            yum install -y python311 python311-pip python311-devel
+            pacman -Sy --noconfirm python python-pip python-virtualenv
         else
-            sudo yum install -y epel-release
-            sudo yum install -y python311 python311-pip python311-devel
+            sudo pacman -Sy --noconfirm python python-pip python-virtualenv
         fi
+        
+    elif [[ -f /etc/alpine-release ]]; then
+        # Alpine Linux
+        log_info "Detected Alpine Linux system"
+        if [[ $RUNNING_AS_ROOT == true ]]; then
+            apk update
+            apk add python3 python3-dev py3-pip py3-virtualenv build-base
+        else
+            sudo apk update
+            sudo apk add python3 python3-dev py3-pip py3-virtualenv build-base
+        fi
+        
     else
-        log_error "Unsupported OS. Please install Python 3.11 manually."
+        log_error "Unsupported OS. Please install Python 3.9+ manually."
+        log_info "Supported systems: Ubuntu, Debian, RHEL, CentOS, Fedora, Arch, Alpine"
+        log_info "Manual installation: https://www.python.org/downloads/"
         return 1
     fi
     
     log_info "Python installation completed"
+    
+    # Verify installation
+    sleep 2
+    for py_version in python3.11 python3.10 python3.9 python3; do
+        if command -v $py_version &> /dev/null; then
+            log_info "Successfully installed: $py_version ($($py_version --version))"
+            return 0
+        fi
+    done
+    
+    log_warn "Python installation may have failed. Please check manually."
+    return 1
 }
 
 # Check if running as root and adapt accordingly
