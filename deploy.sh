@@ -21,6 +21,7 @@ APP_USER="doctor-app"
 APP_DIR="/opt/${APP_NAME}"
 SERVICE_NAME="${APP_NAME}"
 DOMAIN=""
+RUNNING_AS_ROOT=false
 
 echo -e "${BLUE}🚀 AI Doctor Matching System Deployment Script${NC}"
 echo -e "${BLUE}Environment: ${ENVIRONMENT}${NC}"
@@ -40,11 +41,14 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Check if running as root
+# Check if running as root and adapt accordingly
 check_root() {
     if [[ $EUID -eq 0 ]]; then
-        log_error "This script should not be run as root for security reasons"
-        exit 1
+        log_warn "Running as root - will create application user for security"
+        RUNNING_AS_ROOT=true
+    else
+        log_info "Running as non-root user"
+        RUNNING_AS_ROOT=false
     fi
 }
 
@@ -82,7 +86,11 @@ check_requirements() {
 create_app_user() {
     if ! id "$APP_USER" &>/dev/null; then
         log_info "Creating application user: $APP_USER"
-        sudo useradd --system --shell /bin/bash --home-dir $APP_DIR --create-home $APP_USER
+        if [[ $RUNNING_AS_ROOT == true ]]; then
+            useradd --system --shell /bin/bash --home-dir $APP_DIR --create-home $APP_USER
+        else
+            sudo useradd --system --shell /bin/bash --home-dir $APP_DIR --create-home $APP_USER
+        fi
     else
         log_info "Application user $APP_USER already exists ✓"
     fi
@@ -92,31 +100,56 @@ create_app_user() {
 setup_app_directory() {
     log_info "Setting up application directory: $APP_DIR"
     
-    sudo mkdir -p $APP_DIR
-    sudo chown $APP_USER:$APP_USER $APP_DIR
-    
-    # Copy application files
-    log_info "Copying application files..."
-    sudo -u $APP_USER cp -r . $APP_DIR/
-    
-    # Set proper permissions
-    sudo chown -R $APP_USER:$APP_USER $APP_DIR
-    sudo chmod +x $APP_DIR/app.py
+    if [[ $RUNNING_AS_ROOT == true ]]; then
+        mkdir -p $APP_DIR
+        chown $APP_USER:$APP_USER $APP_DIR
+        
+        # Copy application files
+        log_info "Copying application files..."
+        cp -r . $APP_DIR/
+        
+        # Set proper permissions
+        chown -R $APP_USER:$APP_USER $APP_DIR
+        chmod +x $APP_DIR/app.py
+    else
+        sudo mkdir -p $APP_DIR
+        sudo chown $APP_USER:$APP_USER $APP_DIR
+        
+        # Copy application files
+        log_info "Copying application files..."
+        sudo -u $APP_USER cp -r . $APP_DIR/
+        
+        # Set proper permissions
+        sudo chown -R $APP_USER:$APP_USER $APP_DIR
+        sudo chmod +x $APP_DIR/app.py
+    fi
 }
 
 # Install Python dependencies
 install_dependencies() {
     log_info "Installing Python dependencies..."
     
-    # Create virtual environment
-    sudo -u $APP_USER python3 -m venv $APP_DIR/venv
-    
-    # Install dependencies
-    sudo -u $APP_USER $APP_DIR/venv/bin/pip install --upgrade pip
-    sudo -u $APP_USER $APP_DIR/venv/bin/pip install -r $APP_DIR/requirements.txt
-    
-    # Install production dependencies
-    sudo -u $APP_USER $APP_DIR/venv/bin/pip install gunicorn supervisor
+    if [[ $RUNNING_AS_ROOT == true ]]; then
+        # Create virtual environment
+        su - $APP_USER -c "python3 -m venv $APP_DIR/venv"
+        
+        # Install dependencies
+        su - $APP_USER -c "$APP_DIR/venv/bin/pip install --upgrade pip"
+        su - $APP_USER -c "$APP_DIR/venv/bin/pip install -r $APP_DIR/requirements.txt"
+        
+        # Install production dependencies
+        su - $APP_USER -c "$APP_DIR/venv/bin/pip install gunicorn supervisor"
+    else
+        # Create virtual environment
+        sudo -u $APP_USER python3 -m venv $APP_DIR/venv
+        
+        # Install dependencies
+        sudo -u $APP_USER $APP_DIR/venv/bin/pip install --upgrade pip
+        sudo -u $APP_USER $APP_DIR/venv/bin/pip install -r $APP_DIR/requirements.txt
+        
+        # Install production dependencies
+        sudo -u $APP_USER $APP_DIR/venv/bin/pip install gunicorn supervisor
+    fi
     
     log_info "Dependencies installed ✓"
 }
@@ -135,12 +168,21 @@ setup_ollama() {
         fi
         
         # Start Ollama service
-        sudo systemctl enable ollama
-        sudo systemctl start ollama
+        if [[ $RUNNING_AS_ROOT == true ]]; then
+            systemctl enable ollama
+            systemctl start ollama
+        else
+            sudo systemctl enable ollama
+            sudo systemctl start ollama
+        fi
         
         # Pull the model
         log_info "Pulling Ollama model..."
-        sudo -u $APP_USER ollama pull llama3.1:8b
+        if [[ $RUNNING_AS_ROOT == true ]]; then
+            su - $APP_USER -c "ollama pull llama3.1:8b"
+        else
+            sudo -u $APP_USER ollama pull llama3.1:8b
+        fi
         
         log_info "Ollama setup complete ✓"
     fi
@@ -151,7 +193,8 @@ create_env_file() {
     log_info "Creating environment configuration..."
     
     ENV_FILE="$APP_DIR/.env"
-    sudo -u $APP_USER cat > $ENV_FILE << EOF
+    if [[ $RUNNING_AS_ROOT == true ]]; then
+        cat > $ENV_FILE << EOF
 # Environment Configuration
 FLASK_ENV=$ENVIRONMENT
 PORT=$APP_PORT
@@ -167,6 +210,24 @@ OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
 OPENROUTER_MODEL=${OPENROUTER_MODEL:-anthropic/claude-3.5-sonnet}
 OPENROUTER_MAX_TOKENS=${OPENROUTER_MAX_TOKENS:-4000}
 EOF
+    else
+        sudo -u $APP_USER cat > $ENV_FILE << EOF
+# Environment Configuration
+FLASK_ENV=$ENVIRONMENT
+PORT=$APP_PORT
+
+# AI Configuration
+AI_PROVIDER=$AI_PROVIDER
+
+# Ollama Configuration
+OLLAMA_MODEL=llama3.1:8b
+
+# OpenRouter Configuration (set these if using OpenRouter)
+OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+OPENROUTER_MODEL=${OPENROUTER_MODEL:-anthropic/claude-3.5-sonnet}
+OPENROUTER_MAX_TOKENS=${OPENROUTER_MAX_TOKENS:-4000}
+EOF
+    fi
 
     if [[ "$AI_PROVIDER" == "openrouter" ]]; then
         if [[ -z "$OPENROUTER_API_KEY" ]]; then
@@ -174,8 +235,13 @@ EOF
         fi
     fi
     
-    sudo chown $APP_USER:$APP_USER $ENV_FILE
-    sudo chmod 600 $ENV_FILE
+    if [[ $RUNNING_AS_ROOT == true ]]; then
+        chown $APP_USER:$APP_USER $ENV_FILE
+        chmod 600 $ENV_FILE
+    else
+        sudo chown $APP_USER:$APP_USER $ENV_FILE
+        sudo chmod 600 $ENV_FILE
+    fi
     
     log_info "Environment file created ✓"
 }
@@ -184,7 +250,8 @@ EOF
 create_systemd_service() {
     log_info "Creating systemd service..."
     
-    sudo tee /etc/systemd/system/${SERVICE_NAME}.service > /dev/null << EOF
+    if [[ $RUNNING_AS_ROOT == true ]]; then
+        tee /etc/systemd/system/${SERVICE_NAME}.service > /dev/null << EOF
 [Unit]
 Description=AI Doctor Matching System
 After=network.target
@@ -204,9 +271,36 @@ RestartSec=10
 [Install]
 WantedBy=multi-user.target
 EOF
+    else
+        sudo tee /etc/systemd/system/${SERVICE_NAME}.service > /dev/null << EOF
+[Unit]
+Description=AI Doctor Matching System
+After=network.target
 
-    sudo systemctl daemon-reload
-    sudo systemctl enable $SERVICE_NAME
+[Service]
+Type=exec
+User=$APP_USER
+Group=$APP_USER
+WorkingDirectory=$APP_DIR
+Environment=PATH=$APP_DIR/venv/bin
+EnvironmentFile=$APP_DIR/.env
+ExecStart=$APP_DIR/venv/bin/gunicorn --bind 0.0.0.0:$APP_PORT --workers 4 --timeout 120 app:app
+ExecReload=/bin/kill -s HUP \$MAINPID
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    fi
+
+    if [[ $RUNNING_AS_ROOT == true ]]; then
+        systemctl daemon-reload
+        systemctl enable $SERVICE_NAME
+    else
+        sudo systemctl daemon-reload
+        sudo systemctl enable $SERVICE_NAME
+    fi
     
     log_info "Systemd service created ✓"
 }
@@ -236,7 +330,8 @@ setup_nginx() {
     if command -v nginx &> /dev/null; then
         log_info "Setting up nginx reverse proxy..."
         
-        sudo tee /etc/nginx/sites-available/$APP_NAME > /dev/null << EOF
+        if [[ $RUNNING_AS_ROOT == true ]]; then
+            tee /etc/nginx/sites-available/$APP_NAME > /dev/null << EOF
 server {
     listen 80;
     server_name $DOMAIN;
@@ -261,15 +356,52 @@ server {
     }
 }
 EOF
+        else
+            sudo tee /etc/nginx/sites-available/$APP_NAME > /dev/null << EOF
+server {
+    listen 80;
+    server_name $DOMAIN;
+    
+    client_max_body_size 50M;
+    
+    location / {
+        proxy_pass http://127.0.0.1:$APP_PORT;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_read_timeout 300;
+        proxy_connect_timeout 300;
+        proxy_send_timeout 300;
+    }
+    
+    location /static {
+        alias $APP_DIR/static;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+}
+EOF
+        fi
 
         # Enable site
-        sudo ln -sf /etc/nginx/sites-available/$APP_NAME /etc/nginx/sites-enabled/
-        
-        # Test nginx configuration
-        sudo nginx -t
-        
-        # Reload nginx
-        sudo systemctl reload nginx
+        if [[ $RUNNING_AS_ROOT == true ]]; then
+            ln -sf /etc/nginx/sites-available/$APP_NAME /etc/nginx/sites-enabled/
+            
+            # Test nginx configuration
+            nginx -t
+            
+            # Reload nginx
+            systemctl reload nginx
+        else
+            sudo ln -sf /etc/nginx/sites-available/$APP_NAME /etc/nginx/sites-enabled/
+            
+            # Test nginx configuration
+            sudo nginx -t
+            
+            # Reload nginx
+            sudo systemctl reload nginx
+        fi
         
         log_info "Nginx setup complete ✓"
     else
@@ -282,16 +414,29 @@ setup_firewall() {
     if command -v ufw &> /dev/null; then
         log_info "Configuring firewall..."
         
-        sudo ufw allow ssh
-        sudo ufw allow 80/tcp
-        sudo ufw allow 443/tcp
-        
-        if [[ "$AI_PROVIDER" == "ollama" ]]; then
-            sudo ufw allow 11434/tcp  # Ollama port
+        if [[ $RUNNING_AS_ROOT == true ]]; then
+            ufw allow ssh
+            ufw allow 80/tcp
+            ufw allow 443/tcp
+            
+            if [[ "$AI_PROVIDER" == "ollama" ]]; then
+                ufw allow 11434/tcp  # Ollama port
+            fi
+            
+            # Enable firewall if not already enabled
+            ufw --force enable
+        else
+            sudo ufw allow ssh
+            sudo ufw allow 80/tcp
+            sudo ufw allow 443/tcp
+            
+            if [[ "$AI_PROVIDER" == "ollama" ]]; then
+                sudo ufw allow 11434/tcp  # Ollama port
+            fi
+            
+            # Enable firewall if not already enabled
+            sudo ufw --force enable
         fi
-        
-        # Enable firewall if not already enabled
-        sudo ufw --force enable
         
         log_info "Firewall configured ✓"
     else
@@ -303,7 +448,8 @@ setup_firewall() {
 create_backup_script() {
     log_info "Creating backup script..."
     
-    sudo tee /usr/local/bin/backup-${APP_NAME} > /dev/null << 'EOF'
+    if [[ $RUNNING_AS_ROOT == true ]]; then
+        tee /usr/local/bin/backup-${APP_NAME} > /dev/null << 'EOF'
 #!/bin/bash
 BACKUP_DIR="/var/backups/ai-doctor-matching"
 DATE=$(date +%Y%m%d_%H%M%S)
@@ -319,11 +465,36 @@ find $BACKUP_DIR -name "app_backup_*.tar.gz" -mtime +7 -delete
 
 echo "Backup completed: $BACKUP_DIR/app_backup_$DATE.tar.gz"
 EOF
+    else
+        sudo tee /usr/local/bin/backup-${APP_NAME} > /dev/null << 'EOF'
+#!/bin/bash
+BACKUP_DIR="/var/backups/ai-doctor-matching"
+DATE=$(date +%Y%m%d_%H%M%S)
+APP_DIR="/opt/ai-doctor-matching"
 
-    sudo chmod +x /usr/local/bin/backup-${APP_NAME}
-    
-    # Add to crontab for daily backups
-    (sudo crontab -l 2>/dev/null; echo "0 2 * * * /usr/local/bin/backup-${APP_NAME}") | sudo crontab -
+mkdir -p $BACKUP_DIR
+
+# Backup application files
+tar -czf $BACKUP_DIR/app_backup_$DATE.tar.gz -C $APP_DIR .
+
+# Keep only last 7 backups
+find $BACKUP_DIR -name "app_backup_*.tar.gz" -mtime +7 -delete
+
+echo "Backup completed: $BACKUP_DIR/app_backup_$DATE.tar.gz"
+EOF
+    fi
+
+    if [[ $RUNNING_AS_ROOT == true ]]; then
+        chmod +x /usr/local/bin/backup-${APP_NAME}
+        
+        # Add to crontab for daily backups
+        (crontab -l 2>/dev/null; echo "0 2 * * * /usr/local/bin/backup-${APP_NAME}") | crontab -
+    else
+        sudo chmod +x /usr/local/bin/backup-${APP_NAME}
+        
+        # Add to crontab for daily backups
+        (sudo crontab -l 2>/dev/null; echo "0 2 * * * /usr/local/bin/backup-${APP_NAME}") | sudo crontab -
+    fi
     
     log_info "Backup script created ✓"
 }
@@ -333,15 +504,23 @@ start_services() {
     log_info "Starting services..."
     
     # Start application
-    sudo systemctl start $SERVICE_NAME
-    
-    # Check status
-    if sudo systemctl is-active --quiet $SERVICE_NAME; then
+    if [[ $RUNNING_AS_ROOT == true ]]; then
+        systemctl start $SERVICE_NAME
+        
+        # Check status
+        if systemctl is-active --quiet $SERVICE_NAME; then
         log_info "Application service started ✓"
     else
-        log_error "Failed to start application service"
-        sudo systemctl status $SERVICE_NAME
-        exit 1
+        sudo systemctl start $SERVICE_NAME
+        
+        # Check status
+        if sudo systemctl is-active --quiet $SERVICE_NAME; then
+            log_info "Application service started ✓"
+        else
+            log_error "Failed to start application service"
+            sudo systemctl status $SERVICE_NAME
+            exit 1
+        fi
     fi
     
     # Wait a moment for service to fully start
