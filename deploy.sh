@@ -129,6 +129,29 @@ setup_app_directory() {
     fi
 }
 
+# Fix numpy/pandas compatibility issues
+fix_numpy_pandas() {
+    log_info "Fixing numpy/pandas compatibility..."
+    
+    if [[ $RUNNING_AS_ROOT == true ]]; then
+        # Uninstall problematic packages
+        su - $APP_USER -c "$APP_DIR/venv/bin/pip uninstall -y numpy pandas" || true
+        
+        # Install compatible versions in correct order
+        su - $APP_USER -c "$APP_DIR/venv/bin/pip install --no-cache-dir numpy==1.24.3"
+        su - $APP_USER -c "$APP_DIR/venv/bin/pip install --no-cache-dir pandas==2.0.3"
+    else
+        # Uninstall problematic packages
+        sudo -u $APP_USER $APP_DIR/venv/bin/pip uninstall -y numpy pandas || true
+        
+        # Install compatible versions in correct order
+        sudo -u $APP_USER $APP_DIR/venv/bin/pip install --no-cache-dir numpy==1.24.3
+        sudo -u $APP_USER $APP_DIR/venv/bin/pip install --no-cache-dir pandas==2.0.3
+    fi
+    
+    log_info "Numpy/pandas compatibility fixed ✓"
+}
+
 # Install Python dependencies
 install_dependencies() {
     log_info "Installing Python dependencies..."
@@ -139,20 +162,26 @@ install_dependencies() {
         
         # Install dependencies
         su - $APP_USER -c "$APP_DIR/venv/bin/pip install --upgrade pip"
-        su - $APP_USER -c "$APP_DIR/venv/bin/pip install -r $APP_DIR/requirements.txt"
+        su - $APP_USER -c "$APP_DIR/venv/bin/pip install --no-cache-dir -r $APP_DIR/requirements.txt"
         
         # Install production dependencies
-        su - $APP_USER -c "$APP_DIR/venv/bin/pip install gunicorn supervisor"
+        su - $APP_USER -c "$APP_DIR/venv/bin/pip install --no-cache-dir gunicorn supervisor"
+        
+        # Fix numpy/pandas compatibility if needed
+        fix_numpy_pandas
     else
         # Create virtual environment
         sudo -u $APP_USER python3 -m venv $APP_DIR/venv
         
         # Install dependencies
         sudo -u $APP_USER $APP_DIR/venv/bin/pip install --upgrade pip
-        sudo -u $APP_USER $APP_DIR/venv/bin/pip install -r $APP_DIR/requirements.txt
+        sudo -u $APP_USER $APP_DIR/venv/bin/pip install --no-cache-dir -r $APP_DIR/requirements.txt
         
         # Install production dependencies
-        sudo -u $APP_USER $APP_DIR/venv/bin/pip install gunicorn supervisor
+        sudo -u $APP_USER $APP_DIR/venv/bin/pip install --no-cache-dir gunicorn supervisor
+        
+        # Fix numpy/pandas compatibility if needed
+        fix_numpy_pandas
     fi
     
     log_info "Dependencies installed ✓"
