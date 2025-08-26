@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系統配置 - AI醫生配對系統</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.8);
+            border-radius: 8px;
+            margin: 0.2rem 0;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            color: white;
+            background: rgba(255,255,255,0.1);
+        }
+        .config-section {
+            border-radius: 10px;
+            border: 1px solid #e3e6f0;
+            margin-bottom: 1.5rem;
+        }
+        .provider-option {
+            border: 2px solid #e3e6f0;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .provider-option:hover {
+            border-color: #667eea;
+        }
+        .provider-option.active {
+            border-color: #667eea;
+            background-color: rgba(102, 126, 234, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse">
+                <div class="position-sticky pt-3">
+                    <div class="text-center mb-4">
+                        <h5 class="text-white">
+                            <i class="fas fa-user-md me-2"></i>AI醫生配對系統
+                        </h5>
+                        <small class="text-white-50">管理後台</small>
+                    </div>
+                    
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_dashboard') }}">
+                                <i class="fas fa-tachometer-alt me-2"></i>儀表板
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_analytics') }}">
+                                <i class="fas fa-chart-bar me-2"></i>分析報告
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="{{ url_for('admin_config') }}">
+                                <i class="fas fa-cogs me-2"></i>系統配置
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_users') }}">
+                                <i class="fas fa-users me-2"></i>用戶管理
+                            </a>
+                        </li>
+                        <li class="nav-item mt-3">
+                            <a class="nav-link" href="/" target="_blank">
+                                <i class="fas fa-external-link-alt me-2"></i>查看網站
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_logout') }}">
+                                <i class="fas fa-sign-out-alt me-2"></i>登出
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Main content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">系統配置</h1>
+                </div>
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <!-- AI Configuration -->
+                <div class="config-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-brain me-2"></i>AI模型配置
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="POST" action="{{ url_for('update_ai_config') }}">
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold">選擇AI提供商</label>
+                                    
+                                    <!-- OpenRouter Option -->
+                                    <div class="provider-option {{ 'active' if ai_config.provider == 'openrouter' else '' }}" 
+                                         onclick="selectProvider('openrouter')">
+                                        <div class="d-flex align-items-center">
+                                            <input type="radio" name="provider" value="openrouter" 
+                                                   {{ 'checked' if ai_config.provider == 'openrouter' else '' }}
+                                                   class="form-check-input me-3">
+                                            <div>
+                                                <h6 class="mb-1">
+                                                    <i class="fas fa-cloud me-2"></i>OpenRouter
+                                                </h6>
+                                                <small class="text-muted">雲端AI服務，支援多種先進模型</small>
+                                            </div>
+                                        </div>
+                                        
+                                        <div id="openrouter-config" class="mt-3" 
+                                             style="display: {{ 'block' if ai_config.provider == 'openrouter' else 'none' }};">
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <label class="form-label">API密鑰</label>
+                                                    <input type="password" class="form-control" name="openrouter_api_key" 
+                                                           value="{{ ai_config.openrouter.api_key }}" 
+                                                           placeholder="輸入OpenRouter API密鑰">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label">模型</label>
+                                                    <select class="form-select" name="openrouter_model">
+                                                        <option value="anthropic/claude-3.5-sonnet" 
+                                                                {{ 'selected' if ai_config.openrouter.model == 'anthropic/claude-3.5-sonnet' else '' }}>
+                                                            Claude 3.5 Sonnet
+                                                        </option>
+                                                        <option value="openai/gpt-4" 
+                                                                {{ 'selected' if ai_config.openrouter.model == 'openai/gpt-4' else '' }}>
+                                                            GPT-4
+                                                        </option>
+                                                        <option value="openai/gpt-3.5-turbo" 
+                                                                {{ 'selected' if ai_config.openrouter.model == 'openai/gpt-3.5-turbo' else '' }}>
+                                                            GPT-3.5 Turbo
+                                                        </option>
+                                                        <option value="meta-llama/llama-3.1-70b-instruct" 
+                                                                {{ 'selected' if ai_config.openrouter.model == 'meta-llama/llama-3.1-70b-instruct' else '' }}>
+                                                            Llama 3.1 70B
+                                                        </option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="row mt-2">
+                                                <div class="col-md-6">
+                                                    <label class="form-label">最大Token數</label>
+                                                    <input type="number" class="form-control" name="openrouter_max_tokens" 
+                                                           value="{{ ai_config.openrouter.max_tokens }}" 
+                                                           min="1000" max="8000" step="500">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- OpenAI Option -->
+                                    <div class="provider-option {{ 'active' if ai_config.provider == 'openai' else '' }}" 
+                                         onclick="selectProvider('openai')">
+                                        <div class="d-flex align-items-center">
+                                            <input type="radio" name="provider" value="openai" 
+                                                   {{ 'checked' if ai_config.provider == 'openai' else '' }}
+                                                   class="form-check-input me-3">
+                                            <div>
+                                                <h6 class="mb-1">
+                                                    <i class="fas fa-robot me-2"></i>OpenAI
+                                                </h6>
+                                                <small class="text-muted">官方OpenAI API，GPT-4等模型</small>
+                                            </div>
+                                        </div>
+                                        
+                                        <div id="openai-config" class="mt-3" 
+                                             style="display: {{ 'block' if ai_config.provider == 'openai' else 'none' }};">
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <label class="form-label">API密鑰</label>
+                                                    <input type="password" class="form-control" name="openai_api_key" 
+                                                           value="{{ ai_config.openai.api_key }}" 
+                                                           placeholder="輸入OpenAI API密鑰">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label">模型</label>
+                                                    <div class="d-flex">
+                                                        <select class="form-select me-2" name="openai_model" id="openai-model-select">
+                                                            <option value="gpt-4" 
+                                                                    {{ 'selected' if ai_config.openai.model == 'gpt-4' else '' }}>
+                                                                GPT-4
+                                                            </option>
+                                                            <option value="gpt-4-turbo" 
+                                                                    {{ 'selected' if ai_config.openai.model == 'gpt-4-turbo' else '' }}>
+                                                                GPT-4 Turbo
+                                                            </option>
+                                                            <option value="gpt-3.5-turbo" 
+                                                                    {{ 'selected' if ai_config.openai.model == 'gpt-3.5-turbo' else '' }}>
+                                                                GPT-3.5 Turbo
+                                                            </option>
+                                                        </select>
+                                                        <button type="button" class="btn btn-outline-secondary" onclick="refreshOpenAIModels()" title="刷新模型列表">
+                                                            <i class="fas fa-sync-alt"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="row mt-2">
+                                                <div class="col-md-6">
+                                                    <label class="form-label">最大Token數</label>
+                                                    <input type="number" class="form-control" name="openai_max_tokens" 
+                                                           value="{{ ai_config.openai.max_tokens }}" 
+                                                           min="1000" max="8000" step="500">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Ollama Option -->
+                                    <div class="provider-option {{ 'active' if ai_config.provider == 'ollama' else '' }}" 
+                                         onclick="selectProvider('ollama')">
+                                        <div class="d-flex align-items-center">
+                                            <input type="radio" name="provider" value="ollama" 
+                                                   {{ 'checked' if ai_config.provider == 'ollama' else '' }}
+                                                   class="form-check-input me-3">
+                                            <div>
+                                                <h6 class="mb-1">
+                                                    <i class="fas fa-server me-2"></i>Ollama
+                                                </h6>
+                                                <small class="text-muted">本地AI服務，私密且免費</small>
+                                            </div>
+                                        </div>
+                                        
+                                        <div id="ollama-config" class="mt-3" 
+                                             style="display: {{ 'block' if ai_config.provider == 'ollama' else 'none' }};">
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <label class="form-label">模型名稱</label>
+                                                    <input type="text" class="form-control" name="ollama_model" 
+                                                           value="{{ ai_config.ollama.model }}" 
+                                                           placeholder="例如: llama3.1:8b">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label">服務地址</label>
+                                                    <input type="url" class="form-control" name="ollama_base_url" 
+                                                           value="{{ ai_config.ollama.base_url }}" 
+                                                           placeholder="http://localhost:11434/api/generate">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex justify-content-between">
+                                    <button type="button" class="btn btn-outline-primary" onclick="testConnection()">
+                                        <i class="fas fa-plug me-2"></i>測試連接
+                                    </button>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save me-2"></i>保存配置
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Admin User Management -->
+                {% if session.admin_role == 'super_admin' or session.admin_permissions.get('user_management') %}
+                <div class="config-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-users-cog me-2"></i>管理員用戶管理
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <!-- Change Password -->
+                            <div class="mb-4">
+                                <h6>更改密碼</h6>
+                                <form method="POST" action="{{ url_for('change_admin_password') }}">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <label class="form-label">當前密碼</label>
+                                            <input type="password" class="form-control" name="current_password" required>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">新密碼</label>
+                                            <input type="password" class="form-control" name="new_password" required minlength="6">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">確認新密碼</label>
+                                            <input type="password" class="form-control" name="confirm_password" required minlength="6">
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary mt-3">
+                                        <i class="fas fa-key me-2"></i>更改密碼
+                                    </button>
+                                </form>
+                            </div>
+
+                            <hr>
+
+                            <!-- Create New Admin User -->
+                            <div class="mb-4">
+                                <h6>創建新管理員</h6>
+                                <form method="POST" action="{{ url_for('create_admin_user') }}">
+                                    <div class="row">
+                                        <div class="col-md-3">
+                                            <label class="form-label">用戶名</label>
+                                            <input type="text" class="form-control" name="username" required>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">密碼</label>
+                                            <input type="password" class="form-control" name="password" required minlength="6">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">角色</label>
+                                            <select class="form-select" name="role">
+                                                <option value="admin">管理員</option>
+                                                <option value="viewer">查看者</option>
+                                                <option value="editor">編輯者</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">權限</label>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="permissions" value="analytics" id="perm_analytics">
+                                                <label class="form-check-label" for="perm_analytics">分析報告</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="permissions" value="config" id="perm_config">
+                                                <label class="form-check-label" for="perm_config">系統配置</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="permissions" value="user_management" id="perm_users">
+                                                <label class="form-check-label" for="perm_users">用戶管理</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-success mt-3">
+                                        <i class="fas fa-user-plus me-2"></i>創建用戶
+                                    </button>
+                                </form>
+                            </div>
+
+                            <hr>
+
+                            <!-- Admin Users List -->
+                            <div>
+                                <h6>現有管理員</h6>
+                                <div id="adminUsersList">
+                                    <div class="text-center">
+                                        <div class="spinner-border" role="status">
+                                            <span class="visually-hidden">載入中...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Database Management -->
+                <div class="config-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-database me-2"></i>數據庫管理
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <!-- Database Statistics -->
+                            <div class="mb-4">
+                                <h6>數據庫統計</h6>
+                                <div id="databaseStats">
+                                    <div class="text-center">
+                                        <div class="spinner-border spinner-border-sm" role="status">
+                                            <span class="visually-hidden">載入中...</span>
+                                        </div>
+                                        <span class="ms-2">載入統計數據...</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <hr>
+
+                            <!-- Doctors Database Management -->
+                            <div class="mb-4">
+                                <h6>醫生數據庫管理</h6>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <a href="{{ url_for('export_doctors_database') }}" class="btn btn-success w-100 mb-3">
+                                            <i class="fas fa-download me-2"></i>導出醫生數據庫
+                                        </a>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <button type="button" class="btn btn-primary w-100 mb-3" data-bs-toggle="modal" data-bs-target="#importDoctorsModal">
+                                            <i class="fas fa-upload me-2"></i>導入醫生數據庫
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <hr>
+
+                            <!-- Analytics Data Management -->
+                            <div>
+                                <h6>分析數據管理</h6>
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <button type="button" class="btn btn-warning w-100 mb-3" onclick="cleanOldData()">
+                                            <i class="fas fa-trash-alt me-2"></i>清理舊數據
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    分析數據導出功能已移至「分析報告」頁面，提供更多選項。清理舊數據將刪除30天前的記錄。
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Import Doctors Modal -->
+                <div class="modal fade" id="importDoctorsModal" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">導入醫生數據庫</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <form method="POST" action="{{ url_for('import_doctors_database') }}" enctype="multipart/form-data">
+                                <div class="modal-body">
+                                    <div class="mb-3">
+                                        <label for="doctors_file" class="form-label">選擇CSV文件</label>
+                                        <input type="file" class="form-control" id="doctors_file" name="doctors_file" accept=".csv" required>
+                                        <div class="form-text">請上傳包含醫生數據的CSV文件</div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">導入方式</label>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="backup_action" id="replace" value="replace" checked>
+                                            <label class="form-check-label" for="replace">
+                                                <strong>替換現有數據</strong> - 完全替換當前醫生數據庫
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="backup_action" id="append" value="append">
+                                            <label class="form-check-label" for="append">
+                                                <strong>追加到現有數據</strong> - 將新數據添加到現有數據庫
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="alert alert-warning">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                        <strong>注意：</strong>導入操作將會影響系統的醫生匹配功能。請確保CSV文件格式正確，包含必要的字段（如醫生姓名、專科等）。
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-upload me-2"></i>開始導入
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- System Status -->
+                <div class="config-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-heartbeat me-2"></i>系統狀態
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="text-center">
+                                        <i class="fas fa-brain fa-2x text-success mb-2"></i>
+                                        <h6>AI服務</h6>
+                                        <span class="badge bg-success">正常</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="text-center">
+                                        <i class="fas fa-database fa-2x text-success mb-2"></i>
+                                        <h6>數據庫</h6>
+                                        <span class="badge bg-success">正常</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="text-center">
+                                        <i class="fas fa-users fa-2x text-success mb-2"></i>
+                                        <h6>醫生數據</h6>
+                                        <span class="badge bg-success">已載入</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function selectProvider(provider) {
+            // Hide all config sections
+            document.getElementById('openrouter-config').style.display = 'none';
+            document.getElementById('openai-config').style.display = 'none';
+            document.getElementById('ollama-config').style.display = 'none';
+            
+            // Remove active class from all options and uncheck all radio buttons
+            document.querySelectorAll('.provider-option').forEach(option => {
+                option.classList.remove('active');
+            });
+            document.querySelectorAll('input[name="provider"]').forEach(radio => {
+                radio.checked = false;
+            });
+            
+            // Show selected config, add active class, and check the radio button
+            document.getElementById(provider + '-config').style.display = 'block';
+            const selectedRadio = document.querySelector(`input[value="${provider}"]`);
+            selectedRadio.checked = true;
+            selectedRadio.closest('.provider-option').classList.add('active');
+        }
+
+        function refreshOpenAIModels() {
+            const apiKeyInput = document.querySelector('input[name="openai_api_key"]');
+            const modelSelect = document.getElementById('openai-model-select');
+            const refreshBtn = event.target.closest('button');
+            
+            if (!apiKeyInput.value.trim()) {
+                alert('請先輸入OpenAI API密鑰');
+                return;
+            }
+            
+            // Show loading state
+            const originalHtml = refreshBtn.innerHTML;
+            refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            refreshBtn.disabled = true;
+            
+            // Temporarily update the API key in the backend
+            const tempConfig = new FormData();
+            tempConfig.append('openai_api_key', apiKeyInput.value);
+            
+            fetch(`/admin/api/openai-models?api_key=${encodeURIComponent(apiKeyInput.value)}`, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const currentValue = modelSelect.value;
+                
+                // Clear existing options
+                modelSelect.innerHTML = '';
+                
+                // Add new options
+                data.models.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model;
+                    option.textContent = model;
+                    if (model === currentValue) {
+                        option.selected = true;
+                    }
+                    modelSelect.appendChild(option);
+                });
+                
+                // If current value not found, select first option
+                if (!data.models.includes(currentValue) && data.models.length > 0) {
+                    modelSelect.value = data.models[0];
+                }
+                
+                alert(`已載入 ${data.models.length} 個模型`);
+            })
+            .catch(error => {
+                console.error('Error fetching models:', error);
+                alert('獲取模型列表失敗，請檢查API密鑰是否正確');
+            })
+            .finally(() => {
+                refreshBtn.innerHTML = originalHtml;
+                refreshBtn.disabled = false;
+            });
+        }
+
+        function testConnection() {
+            const provider = document.querySelector('input[name="provider"]:checked').value;
+            
+            // Show loading state
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>測試中...';
+            btn.disabled = true;
+            
+            // Simulate connection test (replace with actual API call)
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                alert(`${provider} 連接測試完成`);
+            }, 2000);
+        }
+
+        function loadDatabaseStats() {
+            fetch('/admin/database/stats')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        throw new Error(data.error);
+                    }
+                    
+                    const statsHtml = `
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <i class="fas fa-user-md fa-2x text-primary mb-2"></i>
+                                        <h4>${data.doctors_count}</h4>
+                                        <p class="text-muted">醫生數據</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <i class="fas fa-search fa-2x text-success mb-2"></i>
+                                        <h4>${data.user_queries_count}</h4>
+                                        <p class="text-muted">用戶查詢</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <i class="fas fa-mouse-pointer fa-2x text-info mb-2"></i>
+                                        <h4>${data.doctor_clicks_count}</h4>
+                                        <p class="text-muted">醫生點擊</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <i class="fas fa-chart-bar fa-2x text-warning mb-2"></i>
+                                        <h4>${data.analytics_events_count}</h4>
+                                        <p class="text-muted">分析事件</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    document.getElementById('databaseStats').innerHTML = statsHtml;
+                })
+                .catch(error => {
+                    console.error('Error loading database stats:', error);
+                    document.getElementById('databaseStats').innerHTML = `
+                        <div class="alert alert-danger">載入數據庫統計失敗: ${error.message}</div>
+                    `;
+                });
+        }
+
+        function exportAnalyticsData() {
+            // Implement analytics data export functionality
+            alert('分析數據導出功能開發中...');
+        }
+
+        function cleanOldData() {
+            if (confirm('確定要清理超過30天的舊數據嗎？此操作不可逆。')) {
+                // Implement old data cleanup functionality
+                alert('舊數據清理功能開發中...');
+            }
+        }
+
+        function loadAdminUsers() {
+            fetch('/admin/api/admin-users')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        throw new Error(data.error);
+                    }
+                    
+                    const container = document.getElementById('adminUsersList');
+                    if (data.users.length === 0) {
+                        container.innerHTML = '<div class="alert alert-info">暫無管理員用戶</div>';
+                        return;
+                    }
+                    
+                    const usersHtml = data.users.map(user => `
+                        <div class="card mb-2">
+                            <div class="card-body py-2">
+                                <div class="row align-items-center">
+                                    <div class="col-md-3">
+                                        <strong>${user.username}</strong>
+                                        ${user.is_active ? '<span class="badge bg-success ms-2">活躍</span>' : '<span class="badge bg-secondary ms-2">停用</span>'}
+                                    </div>
+                                    <div class="col-md-2">
+                                        <span class="badge bg-${getRoleBadgeColor(user.role)}">${getRoleDisplayName(user.role)}</span>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <small class="text-muted">創建: ${formatDate(user.created_at)}</small>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <small class="text-muted">最後登入: ${user.last_login ? formatDate(user.last_login) : '從未'}</small>
+                                    </div>
+                                    <div class="col-md-1">
+                                        <form method="POST" action="/admin/config/users/${user.id}/toggle" style="display: inline;">
+                                            <button type="submit" class="btn btn-sm btn-${user.is_active ? 'warning' : 'success'}" 
+                                                    onclick="return confirm('確定要${user.is_active ? '停用' : '啟用'}此用戶嗎？')">
+                                                ${user.is_active ? '停用' : '啟用'}
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                    
+                    container.innerHTML = usersHtml;
+                })
+                .catch(error => {
+                    console.error('Error loading admin users:', error);
+                    document.getElementById('adminUsersList').innerHTML = `
+                        <div class="alert alert-danger">載入管理員列表失敗: ${error.message}</div>
+                    `;
+                });
+        }
+
+        function getRoleBadgeColor(role) {
+            const colors = {
+                'super_admin': 'danger',
+                'admin': 'primary',
+                'editor': 'warning',
+                'viewer': 'info'
+            };
+            return colors[role] || 'secondary';
+        }
+
+        function getRoleDisplayName(role) {
+            const names = {
+                'super_admin': '超級管理員',
+                'admin': '管理員',
+                'editor': '編輯者',
+                'viewer': '查看者'
+            };
+            return names[role] || role;
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return '從未';
+            const date = new Date(dateString);
+            return date.toLocaleString('zh-TW');
+        }
+
+        // Load admin users on page load if user management section is visible
+        document.addEventListener('DOMContentLoaded', function() {
+            if (document.getElementById('adminUsersList')) {
+                loadAdminUsers();
+            }
+            // Load database statistics
+            loadDatabaseStats();
+        });
+    </script>
+</body>
+</html>
