@@ -9,9 +9,29 @@ from functools import wraps
 from typing import List, Dict, Any
 import hashlib
 import secrets
+import asyncio
+import threading
+
+# Conditional import for WhatsApp client
+try:
+    import socketio
+    WHATSAPP_AVAILABLE = True
+except ImportError:
+    socketio = None
+    WHATSAPP_AVAILABLE = False
+    print("Warning: python-socketio not installed. WhatsApp functionality will be disabled.")
 
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', secrets.token_hex(32))
+
+# WhatsApp配置
+WHATSAPP_CONFIG = {
+    'enabled': os.getenv('WHATSAPP_ENABLED', 'false').lower() == 'true',
+    'socket_url': os.getenv('WHATSAPP_SOCKET_URL', 'http://localhost:8085'),
+    'api_key': os.getenv('WHATSAPP_API_KEY', ''),
+    'target_number': os.getenv('WHATSAPP_TARGET_NUMBER', ''),  # Format: 852XXXXXXXX@c.us
+    'session_name': os.getenv('WHATSAPP_SESSION_NAME', 'default')
+}
 
 # AI服務配置
 AI_CONFIG = {
@@ -53,23 +73,43 @@ ADMIN_USERNAME = os.getenv('ADMIN_USERNAME', 'admin')
 ADMIN_PASSWORD_HASH = hashlib.sha256(os.getenv('ADMIN_PASSWORD', 'admin123').encode()).hexdigest()
 
 def load_ai_config_from_db():
-    """Load AI configuration from database if it exists"""
+    """Load AI configuration from database"""
     try:
         conn = sqlite3.connect('admin_data.db')
         cursor = conn.cursor()
-        cursor.execute('SELECT config_value FROM system_config WHERE config_key = ?', ('ai_config',))
+        
+        # Load AI config
+        cursor.execute('SELECT value FROM system_config WHERE config_key = ?', ('ai_config',))
         result = cursor.fetchone()
-        conn.close()
         
         if result:
             saved_config = json.loads(result[0])
-            # Update global AI_CONFIG with saved values
             AI_CONFIG.update(saved_config)
             print("Loaded AI config from database")
-        else:
-            print("No saved AI config found, using environment defaults")
+        
+        conn.close()
     except Exception as e:
         print(f"Error loading AI config from database: {e}")
+
+def load_whatsapp_config_from_db():
+    """Load WhatsApp configuration from database"""
+    global WHATSAPP_CONFIG
+    try:
+        conn = sqlite3.connect('admin_data.db')
+        cursor = conn.cursor()
+        
+        # Load WhatsApp config
+        cursor.execute('SELECT value FROM admin_config WHERE key = ?', ('whatsapp_config',))
+        result = cursor.fetchone()
+        
+        if result:
+            saved_config = json.loads(result[0])
+            WHATSAPP_CONFIG.update(saved_config)
+            print("Loaded WhatsApp config from database")
+        
+        conn.close()
+    except Exception as e:
+        print(f"Error loading WhatsApp config from database: {e}")
 
 # Initialize database
 def init_db():
@@ -149,6 +189,16 @@ def init_db():
         )
     ''')
     
+    # Admin config table for storing configuration settings
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS admin_config (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            key TEXT UNIQUE NOT NULL,
+            value TEXT,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
     # Create default admin user if not exists
     cursor.execute('SELECT COUNT(*) FROM admin_users WHERE username = ?', (ADMIN_USERNAME,))
     if cursor.fetchone()[0] == 0:
@@ -163,6 +213,89 @@ def init_db():
 
 # Initialize database on startup
 init_db()
+
+# WhatsApp客戶端實例
+whatsapp_client = None
+
+def init_whatsapp_client():
+    """初始化WhatsApp客戶端"""
+    global whatsapp_client
+    
+    if not WHATSAPP_CONFIG['enabled'] or not WHATSAPP_AVAILABLE:
+        whatsapp_client = None
+        if not WHATSAPP_AVAILABLE:
+            print("WhatsApp客戶端不可用：python-socketio未安裝")
+        return
+    
+    try:
+        whatsapp_client = socketio.SimpleClient()
+        print(f"WhatsApp Socket.IO客戶端已初始化")
+    except Exception as e:
+        print(f"WhatsApp客戶端初始化失敗: {e}")
+        whatsapp_client = None
+
+def send_whatsapp_notification(message: str):
+    """發送WhatsApp通知"""
+    if not WHATSAPP_CONFIG['enabled'] or not whatsapp_client:
+        print("WhatsApp通知已跳過（未啟用或客戶端未初始化）")
+        return False
+    
+    try:
+        def send_async():
+            try:
+                # Connect to Socket.IO server
+                whatsapp_client.connect(WHATSAPP_CONFIG['socket_url'])
+                
+                # Send message via Socket.IO
+                whatsapp_client.emit('sendText', {
+                    'to': WHATSAPP_CONFIG['target_number'],
+                    'content': message
+                })
+                
+                print(f"WhatsApp通知已發送到 {WHATSAPP_CONFIG['target_number']}")
+                
+                # Disconnect after sending
+                whatsapp_client.disconnect()
+                
+            except Exception as e:
+                print(f"WhatsApp發送失敗: {e}")
+        
+        # 在新線程中運行
+        thread = threading.Thread(target=send_async)
+        thread.daemon = True
+        thread.start()
+        return True
+    except Exception as e:
+        print(f"WhatsApp通知錯誤: {e}")
+        return False
+
+def format_diagnosis_report(user_query_data: dict, doctor_data: dict) -> str:
+    """格式化診斷報告為WhatsApp消息"""
+    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    
+    message = f"""🏥 *AI醫療診斷報告*
+📅 時間: {timestamp}
+
+👤 *患者信息*
+年齡: {user_query_data.get('age', 'N/A')}歲
+症狀: {user_query_data.get('symptoms', 'N/A')}
+語言: {user_query_data.get('language', 'N/A')}
+地區: {user_query_data.get('location', 'N/A')}
+
+🔍 *AI診斷結果*
+推薦專科: {user_query_data.get('recommended_specialty', 'N/A')}
+
+👨‍⚕️ *選擇的醫生*
+醫生姓名: {doctor_data.get('doctor_name', 'N/A')}
+專科: {doctor_data.get('doctor_specialty', 'N/A')}
+
+📊 *完整診斷*
+{user_query_data.get('ai_diagnosis', 'N/A')[:500]}{'...' if len(user_query_data.get('ai_diagnosis', '')) > 500 else ''}
+
+---
+AI香港醫療配對系統"""
+    
+    return message
 
 def log_analytics(event_type, data=None, user_ip=None, user_agent=None, session_id=None):
     """Log analytics event"""
@@ -211,6 +344,15 @@ def check_permission(permission):
 
 def require_admin(f):
     """Decorator to require admin authentication"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('admin_logged_in'):
+            return redirect(url_for('admin_login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def login_required(f):
+    """Decorator to require admin authentication (alias for require_admin)"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not session.get('admin_logged_in'):
@@ -968,10 +1110,10 @@ def admin_analytics():
         return render_template('admin/analytics.html')
 
 @app.route('/admin/config')
-@require_admin
+@login_required
 def admin_config():
-    """Configuration page"""
-    return render_template('admin/config.html', ai_config=AI_CONFIG)
+    """Admin configuration page"""
+    return render_template('admin/config.html', whatsapp_config=WHATSAPP_CONFIG, ai_config=AI_CONFIG)
 
 @app.route('/admin/api/openai-models')
 @require_admin
@@ -1622,7 +1764,7 @@ def get_user_details(user_ip):
 
 @app.route('/track_click', methods=['POST'])
 def track_click():
-    """Track doctor link clicks"""
+    """Track doctor link clicks and send WhatsApp notification"""
     try:
         data = request.get_json()
         doctor_name = data.get('doctor_name', '')
@@ -1638,6 +1780,37 @@ def track_click():
             VALUES (?, ?, ?, ?, ?)
         ''', (doctor_name, doctor_specialty, request.remote_addr, session_id, query_id))
         conn.commit()
+        
+        # Get user query data for WhatsApp notification
+        if query_id:
+            cursor.execute('''
+                SELECT age, symptoms, chronic_conditions, language, location, 
+                       detailed_health_info, ai_diagnosis, recommended_specialty
+                FROM user_queries WHERE id = ?
+            ''', (query_id,))
+            user_query_row = cursor.fetchone()
+            
+            if user_query_row:
+                user_query_data = {
+                    'age': user_query_row[0],
+                    'symptoms': user_query_row[1],
+                    'chronic_conditions': user_query_row[2],
+                    'language': user_query_row[3],
+                    'location': user_query_row[4],
+                    'detailed_health_info': user_query_row[5],
+                    'ai_diagnosis': user_query_row[6],
+                    'recommended_specialty': user_query_row[7]
+                }
+                
+                doctor_data = {
+                    'doctor_name': doctor_name,
+                    'doctor_specialty': doctor_specialty
+                }
+                
+                # Send WhatsApp notification
+                message = format_diagnosis_report(user_query_data, doctor_data)
+                send_whatsapp_notification(message)
+        
         conn.close()
         
         # Log analytics
@@ -1650,14 +1823,137 @@ def track_click():
         print(f"Click tracking error: {e}")
         return jsonify({'error': 'Failed to track click'}), 500
 
+@app.route('/admin/api/whatsapp-status')
+@login_required
+def get_whatsapp_status():
+    """Get WhatsApp service status"""
+    try:
+        enabled = WHATSAPP_CONFIG['enabled']
+        connected = False
+        
+        if enabled and whatsapp_client:
+            try:
+                # Test connection by checking if client is ready
+                connected = True  # Assume connected if client exists
+            except:
+                connected = False
+        
+        return jsonify({
+            'enabled': enabled,
+            'connected': connected,
+            'target_number': WHATSAPP_CONFIG['target_number'] if enabled else None
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/admin/api/whatsapp-test', methods=['POST'])
+@login_required
+def test_whatsapp_connection():
+    """Test WhatsApp connection with provided config"""
+    try:
+        data = request.get_json()
+        socket_url = data.get('socket_url', 'http://localhost:8085')
+        target_number = data.get('target_number')
+        api_key = data.get('api_key', '')
+        session_name = data.get('session_name', 'default')
+        
+        if not target_number:
+            return jsonify({'success': False, 'error': '目標號碼不能為空'})
+        
+        # Test message
+        test_message = "🔧 WhatsApp連接測試\n\n這是一條測試消息，用於驗證WhatsApp通知配置。\n\n如果您收到此消息，表示配置正確！"
+        
+        # Try to send test message
+        try:
+            if not WHATSAPP_AVAILABLE:
+                return jsonify({'success': False, 'error': 'WhatsApp客戶端不可用：python-socketio未安裝'})
+            
+            test_client = socketio.SimpleClient()
+            test_client.connect(socket_url)
+            test_client.emit('sendText', {
+                'to': target_number,
+                'content': test_message
+            })
+            test_client.disconnect()
+            return jsonify({'success': True, 'message': '測試消息已發送'})
+        except Exception as e:
+            return jsonify({'success': False, 'error': f'連接失敗: {str(e)}'})
+            
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/update_whatsapp_config', methods=['POST'])
+@login_required
+def update_whatsapp_config():
+    """Update WhatsApp configuration"""
+    try:
+        global WHATSAPP_CONFIG, whatsapp_client
+        
+        # Get form data
+        enabled = request.form.get('whatsapp_enabled') == 'true'
+        target_number = request.form.get('target_number', '').strip()
+        socket_url = request.form.get('socket_url', 'http://localhost:8085').strip()
+        api_key = request.form.get('api_key', '').strip()
+        session_name = request.form.get('session_name', 'default').strip()
+        
+        # Validate required fields if enabled
+        if enabled and not target_number:
+            flash('啟用WhatsApp通知時，目標號碼不能為空', 'error')
+            return redirect(url_for('admin_config'))
+        
+        # Update configuration
+        WHATSAPP_CONFIG.update({
+            'enabled': enabled,
+            'target_number': target_number,
+            'socket_url': socket_url,
+            'api_key': api_key,
+            'session_name': session_name
+        })
+        
+        # Save to database
+        conn = sqlite3.connect('admin_data.db')
+        cursor = conn.cursor()
+        
+        # Update or insert WhatsApp config
+        cursor.execute('''
+            INSERT OR REPLACE INTO admin_config (key, value) 
+            VALUES (?, ?)
+        ''', ('whatsapp_config', json.dumps(WHATSAPP_CONFIG)))
+        
+        conn.commit()
+        conn.close()
+        
+        # Reinitialize WhatsApp client if enabled
+        if enabled:
+            init_whatsapp_client()
+            flash('WhatsApp配置已更新並重新初始化', 'success')
+        else:
+            whatsapp_client = None
+            flash('WhatsApp通知已停用', 'success')
+        
+        return redirect(url_for('admin_config'))
+        
+    except Exception as e:
+        flash(f'更新WhatsApp配置失敗: {str(e)}', 'error')
+        return redirect(url_for('admin_config'))
+
 if __name__ == '__main__':
     # Initialize database and load saved config
     init_db()
     load_ai_config_from_db()
+    load_whatsapp_config_from_db()
+    
+    # Initialize WhatsApp client
+    init_whatsapp_client()
     
     print(f"已載入 {len(DOCTORS_DATA)} 位醫生資料")
     print("正在啟動AI香港醫療配對系統...")
     print(f"當前AI提供商: {AI_CONFIG['provider']}")
+    
+    if WHATSAPP_CONFIG['enabled']:
+        print(f"WhatsApp通知已啟用，目標號碼: {WHATSAPP_CONFIG['target_number']}")
+    else:
+        print("WhatsApp通知未啟用")
     
     if AI_CONFIG['provider'] == 'openrouter':
         if AI_CONFIG['openrouter']['api_key']:

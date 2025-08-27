@@ -1,0 +1,20 @@
+{
+  "name": "ai-doctor-whatsapp-server",
+  "version": "1.0.0",
+  "description": "WhatsApp Web automation server for AI Doctor system",
+  "main": "whatsapp-server.js",
+  "scripts": {
+    "start": "node whatsapp-server.js",
+    "dev": "nodemon whatsapp-server.js"
+  },
+  "dependencies": {
+    "@open-wa/wa-automate": "^4.60.0",
+    "socket.io": "^4.7.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "keywords": ["whatsapp", "automation", "medical", "ai"],
+  "author": "AI Doctor System",
+  "license": "MIT"
+}

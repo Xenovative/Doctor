@@ -2,37 +2,37 @@
 .env
 .env.local
 .env.production
-
 # Database files
 *.db
 *.sqlite
 *.sqlite3
-
 # Python cache
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
-
 # Virtual environment
 venv/
 env/
 ENV/
-
 # IDE files
 .vscode/
 .idea/
 *.swp
 *.swo
-
 # OS files
 .DS_Store
 Thumbs.db
-
 # Logs
 *.log
 logs/
-
 # Temporary files
 *.tmp
 *.temp
+
+# managed
+**.data.json
+**.node-persist**
+**_IGNORE_**
+# end managed
+node_modules

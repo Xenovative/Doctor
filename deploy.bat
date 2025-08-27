@@ -40,6 +40,17 @@ if errorlevel 1 (
     exit /b 1
 )
 
+REM Check if Node.js is installed (for WhatsApp server)
+node --version >nul 2>&1
+if errorlevel 1 (
+    echo ❌ Node.js is not installed. Please install Node.js 16+ for WhatsApp functionality.
+    echo    Download from: https://nodejs.org
+    pause
+    exit /b 1
+) else (
+    echo ✅ Node.js is installed
+)
+
 echo 📦 Setting up virtual environment...
 
 REM Create virtual environment if it doesn't exist
@@ -59,14 +70,23 @@ echo 📦 Upgrading pip...
 python -m pip install --upgrade pip
 
 REM Install requirements
-echo 📦 Installing dependencies...
+echo 📦 Installing Python dependencies...
 if exist "requirements.txt" (
     pip install -r requirements.txt
-    echo ✅ Dependencies installed
+    echo ✅ Python dependencies installed
 ) else (
     echo ❌ requirements.txt not found
     pause
     exit /b 1
+)
+
+REM Install Node.js dependencies for WhatsApp server
+echo 📦 Installing Node.js dependencies...
+if exist "package.json" (
+    npm install
+    echo ✅ Node.js dependencies installed
+) else (
+    echo ⚠️ package.json not found - WhatsApp functionality may not work
 )
 
 REM Create .env file if it doesn't exist
@@ -111,6 +131,26 @@ powershell -Command "(Get-Content .env) -replace '^ADMIN_USERNAME=.*', 'ADMIN_US
 powershell -Command "(Get-Content .env) -replace '^ADMIN_PASSWORD=.*', 'ADMIN_PASSWORD=%ADMIN_PASSWORD%' | Set-Content .env"
 echo FLASK_HOST=%HOST% >> .env
 echo FLASK_PORT=%PORT% >> .env
+
+REM Configure WhatsApp settings
+echo.
+echo 📱 WhatsApp Configuration
+echo ========================
+set /p "ENABLE_WHATSAPP=Enable WhatsApp notifications? (y/N): "
+if /i "!ENABLE_WHATSAPP!"=="y" (
+    set /p "WHATSAPP_NUMBER=Enter target WhatsApp number (format: 852XXXXXXXX@c.us): "
+    if "!WHATSAPP_NUMBER!"=="" (
+        echo ❌ WhatsApp number cannot be empty
+        set ENABLE_WHATSAPP=n
+    ) else (
+        powershell -Command "(Get-Content .env) -replace '^WHATSAPP_ENABLED=.*', 'WHATSAPP_ENABLED=true' | Set-Content .env"
+        powershell -Command "(Get-Content .env) -replace '^WHATSAPP_TARGET_NUMBER=.*', 'WHATSAPP_TARGET_NUMBER=!WHATSAPP_NUMBER!' | Set-Content .env"
+        echo ✅ WhatsApp notifications enabled for !WHATSAPP_NUMBER!
+    )
+) else (
+    powershell -Command "(Get-Content .env) -replace '^WHATSAPP_ENABLED=.*', 'WHATSAPP_ENABLED=false' | Set-Content .env"
+    echo ⚠️ WhatsApp notifications disabled
+)
 
 REM Check AI provider setup
 echo 🤖 Checking AI provider setup...
@@ -185,6 +225,17 @@ echo    Admin Panel: http://%HOST%:%PORT%/admin
 echo    Health Check: http://%HOST%:%PORT%/health
 echo    AI Config: http://%HOST%:%PORT%/ai-config
 echo.
+
+REM Start WhatsApp server if enabled
+if /i "!ENABLE_WHATSAPP!"=="y" (
+    echo 📱 Starting WhatsApp server...
+    start "WhatsApp Server" cmd /c "npm start"
+    timeout /t 3 >nul
+    echo ✅ WhatsApp server started on port 8085
+    echo    Please scan QR code in the WhatsApp server window
+    echo.
+)
+
 echo Press Ctrl+C to stop the server
 echo.
 python app.py

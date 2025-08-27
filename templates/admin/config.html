@@ -380,6 +380,110 @@
                 </div>
                 {% endif %}
 
+                <!-- WhatsApp Configuration -->
+                <div class="config-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-mobile-alt me-2"></i>WhatsApp通知配置
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="POST" action="{{ url_for('update_whatsapp_config') }}">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label fw-bold">啟用WhatsApp通知</label>
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox" id="whatsappEnabled" 
+                                                       name="whatsapp_enabled" value="true" 
+                                                       {{ 'checked' if whatsapp_config.enabled else '' }}
+                                                       onchange="toggleWhatsAppConfig()">
+                                                <label class="form-check-label" for="whatsappEnabled">
+                                                    啟用診斷報告WhatsApp通知
+                                                </label>
+                                            </div>
+                                            <small class="form-text text-muted">當用戶點擊醫生鏈接時自動發送診斷報告</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">WhatsApp服務狀態</label>
+                                            <div id="whatsappStatus">
+                                                <span class="badge bg-secondary">檢查中...</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div id="whatsappConfigDetails" style="display: {{ 'block' if whatsapp_config.enabled else 'none' }};">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">目標WhatsApp號碼</label>
+                                                <input type="text" class="form-control" name="target_number" 
+                                                       value="{{ whatsapp_config.target_number }}" 
+                                                       placeholder="852XXXXXXXX@c.us">
+                                                <small class="form-text text-muted">格式：852XXXXXXXX@c.us（香港號碼）</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Socket服務地址</label>
+                                                <input type="url" class="form-control" name="socket_url" 
+                                                       value="{{ whatsapp_config.socket_url }}" 
+                                                       placeholder="http://localhost:8085">
+                                                <small class="form-text text-muted">WhatsApp自動化服務器地址</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">API密鑰（可選）</label>
+                                                <input type="password" class="form-control" name="api_key" 
+                                                       value="{{ whatsapp_config.api_key }}" 
+                                                       placeholder="輸入API密鑰（如需要）">
+                                                <small class="form-text text-muted">某些WhatsApp服務器需要API密鑰</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">會話名稱</label>
+                                                <input type="text" class="form-control" name="session_name" 
+                                                       value="{{ whatsapp_config.session_name }}" 
+                                                       placeholder="default">
+                                                <small class="form-text text-muted">WhatsApp會話標識符</small>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        <strong>設置說明：</strong>
+                                        <ul class="mb-0 mt-2">
+                                            <li>確保WhatsApp自動化服務器正在運行</li>
+                                            <li>使用手機掃描QR碼完成WhatsApp Web認證</li>
+                                            <li>目標號碼必須是已註冊的WhatsApp號碼</li>
+                                            <li>建議在測試環境中先驗證配置</li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex justify-content-between">
+                                    <button type="button" class="btn btn-outline-primary" onclick="testWhatsAppConnection()">
+                                        <i class="fas fa-plug me-2"></i>測試連接
+                                    </button>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save me-2"></i>保存配置
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Database Management -->
                 <div class="config-section">
                     <div class="card">
@@ -514,11 +618,18 @@
                                         <span class="badge bg-success">正常</span>
                                     </div>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <div class="text-center">
                                         <i class="fas fa-users fa-2x text-success mb-2"></i>
                                         <h6>醫生數據</h6>
                                         <span class="badge bg-success">已載入</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="text-center">
+                                        <i class="fas fa-mobile-alt fa-2x mb-2" id="whatsappStatusIcon"></i>
+                                        <h6>WhatsApp服務</h6>
+                                        <span class="badge" id="whatsappStatusBadge">檢查中</span>
                                     </div>
                                 </div>
                             </div>
@@ -700,6 +811,94 @@
             }
         }
 
+        function toggleWhatsAppConfig() {
+            const checkbox = document.getElementById('whatsappEnabled');
+            const configDetails = document.getElementById('whatsappConfigDetails');
+            
+            if (checkbox.checked) {
+                configDetails.style.display = 'block';
+            } else {
+                configDetails.style.display = 'none';
+            }
+        }
+
+        function testWhatsAppConnection() {
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>測試中...';
+            btn.disabled = true;
+            
+            fetch('/admin/api/whatsapp-test', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                    socket_url: document.querySelector('input[name="socket_url"]').value,
+                    target_number: document.querySelector('input[name="target_number"]').value,
+                    api_key: document.querySelector('input[name="api_key"]').value,
+                    session_name: document.querySelector('input[name="session_name"]').value
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('WhatsApp連接測試成功！');
+                } else {
+                    alert('WhatsApp連接測試失敗：' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error testing WhatsApp connection:', error);
+                alert('WhatsApp連接測試失敗：' + error.message);
+            })
+            .finally(() => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            });
+        }
+
+        function checkWhatsAppStatus() {
+            fetch('/admin/api/whatsapp-status')
+                .then(response => response.json())
+                .then(data => {
+                    const statusElement = document.getElementById('whatsappStatus');
+                    const statusIcon = document.getElementById('whatsappStatusIcon');
+                    const statusBadge = document.getElementById('whatsappStatusBadge');
+                    
+                    if (data.enabled) {
+                        if (data.connected) {
+                            statusElement.innerHTML = '<span class="badge bg-success">已連接</span>';
+                            statusIcon.className = 'fas fa-mobile-alt fa-2x text-success mb-2';
+                            statusBadge.className = 'badge bg-success';
+                            statusBadge.textContent = '已連接';
+                        } else {
+                            statusElement.innerHTML = '<span class="badge bg-warning">已啟用但未連接</span>';
+                            statusIcon.className = 'fas fa-mobile-alt fa-2x text-warning mb-2';
+                            statusBadge.className = 'badge bg-warning';
+                            statusBadge.textContent = '未連接';
+                        }
+                    } else {
+                        statusElement.innerHTML = '<span class="badge bg-secondary">已停用</span>';
+                        statusIcon.className = 'fas fa-mobile-alt fa-2x text-secondary mb-2';
+                        statusBadge.className = 'badge bg-secondary';
+                        statusBadge.textContent = '已停用';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking WhatsApp status:', error);
+                    const statusElement = document.getElementById('whatsappStatus');
+                    const statusIcon = document.getElementById('whatsappStatusIcon');
+                    const statusBadge = document.getElementById('whatsappStatusBadge');
+                    
+                    statusElement.innerHTML = '<span class="badge bg-danger">檢查失敗</span>';
+                    statusIcon.className = 'fas fa-mobile-alt fa-2x text-danger mb-2';
+                    statusBadge.className = 'badge bg-danger';
+                    statusBadge.textContent = '錯誤';
+                });
+        }
+
         function loadAdminUsers() {
             fetch('/admin/api/admin-users')
                 .then(response => response.json())
@@ -787,6 +986,11 @@
             }
             // Load database statistics
             loadDatabaseStats();
+            // Check WhatsApp status
+            checkWhatsAppStatus();
+            
+            // Refresh WhatsApp status every 30 seconds
+            setInterval(checkWhatsAppStatus, 30000);
         });
     </script>
 </body>

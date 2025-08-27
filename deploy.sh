@@ -32,6 +32,18 @@ start_foreground() {
     echo -e "${BLUE}   Health Check: http://$HOST:$PORT/health${NC}"
     echo -e "${BLUE}   AI Config: http://$HOST:$PORT/ai-config${NC}"
     echo ""
+    
+    # Start WhatsApp server if enabled
+    if [[ $ENABLE_WHATSAPP =~ ^[Yy]$ ]]; then
+        echo -e "${YELLOW}📱 Starting WhatsApp server...${NC}"
+        nohup npm start > whatsapp-server.log 2>&1 &
+        WHATSAPP_PID=$!
+        sleep 3
+        echo -e "${GREEN}✅ WhatsApp server started on port 8085 (PID: $WHATSAPP_PID)${NC}"
+        echo -e "${YELLOW}   Please scan QR code - check whatsapp-server.log for details${NC}"
+        echo ""
+    fi
+    
     echo -e "${YELLOW}Press Ctrl+C to stop the server${NC}"
     echo ""
     
@@ -42,18 +54,21 @@ start_foreground() {
 # Function to setup systemd service
 setup_systemd_service() {
     local SERVICE_NAME="ai-doctor-matching"
+    local WHATSAPP_SERVICE_NAME="ai-doctor-whatsapp"
     local SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
+    local WHATSAPP_SERVICE_FILE="/etc/systemd/system/${WHATSAPP_SERVICE_NAME}.service"
     local CURRENT_DIR=$(pwd)
     local VENV_PATH="$CURRENT_DIR/venv"
     local APP_USER=${SUDO_USER:-$(whoami)}
     
-    echo -e "${YELLOW}🔧 Creating systemd service...${NC}"
+    echo -e "${YELLOW}🔧 Creating systemd services...${NC}"
     
-    # Create service file
+    # Create main service file
     cat > "$SERVICE_FILE" << EOF
 [Unit]
 Description=AI Doctor Matching System
 After=network.target
+Wants=ai-doctor-whatsapp.service
 
 [Service]
 Type=simple
@@ -68,6 +83,35 @@ RestartSec=3
 [Install]
 WantedBy=multi-user.target
 EOF
+
+    # Create WhatsApp service file if enabled
+    if [[ $ENABLE_WHATSAPP =~ ^[Yy]$ ]]; then
+        cat > "$WHATSAPP_SERVICE_FILE" << EOF
+[Unit]
+Description=AI Doctor WhatsApp Server
+After=network.target
+
+[Service]
+Type=simple
+User=$APP_USER
+WorkingDirectory=$CURRENT_DIR
+EnvironmentFile=$CURRENT_DIR/.env
+ExecStart=/usr/bin/node whatsapp-server.js
+Restart=always
+RestartSec=5
+StandardOutput=append:$CURRENT_DIR/whatsapp-server.log
+StandardError=append:$CURRENT_DIR/whatsapp-server.log
+
+[Install]
+WantedBy=multi-user.target
+EOF
+        
+        # Set proper permissions for WhatsApp service
+        chmod 644 "$WHATSAPP_SERVICE_FILE"
+        systemctl daemon-reload
+        systemctl enable "$WHATSAPP_SERVICE_NAME"
+        echo -e "${GREEN}✅ WhatsApp service created: $WHATSAPP_SERVICE_NAME${NC}"
+    fi
     
     # Set proper permissions
     chmod 644 "$SERVICE_FILE"
@@ -76,12 +120,20 @@ EOF
     systemctl daemon-reload
     systemctl enable "$SERVICE_NAME"
     
-    echo -e "${GREEN}✅ Service created: $SERVICE_NAME${NC}"
+    echo -e "${GREEN}✅ Main service created: $SERVICE_NAME${NC}"
     echo -e "${BLUE}Service commands:${NC}"
     echo -e "  Start:   systemctl start $SERVICE_NAME"
     echo -e "  Stop:    systemctl stop $SERVICE_NAME"
     echo -e "  Status:  systemctl status $SERVICE_NAME"
     echo -e "  Logs:    journalctl -u $SERVICE_NAME -f"
+    
+    if [[ $ENABLE_WHATSAPP =~ ^[Yy]$ ]]; then
+        echo -e "${BLUE}WhatsApp service commands:${NC}"
+        echo -e "  Start:   systemctl start $WHATSAPP_SERVICE_NAME"
+        echo -e "  Stop:    systemctl stop $WHATSAPP_SERVICE_NAME"
+        echo -e "  Status:  systemctl status $WHATSAPP_SERVICE_NAME"
+        echo -e "  Logs:    journalctl -u $WHATSAPP_SERVICE_NAME -f"
+    fi
     echo ""
     
     # Ask if user wants to start the service now
@@ -131,6 +183,15 @@ if ! command -v python3 &> /dev/null; then
     exit 1
 fi
 
+# Check if Node.js is installed (for WhatsApp server)
+if ! command -v node &> /dev/null; then
+    echo -e "${RED}❌ Node.js is not installed. Please install Node.js 16+ for WhatsApp functionality.${NC}"
+    echo -e "${YELLOW}   Download from: https://nodejs.org${NC}"
+    exit 1
+else
+    echo -e "${GREEN}✅ Node.js is installed${NC}"
+fi
+
 echo -e "${YELLOW}📦 Setting up virtual environment...${NC}"
 
 # Create virtual environment if it doesn't exist
@@ -150,13 +211,22 @@ echo -e "${YELLOW}📦 Upgrading pip...${NC}"
 pip install --upgrade pip
 
 # Install requirements
-echo -e "${YELLOW}📦 Installing dependencies...${NC}"
+echo -e "${YELLOW}📦 Installing Python dependencies...${NC}"
 if [ -f "requirements.txt" ]; then
     pip install -r requirements.txt
-    echo -e "${GREEN}✅ Dependencies installed${NC}"
+    echo -e "${GREEN}✅ Python dependencies installed${NC}"
 else
     echo -e "${RED}❌ requirements.txt not found${NC}"
     exit 1
+fi
+
+# Install Node.js dependencies for WhatsApp server
+echo -e "${YELLOW}📦 Installing Node.js dependencies...${NC}"
+if [ -f "package.json" ]; then
+    npm install
+    echo -e "${GREEN}✅ Node.js dependencies installed${NC}"
+else
+    echo -e "${YELLOW}⚠️  package.json not found - WhatsApp functionality may not work${NC}"
 fi
 
 # Create .env file if it doesn't exist
@@ -199,6 +269,27 @@ sed -i.bak "s/^ADMIN_USERNAME=.*/ADMIN_USERNAME=$ADMIN_NAME/" .env
 sed -i.bak "s/^ADMIN_PASSWORD=.*/ADMIN_PASSWORD=$ADMIN_PASSWORD/" .env
 echo "FLASK_HOST=$HOST" >> .env
 echo "FLASK_PORT=$PORT" >> .env
+
+# Configure WhatsApp settings
+echo ""
+echo -e "${BLUE}📱 WhatsApp Configuration${NC}"
+echo "========================"
+read -p "Enable WhatsApp notifications? (y/N): " -n 1 -r ENABLE_WHATSAPP
+echo ""
+if [[ $ENABLE_WHATSAPP =~ ^[Yy]$ ]]; then
+    read -p "Enter target WhatsApp number (format: 852XXXXXXXX@c.us): " WHATSAPP_NUMBER
+    if [ -z "$WHATSAPP_NUMBER" ]; then
+        echo -e "${RED}❌ WhatsApp number cannot be empty${NC}"
+        ENABLE_WHATSAPP="n"
+    else
+        sed -i.bak "s/^WHATSAPP_ENABLED=.*/WHATSAPP_ENABLED=true/" .env
+        sed -i.bak "s/^WHATSAPP_TARGET_NUMBER=.*/WHATSAPP_TARGET_NUMBER=$WHATSAPP_NUMBER/" .env
+        echo -e "${GREEN}✅ WhatsApp notifications enabled for $WHATSAPP_NUMBER${NC}"
+    fi
+else
+    sed -i.bak "s/^WHATSAPP_ENABLED=.*/WHATSAPP_ENABLED=false/" .env
+    echo -e "${YELLOW}⚠️  WhatsApp notifications disabled${NC}"
+fi
 
 # Check AI provider setup
 echo -e "${YELLOW}🤖 Checking AI provider setup...${NC}"
