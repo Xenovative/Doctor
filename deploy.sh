@@ -255,58 +255,125 @@ if [ ! -f ".env" ]; then
     echo -e "${YELLOW}⚠️ Please edit .env file with your API keys if using OpenRouter${NC}"
 fi
 
-# Prompt for admin credentials
+# Prompt for admin credentials if not set
 echo ""
 echo -e "${BLUE}👤 Admin Account Configuration${NC}"
 echo "================================"
-read -p "Enter admin username (default: admin): " ADMIN_NAME
-ADMIN_NAME=${ADMIN_NAME:-admin}
 
-while true; do
-    read -s -p "Enter admin password (minimum 6 characters): " ADMIN_PASSWORD
-    echo ""
-    if [ ${#ADMIN_PASSWORD} -lt 6 ]; then
-        echo -e "${RED}❌ Password must be at least 6 characters${NC}"
-        continue
-    fi
-    break
-done
+# Only prompt for admin username if not set
+if [ -z "${ADMIN_USERNAME:-}" ]; then
+    read -p "Enter admin username (default: admin): " ADMIN_NAME
+    ADMIN_NAME=${ADMIN_NAME:-admin}
+else
+    ADMIN_NAME="$ADMIN_USERNAME"
+    echo -e "${GREEN}✅ Using existing admin username from environment: $ADMIN_NAME${NC}"
+fi
 
-echo -e "${GREEN}✅ Admin credentials configured: $ADMIN_NAME${NC}"
+# Only prompt for admin password if not set
+if [ -z "${ADMIN_PASSWORD:-}" ]; then
+    while true; do
+        read -s -p "Enter admin password (minimum 6 characters): " ADMIN_PASSWORD
+        echo ""
+        if [ ${#ADMIN_PASSWORD} -lt 6 ]; then
+            echo -e "${RED}❌ Password must be at least 6 characters${NC}"
+            continue
+        fi
+        # Ask to confirm password
+        read -s -p "Confirm admin password: " ADMIN_PASSWORD_CONFIRM
+        echo ""
+        if [ "$ADMIN_PASSWORD" != "$ADMIN_PASSWORD_CONFIRM" ]; then
+            echo -e "${RED}❌ Passwords do not match${NC}"
+            continue
+        fi
+        break
+    done
+    echo -e "${GREEN}✅ Admin credentials configured: $ADMIN_NAME${NC}"
+else
+    echo -e "${GREEN}✅ Using existing admin password from environment${NC}"
+fi
 echo ""
 
-# Set environment variables
-export AI_PROVIDER=$AI_PROVIDER
-export FLASK_HOST=$HOST
-export FLASK_PORT=$PORT
+# Load existing .env file if it exists
+if [ -f ".env" ]; then
+    echo -e "${GREEN}✅ Loading existing .env file${NC}"
+    # Export all variables from .env file
+    set -a
+    source .env
+    set +a
+fi
+
+# Set environment variables with fallbacks
+export AI_PROVIDER=${AI_PROVIDER:-$DEFAULT_AI_PROVIDER}
+export FLASK_HOST=${FLASK_HOST:-$HOST}
+export FLASK_PORT=${FLASK_PORT:-$PORT}
 
 # Update .env file with current settings
 echo -e "${YELLOW}⚙️  Updating configuration...${NC}"
-sed -i.bak "s/^AI_PROVIDER=.*/AI_PROVIDER=$AI_PROVIDER/" .env
-sed -i.bak "s/^ADMIN_USERNAME=.*/ADMIN_USERNAME=$ADMIN_NAME/" .env
-sed -i.bak "s/^ADMIN_PASSWORD=.*/ADMIN_PASSWORD=$ADMIN_PASSWORD/" .env
-echo "FLASK_HOST=$HOST" >> .env
-echo "FLASK_PORT=$PORT" >> .env
+# Create backup of existing .env
+cp -f .env .env.bak 2>/dev/null || true
+
+# Update or add variables in .env
+update_env_var() {
+    local var_name=$1
+    local var_value=$2
+    if grep -q "^$var_name=" .env 2>/dev/null; then
+        # Variable exists, update it
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            # MacOS/BSD sed requires different syntax
+            sed -i '' "s/^$var_name=.*/$var_name=$var_value/" .env
+        else
+            sed -i "s/^$var_name=.*/$var_name=$var_value/" .env
+        fi
+    else
+        # Variable doesn't exist, add it
+        echo "$var_name=$var_value" >> .env
+    fi
+}
+
+# Update or add variables
+update_env_var "AI_PROVIDER" "$AI_PROVIDER"
+update_env_var "ADMIN_USERNAME" "${ADMIN_NAME:-admin}"
+update_env_var "ADMIN_PASSWORD" "${ADMIN_PASSWORD:-}"
+update_env_var "FLASK_HOST" "$FLASK_HOST"
+update_env_var "FLASK_PORT" "$FLASK_PORT"
 
 # Configure WhatsApp settings
 echo ""
 echo -e "${BLUE}📱 WhatsApp Configuration${NC}"
 echo "========================"
-read -p "Enable WhatsApp notifications? (y/N): " -n 1 -r ENABLE_WHATSAPP
-echo ""
-if [[ $ENABLE_WHATSAPP =~ ^[Yy]$ ]]; then
-    read -p "Enter target WhatsApp number (format: 852XXXXXXXX@c.us): " WHATSAPP_NUMBER
-    if [ -z "$WHATSAPP_NUMBER" ]; then
-        echo -e "${RED}❌ WhatsApp number cannot be empty${NC}"
-        ENABLE_WHATSAPP="n"
-    else
-        sed -i.bak "s/^WHATSAPP_ENABLED=.*/WHATSAPP_ENABLED=true/" .env
-        sed -i.bak "s/^WHATSAPP_TARGET_NUMBER=.*/WHATSAPP_TARGET_NUMBER=$WHATSAPP_NUMBER/" .env
-        echo -e "${GREEN}✅ WhatsApp notifications enabled for $WHATSAPP_NUMBER${NC}"
-    fi
+
+# Check if WhatsApp is already configured via environment variables
+if [ -n "${WHATSAPP_TARGET_NUMBER:-}" ] && [ "${WHATSAPP_ENABLED:-false}" = "true" ]; then
+    echo -e "${GREEN}✅ Using existing WhatsApp configuration from environment${NC}"
+    echo -e "   Target number: $WHATSAPP_TARGET_NUMBER"
+    update_env_var "WHATSAPP_ENABLED" "true"
+    update_env_var "WHATSAPP_TARGET_NUMBER" "$WHATSAPP_TARGET_NUMBER"
 else
-    sed -i.bak "s/^WHATSAPP_ENABLED=.*/WHATSAPP_ENABLED=false/" .env
-    echo -e "${YELLOW}⚠️  WhatsApp notifications disabled${NC}"
+    # Only prompt if not configured via environment
+    read -p "Enable WhatsApp notifications? (y/N): " -n 1 -r ENABLE_WHATSAPP
+    echo ""
+    if [[ $ENABLE_WHATSAPP =~ ^[Yy]$ ]]; then
+        while true; do
+            read -p "Enter target WhatsApp number (format: 852XXXXXXXX@c.us): " WHATSAPP_NUMBER
+            if [ -z "$WHATSAPP_NUMBER" ]; then
+                echo -e "${RED}❌ WhatsApp number cannot be empty${NC}"
+                continue
+            fi
+            # Basic validation for WhatsApp number format
+            if [[ ! $WHATSAPP_NUMBER =~ ^[0-9]+@[a-z0-9.]+$ ]]; then
+                echo -e "${YELLOW}⚠️  Invalid format. Expected format: 852XXXXXXXX@c.us${NC}"
+                continue
+            fi
+            break
+        done
+        
+        update_env_var "WHATSAPP_ENABLED" "true"
+        update_env_var "WHATSAPP_TARGET_NUMBER" "$WHATSAPP_NUMBER"
+        echo -e "${GREEN}✅ WhatsApp notifications enabled for $WHATSAPP_NUMBER${NC}"
+    else
+        update_env_var "WHATSAPP_ENABLED" "false"
+        echo -e "${YELLOW}⚠️  WhatsApp notifications disabled${NC}"
+    fi
 fi
 
 # Check AI provider setup

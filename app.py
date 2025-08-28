@@ -20,6 +20,16 @@ import hashlib
 import secrets
 import asyncio
 import threading
+import logging
+from dotenv import load_dotenv, set_key
+from pathlib import Path
+
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# Load environment variables
+load_dotenv()
 
 # Conditional import for WhatsApp client
 try:
@@ -29,6 +39,41 @@ except ImportError:
     socketio = None
     WHATSAPP_AVAILABLE = False
     print("Warning: python-socketio not installed. WhatsApp functionality will be disabled.")
+
+def update_env_file(key: str, value: str) -> None:
+    """Update or add a key-value pair in the .env file."""
+    env_path = Path('.env')
+    
+    # If .env doesn't exist, create it
+    if not env_path.exists():
+        env_path.touch()
+    
+    # Read current content
+    try:
+        with open(env_path, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+    except Exception as e:
+        logger.error(f"Error reading .env file: {e}")
+        return
+    
+    # Update or add the key
+    key_exists = False
+    for i, line in enumerate(lines):
+        if line.strip().startswith(f'{key}='):
+            lines[i] = f"{key}={value}\n"
+            key_exists = True
+            break
+    
+    if not key_exists:
+        lines.append(f"{key}={value}\n")
+    
+    # Write back to file
+    try:
+        with open(env_path, 'w', encoding='utf-8') as f:
+            f.writelines(lines)
+        logger.info(f"Updated {key} in .env file")
+    except Exception as e:
+        logger.error(f"Error writing to .env file: {e}")
 
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', secrets.token_hex(32))
@@ -272,33 +317,27 @@ def send_whatsapp_notification(message: str):
                 # Connect to Socket.IO server
                 whatsapp_client.connect(WHATSAPP_CONFIG['socket_url'])
                 
-                # Set up response handler
-                response_received = threading.Event()
-                send_result = {'success': False, 'error': None}
-                
-                def on_send_result(data):
-                    send_result.update(data)
-                    response_received.set()
-                    print(f"DEBUG: Received response: {data}")
-                
-                whatsapp_client.on('sendText_result', on_send_result)
-                
                 print(f"DEBUG: Sending message to {WHATSAPP_CONFIG['target_number']}")
-                # Send message via Socket.IO
-                whatsapp_client.emit('sendText', {
-                    'to': WHATSAPP_CONFIG['target_number'],
-                    'content': message
-                })
-                
-                # Wait for response (max 10 seconds)
-                if response_received.wait(timeout=10):
-                    if send_result['success']:
+                # Send message via Socket.IO and wait for response
+                try:
+                    # Use call() for request-response pattern
+                    response = whatsapp_client.call('sendText', {
+                        'to': WHATSAPP_CONFIG['target_number'],
+                        'content': message
+                    }, timeout=10)
+                    
+                    if response and response.get('success'):
                         print(f"✅ WhatsApp message sent successfully to {WHATSAPP_CONFIG['target_number']}")
+                        return True
                     else:
-                        print(f"❌ WhatsApp send failed: {send_result.get('error', 'Unknown error')}")
-                else:
-                    print("⏰ WhatsApp send timeout - no response received")
-                
+                        error_msg = response.get('error', 'Unknown error') if response else 'No response from server'
+                        print(f"❌ WhatsApp send failed: {error_msg}")
+                        return False
+                        
+                except Exception as e:
+                    print(f"❌ WhatsApp send error: {str(e)}")
+                    return False
+                    
                 # Disconnect after sending
                 whatsapp_client.disconnect()
                 
@@ -1173,22 +1212,81 @@ def get_openai_models_api():
 
 @app.route('/admin/config/ai', methods=['POST'])
 @require_admin
+def update_env_file(key: str, value: str) -> None:
+    """Update or add a key-value pair in the .env file."""
+    env_path = Path('.env')
+    
+    # If .env doesn't exist, create it
+    if not env_path.exists():
+        env_path.touch()
+    
+    # Read current content
+    try:
+        with open(env_path, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+    except Exception as e:
+        logger.error(f"Error reading .env file: {e}")
+        return
+    
+    # Update or add the key
+    key_exists = False
+    key_pattern = re.compile(rf'^{re.escape(key)}=.*$', re.MULTILINE)
+    
+    for i, line in enumerate(lines):
+        if line.strip().startswith(f'{key}='):
+            lines[i] = f"{key}={value}\n"
+            key_exists = True
+            break
+    
+    if not key_exists:
+        lines.append(f"{key}={value}\n")
+    
+    # Write back to file
+    try:
+        with open(env_path, 'w', encoding='utf-8') as f:
+            f.writelines(lines)
+        logger.info(f"Updated {key} in .env file")
+    except Exception as e:
+        logger.error(f"Error writing to .env file: {e}")
+
 def update_ai_config():
     try:
         # Update AI_CONFIG based on form data
-        AI_CONFIG['provider'] = request.form.get('provider', 'ollama')
+        provider = request.form.get('provider', 'ollama')
+        AI_CONFIG['provider'] = provider
         
-        if AI_CONFIG['provider'] == 'openrouter':
-            AI_CONFIG['openrouter']['api_key'] = request.form.get('openrouter_api_key', '')
-            AI_CONFIG['openrouter']['model'] = request.form.get('openrouter_model', 'anthropic/claude-3.5-sonnet')
-            AI_CONFIG['openrouter']['max_tokens'] = int(request.form.get('openrouter_max_tokens', '4000'))
-        elif AI_CONFIG['provider'] == 'openai':
-            AI_CONFIG['openai']['api_key'] = request.form.get('openai_api_key', '')
-            AI_CONFIG['openai']['model'] = request.form.get('openai_model', 'gpt-4')
-            AI_CONFIG['openai']['max_tokens'] = int(request.form.get('openai_max_tokens', '4000'))
-        elif AI_CONFIG['provider'] == 'ollama':
-            AI_CONFIG['ollama']['model'] = request.form.get('ollama_model', 'llama3.1:8b')
-            AI_CONFIG['ollama']['base_url'] = request.form.get('ollama_base_url', 'http://localhost:11434/api/generate')
+        # Update provider-specific config
+        if provider == 'openrouter':
+            AI_CONFIG['openrouter'].update({
+                'api_key': request.form.get('openrouter_api_key', ''),
+                'model': request.form.get('openrouter_model', 'anthropic/claude-3.5-sonnet'),
+                'max_tokens': int(request.form.get('openrouter_max_tokens', '4000'))
+            })
+            # Update .env file
+            update_env_file('AI_PROVIDER', 'openrouter')
+            update_env_file('OPENROUTER_API_KEY', AI_CONFIG['openrouter']['api_key'])
+            update_env_file('OPENROUTER_MODEL', AI_CONFIG['openrouter']['model'])
+            update_env_file('OPENROUTER_MAX_TOKENS', str(AI_CONFIG['openrouter']['max_tokens']))
+            
+        elif provider == 'openai':
+            AI_CONFIG['openai'].update({
+                'api_key': request.form.get('openai_api_key', ''),
+                'model': request.form.get('openai_model', 'gpt-4'),
+                'max_tokens': int(request.form.get('openai_max_tokens', '4000'))
+            })
+            # Update .env file
+            update_env_file('AI_PROVIDER', 'openai')
+            update_env_file('OPENAI_API_KEY', AI_CONFIG['openai']['api_key'])
+            
+        elif provider == 'ollama':
+            AI_CONFIG['ollama'].update({
+                'model': request.form.get('ollama_model', 'llama3.1:8b'),
+                'base_url': request.form.get('ollama_base_url', 'http://localhost:11434/api/generate')
+            })
+            # Update .env file
+            update_env_file('AI_PROVIDER', 'ollama')
+            update_env_file('OLLAMA_MODEL', AI_CONFIG['ollama']['model'])
+            update_env_file('OLLAMA_BASE_URL', AI_CONFIG['ollama']['base_url'])
         
         # Save to database
         conn = sqlite3.connect('admin_data.db')
@@ -1200,13 +1298,16 @@ def update_ai_config():
         conn.commit()
         conn.close()
         
-        log_analytics('config_update', {'type': 'ai_config', 'provider': AI_CONFIG['provider']}, 
+        # Reload environment variables
+        load_dotenv(override=True)
+        
+        log_analytics('config_update', {'type': 'ai_config', 'provider': provider}, 
                      request.remote_addr, request.user_agent.string)
         
         flash('AI配置已更新', 'success')
     except Exception as e:
-        print(f"Config update error: {e}")
-        flash('更新配置時發生錯誤', 'error')
+        logger.error(f"AI config update error: {e}")
+        flash(f'更新AI配置時發生錯誤: {str(e)}', 'error')
     
     return redirect(url_for('admin_config'))
 
@@ -1957,6 +2058,13 @@ def update_whatsapp_config():
             'session_name': session_name
         })
         
+        # Update .env file
+        update_env_file('WHATSAPP_ENABLED', 'true' if enabled else 'false')
+        update_env_file('WHATSAPP_TARGET_NUMBER', target_number)
+        update_env_file('WHATSAPP_SOCKET_URL', socket_url)
+        update_env_file('WHATSAPP_API_KEY', api_key)
+        update_env_file('WHATSAPP_SESSION_NAME', session_name)
+        
         # Save to database
         conn = sqlite3.connect('admin_data.db')
         cursor = conn.cursor()
@@ -1970,6 +2078,9 @@ def update_whatsapp_config():
         conn.commit()
         conn.close()
         
+        # Reload environment variables
+        load_dotenv(override=True)
+        
         # Reinitialize WhatsApp client if enabled
         if enabled:
             init_whatsapp_client()
@@ -1981,6 +2092,7 @@ def update_whatsapp_config():
         return redirect(url_for('admin_config'))
         
     except Exception as e:
+        logger.error(f"WhatsApp config update error: {e}")
         flash(f'更新WhatsApp配置失敗: {str(e)}', 'error')
         return redirect(url_for('admin_config'))
 
