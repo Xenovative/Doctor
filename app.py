@@ -310,43 +310,50 @@ def send_whatsapp_notification(message: str):
         print("WhatsApp通知已跳過（客戶端未初始化）")
         return False
     
-    try:
-        def send_async():
-            try:
+    def send_async():
+        connected = False
+        try:
+            # Check if already connected
+            if not whatsapp_client.connected:
                 print(f"DEBUG: Connecting to {WHATSAPP_CONFIG['socket_url']}")
-                # Connect to Socket.IO server
                 whatsapp_client.connect(WHATSAPP_CONFIG['socket_url'])
+                connected = True
+            else:
+                print("DEBUG: Using existing connection")
+            
+            print(f"DEBUG: Sending message to {WHATSAPP_CONFIG['target_number']}")
+            # Generate a unique message ID for deduplication
+            import hashlib
+            import time
+            message_id = hashlib.md5(f"{WHATSAPP_CONFIG['target_number']}:{message}:{time.time()}".encode()).hexdigest()
+            
+            # Send message via Socket.IO and wait for response
+            response = whatsapp_client.call('sendText', {
+                'to': WHATSAPP_CONFIG['target_number'],
+                'content': message,
+                'messageId': message_id  # Include message ID for deduplication
+            }, timeout=10)
+            
+            if response and response.get('success'):
+                print(f"✅ WhatsApp message sent successfully to {WHATSAPP_CONFIG['target_number']}")
+                return True
+            else:
+                error_msg = response.get('error', 'Unknown error') if response else 'No response from server'
+                print(f"❌ WhatsApp send failed: {error_msg}")
+                return False
                 
-                print(f"DEBUG: Sending message to {WHATSAPP_CONFIG['target_number']}")
-                # Send message via Socket.IO and wait for response
-                try:
-                    # Use call() for request-response pattern
-                    response = whatsapp_client.call('sendText', {
-                        'to': WHATSAPP_CONFIG['target_number'],
-                        'content': message
-                    }, timeout=10)
-                    
-                    if response and response.get('success'):
-                        print(f"✅ WhatsApp message sent successfully to {WHATSAPP_CONFIG['target_number']}")
-                        return True
-                    else:
-                        error_msg = response.get('error', 'Unknown error') if response else 'No response from server'
-                        print(f"❌ WhatsApp send failed: {error_msg}")
-                        return False
-                        
-                except Exception as e:
-                    print(f"❌ WhatsApp send error: {str(e)}")
-                    return False
-                    
-                # Disconnect after sending
-                whatsapp_client.disconnect()
-                
-            except Exception as e:
-                print(f"WhatsApp發送失敗: {e}")
-                import traceback
-                traceback.print_exc()
-        
-        # 在新線程中運行
+        except Exception as e:
+            print(f"❌ WhatsApp send error: {str(e)}")
+            # If there was an error, try to disconnect to clean up the connection
+            try:
+                if connected and whatsapp_client.connected:
+                    whatsapp_client.disconnect()
+            except:
+                pass
+            return False
+    
+    try:
+        # Run in a new thread
         thread = threading.Thread(target=send_async)
         thread.daemon = True
         thread.start()
