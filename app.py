@@ -223,6 +223,10 @@ def init_db():
 # Initialize database on startup
 init_db()
 
+# Load configurations from database
+load_ai_config_from_db()
+load_whatsapp_config_from_db()
+
 # WhatsApp客戶端實例
 whatsapp_client = None
 
@@ -242,6 +246,9 @@ def init_whatsapp_client():
     except Exception as e:
         print(f"WhatsApp客戶端初始化失敗: {e}")
         whatsapp_client = None
+
+# Initialize WhatsApp client on startup
+init_whatsapp_client()
 
 def send_whatsapp_notification(message: str):
     """發送WhatsApp通知"""
