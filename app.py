@@ -1,3 +1,12 @@
+import sys
+
+# Check Python version compatibility
+if sys.version_info >= (3, 12):
+    print("Error: This application requires Python 3.11 or lower.")
+    print(f"Current Python version: {sys.version}")
+    print("Please use Python 3.8 - 3.11 to run this service.")
+    sys.exit(1)
+
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for, flash
 import pandas as pd
 import requests
