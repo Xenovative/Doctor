@@ -36,7 +36,7 @@ app.secret_key = os.getenv('SECRET_KEY', secrets.token_hex(32))
 # WhatsApp配置
 WHATSAPP_CONFIG = {
     'enabled': os.getenv('WHATSAPP_ENABLED', 'false').lower() == 'true',
-    'socket_url': os.getenv('WHATSAPP_SOCKET_URL', 'http://localhost:8085'),
+    'socket_url': os.getenv('WHATSAPP_SOCKET_URL', 'http://localhost:8086'),
     'api_key': os.getenv('WHATSAPP_API_KEY', ''),
     'target_number': os.getenv('WHATSAPP_TARGET_NUMBER', ''),  # Format: 852XXXXXXXX@c.us
     'session_name': os.getenv('WHATSAPP_SESSION_NAME', 'default')
@@ -1861,7 +1861,7 @@ def test_whatsapp_connection():
     """Test WhatsApp connection with provided config"""
     try:
         data = request.get_json()
-        socket_url = data.get('socket_url', 'http://localhost:8085')
+        socket_url = data.get('socket_url', 'http://localhost:8086')
         target_number = data.get('target_number')
         api_key = data.get('api_key', '')
         session_name = data.get('session_name', 'default')
@@ -1901,7 +1901,7 @@ def update_whatsapp_config():
         # Get form data
         enabled = request.form.get('whatsapp_enabled') == 'true'
         target_number = request.form.get('target_number', '').strip()
-        socket_url = request.form.get('socket_url', 'http://localhost:8085').strip()
+        socket_url = request.form.get('socket_url', 'http://localhost:8086').strip()
         api_key = request.form.get('api_key', '').strip()
         session_name = request.form.get('session_name', 'default').strip()
         

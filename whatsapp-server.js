@@ -33,15 +33,16 @@ wa.create({
   console.log('✅ WhatsApp client is ready!');
   console.log('📱 Please scan the QR code with your WhatsApp mobile app');
   
-  // Start socket server on port 8085
-  const io = new Server(8085, {
+  // Start socket server on configurable port (default 8086 to avoid Flask conflict)
+  const whatsappPort = process.env.WHATSAPP_PORT || 8086;
+  const io = new Server(whatsappPort, {
     cors: {
       origin: "*",
       methods: ["GET", "POST"]
     }
   });
   
-  console.log('🚀 Socket.IO server started on port 8085');
+  console.log(`🚀 Socket.IO server started on port ${whatsappPort}`);
   
   io.on('connection', (socket) => {
     console.log('🔌 Client connected to WhatsApp server');
