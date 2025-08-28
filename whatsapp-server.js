@@ -4,9 +4,20 @@ const { Server } = require('socket.io');
 console.log('🔄 Initializing WhatsApp Web Automation Server...');
 
 // Message tracking for deduplication and rate limiting
-const messageStore = new Map();
+const messageStore = new Map(); // Format: messageId -> { timestamp, to, content }
+const sentMessages = new Set(); // Track already sent message IDs
 const RATE_LIMIT_WINDOW = 60000; // 1 minute
 const MAX_MESSAGES_PER_WINDOW = 5; // Max messages per minute per number
+
+// Generate a unique message ID
+function generateMessageId(to, content) {
+  const timestamp = Date.now();
+  const hash = require('crypto')
+    .createHash('md5')
+    .update(`${to}:${content}:${timestamp}`)
+    .digest('hex');
+  return `msg_${hash}`;
+}
 
 wa.create({
   sessionId: process.env.WHATSAPP_SESSION_NAME || 'default',
@@ -54,7 +65,24 @@ wa.create({
     
     socket.on('sendText', async (data, callback) => {
       const now = Date.now();
-      const messageKey = `${data.to}:${data.content}`;
+      
+      // Generate or use provided messageId
+      const messageId = data.messageId || generateMessageId(data.to, data.content);
+      const messageKey = `msg_${messageId}`;
+      
+      // Check if message was already sent
+      if (sentMessages.has(messageId)) {
+        console.log(`🔄 Message ${messageId} was already sent, skipping`);
+        if (typeof callback === 'function') {
+          return callback({ 
+            success: true, 
+            messageId,
+            alreadySent: true,
+            status: 'Message was already sent previously'
+          });
+        }
+        return;
+      }
       
       // Check for duplicate message
       if (messageStore.has(messageKey)) {
@@ -87,20 +115,34 @@ wa.create({
       }
       
       try {
-        console.log(`📤 Sending message to ${data.to}`);
+        console.log(`📤 Sending message [${messageId}] to ${data.to}`);
         const result = await client.sendText(data.to, data.content);
         
-        // Store message with timestamp for deduplication
-        messageStore.set(messageKey, now);
+        // Mark message as sent
+        sentMessages.add(messageId);
+        
+        // Store message with timestamp for rate limiting
+        messageStore.set(messageKey, {
+          timestamp: now,
+          to: data.to,
+          content: data.content
+        });
         
         // Clean up old entries
-        for (const [key, timestamp] of messageStore.entries()) {
-          if ((now - timestamp) > RATE_LIMIT_WINDOW * 2) {
+        for (const [key, entry] of messageStore.entries()) {
+          if ((now - entry.timestamp) > RATE_LIMIT_WINDOW * 2) {
             messageStore.delete(key);
+            // Keep sentMessages to prevent resending even after cleanup
           }
         }
         
-        const response = { success: true, result, messageId: result.id };
+        const response = { 
+          success: true, 
+          result, 
+          messageId,
+          alreadySent: false,
+          timestamp: now
+        };
         if (typeof callback === 'function') {
           callback(response);
         } else {
