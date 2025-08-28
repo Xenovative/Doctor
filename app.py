@@ -1210,8 +1210,6 @@ def get_openai_models_api():
     models = get_openai_models(api_key)
     return jsonify({'models': models})
 
-@app.route('/admin/config/ai', methods=['POST'])
-@require_admin
 def update_env_file(key: str, value: str) -> None:
     """Update or add a key-value pair in the .env file."""
     env_path = Path('.env')
@@ -1230,8 +1228,6 @@ def update_env_file(key: str, value: str) -> None:
     
     # Update or add the key
     key_exists = False
-    key_pattern = re.compile(rf'^{re.escape(key)}=.*$', re.MULTILINE)
-    
     for i, line in enumerate(lines):
         if line.strip().startswith(f'{key}='):
             lines[i] = f"{key}={value}\n"
@@ -1249,6 +1245,8 @@ def update_env_file(key: str, value: str) -> None:
     except Exception as e:
         logger.error(f"Error writing to .env file: {e}")
 
+@app.route('/admin/update_ai_config', methods=['POST'])
+@require_admin
 def update_ai_config():
     try:
         # Update AI_CONFIG based on form data
