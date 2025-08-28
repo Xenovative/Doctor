@@ -2,7 +2,8 @@ Flask==2.3.3
 pandas==2.0.3
 requests==2.31.0
 python-dotenv==1.0.0
-python-socketio
+python-socketio>=5.0.0
+websocket-client>=1.0.0
 
 # Windows service support (optional, only needed for Windows service deployment)
 pywin32==306; sys_platform == "win32"
