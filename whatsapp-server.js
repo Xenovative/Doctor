@@ -3,6 +3,11 @@ const { Server } = require('socket.io');
 
 console.log('🔄 Initializing WhatsApp Web Automation Server...');
 
+// Message tracking for deduplication and rate limiting
+const messageStore = new Map();
+const RATE_LIMIT_WINDOW = 60000; // 1 minute
+const MAX_MESSAGES_PER_WINDOW = 5; // Max messages per minute per number
+
 wa.create({
   sessionId: process.env.WHATSAPP_SESSION_NAME || 'default',
   multiDevice: true,
@@ -47,15 +52,73 @@ wa.create({
   io.on('connection', (socket) => {
     console.log('🔌 Client connected to WhatsApp server');
     
-    socket.on('sendText', async (data) => {
+    socket.on('sendText', async (data, callback) => {
+      const now = Date.now();
+      const messageKey = `${data.to}:${data.content}`;
+      
+      // Check for duplicate message
+      if (messageStore.has(messageKey)) {
+        const lastSent = messageStore.get(messageKey);
+        if ((now - lastSent) < RATE_LIMIT_WINDOW) {
+          console.log(`🔄 Duplicate message to ${data.to} detected, ignoring`);
+          if (typeof callback === 'function') {
+            return callback({ success: false, error: 'Duplicate message' });
+          }
+          return;
+        }
+      }
+      
+      // Check rate limit
+      const messageCount = Array.from(messageStore.entries())
+        .filter(([key, timestamp]) => 
+          key.startsWith(`${data.to}:`) && 
+          (now - timestamp) < RATE_LIMIT_WINDOW
+        ).length;
+        
+      if (messageCount >= MAX_MESSAGES_PER_WINDOW) {
+        console.log(`⚠️ Rate limit exceeded for ${data.to}`);
+        if (typeof callback === 'function') {
+          return callback({ 
+            success: false, 
+            error: 'Rate limit exceeded. Please try again later.' 
+          });
+        }
+        return;
+      }
+      
       try {
         console.log(`📤 Sending message to ${data.to}`);
         const result = await client.sendText(data.to, data.content);
-        socket.emit('sendText_result', { success: true, result });
+        
+        // Store message with timestamp for deduplication
+        messageStore.set(messageKey, now);
+        
+        // Clean up old entries
+        for (const [key, timestamp] of messageStore.entries()) {
+          if ((now - timestamp) > RATE_LIMIT_WINDOW * 2) {
+            messageStore.delete(key);
+          }
+        }
+        
+        const response = { success: true, result, messageId: result.id };
+        if (typeof callback === 'function') {
+          callback(response);
+        } else {
+          socket.emit('sendText_result', response);
+        }
         console.log('✅ Message sent successfully');
       } catch (error) {
         console.error('❌ Failed to send message:', error.message);
-        socket.emit('sendText_result', { success: false, error: error.message });
+        const errorResponse = { 
+          success: false, 
+          error: error.message,
+          code: error.code || 'SEND_MESSAGE_ERROR'
+        };
+        if (typeof callback === 'function') {
+          callback(errorResponse);
+        } else {
+          socket.emit('sendText_result', errorResponse);
+        }
       }
     });
     
