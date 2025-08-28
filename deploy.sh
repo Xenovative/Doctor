@@ -35,13 +35,31 @@ start_foreground() {
     
     # Start WhatsApp server if enabled
     if [[ $ENABLE_WHATSAPP =~ ^[Yy]$ ]]; then
-        echo -e "${YELLOW}📱 Starting WhatsApp server...${NC}"
-        nohup npm start > whatsapp-server.log 2>&1 &
-        WHATSAPP_PID=$!
-        sleep 3
-        echo -e "${GREEN}✅ WhatsApp server started on port 8085 (PID: $WHATSAPP_PID)${NC}"
-        echo -e "${YELLOW}   Please scan QR code - check whatsapp-server.log for details${NC}"
-        echo ""
+        echo -e "${YELLOW}📱 Starting WhatsApp server with PM2...${NC}"
+        
+        # Create logs directory if it doesn't exist
+        mkdir -p logs
+        
+        # Stop existing WhatsApp server process if running
+        pm2 stop whatsapp-server 2>/dev/null || true
+        pm2 delete whatsapp-server 2>/dev/null || true
+        
+        # Start WhatsApp server using PM2
+        if pm2 start ecosystem.config.js --only whatsapp-server; then
+            echo -e "${GREEN}✅ WhatsApp server started with PM2 on port 8086${NC}"
+            echo -e "${BLUE}   Process name: whatsapp-server${NC}"
+            echo -e "${BLUE}   View logs: pm2 logs whatsapp-server${NC}"
+            echo -e "${YELLOW}   Please scan QR code (check PM2 logs for QR code)${NC}"
+            echo ""
+        else
+            echo -e "${RED}❌ Failed to start WhatsApp server with PM2${NC}"
+            echo -e "${YELLOW}   Falling back to direct start...${NC}"
+            nohup node whatsapp-server.js > whatsapp-server.log 2>&1 &
+            WHATSAPP_PID=$!
+            sleep 3
+            echo -e "${GREEN}✅ WhatsApp server started directly on port 8086 (PID: $WHATSAPP_PID)${NC}"
+            echo ""
+        fi
     fi
     
     echo -e "${YELLOW}Press Ctrl+C to stop the server${NC}"
@@ -54,21 +72,18 @@ start_foreground() {
 # Function to setup systemd service
 setup_systemd_service() {
     local SERVICE_NAME="ai-doctor-matching"
-    local WHATSAPP_SERVICE_NAME="ai-doctor-whatsapp"
     local SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
-    local WHATSAPP_SERVICE_FILE="/etc/systemd/system/${WHATSAPP_SERVICE_NAME}.service"
     local CURRENT_DIR=$(pwd)
     local VENV_PATH="$CURRENT_DIR/venv"
     local APP_USER=${SUDO_USER:-$(whoami)}
     
-    echo -e "${YELLOW}🔧 Creating systemd services...${NC}"
+    echo -e "${YELLOW}🔧 Creating systemd service...${NC}"
     
     # Create main service file
     cat > "$SERVICE_FILE" << EOF
 [Unit]
 Description=AI Doctor Matching System
 After=network.target
-Wants=ai-doctor-whatsapp.service
 
 [Service]
 Type=simple
@@ -84,33 +99,27 @@ RestartSec=3
 WantedBy=multi-user.target
 EOF
 
-    # Create WhatsApp service file if enabled
+    # Start WhatsApp server with PM2 if enabled
     if [[ $ENABLE_WHATSAPP =~ ^[Yy]$ ]]; then
-        cat > "$WHATSAPP_SERVICE_FILE" << EOF
-[Unit]
-Description=AI Doctor WhatsApp Server
-After=network.target
-
-[Service]
-Type=simple
-User=$APP_USER
-WorkingDirectory=$CURRENT_DIR
-EnvironmentFile=$CURRENT_DIR/.env
-ExecStart=/usr/bin/node whatsapp-server.js
-Restart=always
-RestartSec=5
-StandardOutput=append:$CURRENT_DIR/whatsapp-server.log
-StandardError=append:$CURRENT_DIR/whatsapp-server.log
-
-[Install]
-WantedBy=multi-user.target
-EOF
+        echo -e "${YELLOW}📱 Setting up WhatsApp server with PM2...${NC}"
         
-        # Set proper permissions for WhatsApp service
-        chmod 644 "$WHATSAPP_SERVICE_FILE"
-        systemctl daemon-reload
-        systemctl enable "$WHATSAPP_SERVICE_NAME"
-        echo -e "${GREEN}✅ WhatsApp service created: $WHATSAPP_SERVICE_NAME${NC}"
+        # Create logs directory
+        mkdir -p logs
+        
+        # Stop existing processes
+        pm2 stop whatsapp-server 2>/dev/null || true
+        pm2 delete whatsapp-server 2>/dev/null || true
+        
+        # Start with PM2
+        if pm2 start ecosystem.config.js --only whatsapp-server; then
+            # Save PM2 process list and enable startup
+            pm2 save
+            pm2 startup systemd -u $APP_USER --hp $(eval echo ~$APP_USER)
+            echo -e "${GREEN}✅ WhatsApp server configured with PM2${NC}"
+            echo -e "${BLUE}   PM2 will auto-start WhatsApp server on boot${NC}"
+        else
+            echo -e "${RED}❌ Failed to setup WhatsApp server with PM2${NC}"
+        fi
     fi
     
     # Set proper permissions
@@ -128,11 +137,11 @@ EOF
     echo -e "  Logs:    journalctl -u $SERVICE_NAME -f"
     
     if [[ $ENABLE_WHATSAPP =~ ^[Yy]$ ]]; then
-        echo -e "${BLUE}WhatsApp service commands:${NC}"
-        echo -e "  Start:   systemctl start $WHATSAPP_SERVICE_NAME"
-        echo -e "  Stop:    systemctl stop $WHATSAPP_SERVICE_NAME"
-        echo -e "  Status:  systemctl status $WHATSAPP_SERVICE_NAME"
-        echo -e "  Logs:    journalctl -u $WHATSAPP_SERVICE_NAME -f"
+        echo -e "${BLUE}WhatsApp PM2 commands:${NC}"
+        echo -e "  Status:  pm2 status whatsapp-server"
+        echo -e "  Logs:    pm2 logs whatsapp-server"
+        echo -e "  Restart: pm2 restart whatsapp-server"
+        echo -e "  Stop:    pm2 stop whatsapp-server"
     fi
     echo ""
     
@@ -225,6 +234,15 @@ echo -e "${YELLOW}📦 Installing Node.js dependencies...${NC}"
 if [ -f "package.json" ]; then
     npm install
     echo -e "${GREEN}✅ Node.js dependencies installed${NC}"
+    
+    # Install PM2 globally if not already installed
+    if ! command -v pm2 &> /dev/null; then
+        echo -e "${YELLOW}📦 Installing PM2 process manager...${NC}"
+        npm install -g pm2
+        echo -e "${GREEN}✅ PM2 installed globally${NC}"
+    else
+        echo -e "${GREEN}✅ PM2 is already installed${NC}"
+    fi
 else
     echo -e "${YELLOW}⚠️  package.json not found - WhatsApp functionality may not work${NC}"
 fi

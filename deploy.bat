@@ -85,6 +85,16 @@ echo 📦 Installing Node.js dependencies...
 if exist "package.json" (
     npm install
     echo ✅ Node.js dependencies installed
+    
+    REM Install PM2 globally if not already installed
+    pm2 --version >nul 2>&1
+    if errorlevel 1 (
+        echo 📦 Installing PM2 process manager...
+        npm install -g pm2
+        echo ✅ PM2 installed globally
+    ) else (
+        echo ✅ PM2 is already installed
+    )
 ) else (
     echo ⚠️ package.json not found - WhatsApp functionality may not work
 )
@@ -228,12 +238,32 @@ echo.
 
 REM Start WhatsApp server if enabled
 if /i "!ENABLE_WHATSAPP!"=="y" (
-    echo 📱 Starting WhatsApp server...
-    start "WhatsApp Server" cmd /c "npm start"
-    timeout /t 3 >nul
-    echo ✅ WhatsApp server started on port 8085
-    echo    Please scan QR code in the WhatsApp server window
-    echo.
+    echo 📱 Starting WhatsApp server with PM2...
+    
+    REM Create logs directory if it doesn't exist
+    if not exist "logs" mkdir logs
+    
+    REM Stop existing WhatsApp server process if running
+    pm2 stop whatsapp-server 2>nul
+    pm2 delete whatsapp-server 2>nul
+    
+    REM Start WhatsApp server using PM2
+    pm2 start ecosystem.config.js --only whatsapp-server
+    
+    if !errorLevel! == 0 (
+        echo ✅ WhatsApp server started with PM2 on port 8086
+        echo    Process name: whatsapp-server
+        echo    View logs: pm2 logs whatsapp-server
+        echo    Please scan QR code (check PM2 logs for QR code)
+        echo.
+    ) else (
+        echo ❌ Failed to start WhatsApp server with PM2
+        echo    Falling back to direct start...
+        start "WhatsApp Server" cmd /c "node whatsapp-server.js"
+        timeout /t 3 >nul
+        echo ✅ WhatsApp server started directly on port 8086
+        echo.
+    )
 )
 
 echo Press Ctrl+C to stop the server
