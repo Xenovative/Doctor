@@ -245,16 +245,27 @@ def init_whatsapp_client():
 
 def send_whatsapp_notification(message: str):
     """發送WhatsApp通知"""
-    if not WHATSAPP_CONFIG['enabled'] or not whatsapp_client:
-        print("WhatsApp通知已跳過（未啟用或客戶端未初始化）")
+    print(f"DEBUG: WhatsApp enabled: {WHATSAPP_CONFIG['enabled']}")
+    print(f"DEBUG: WhatsApp client initialized: {whatsapp_client is not None}")
+    print(f"DEBUG: Target number: {WHATSAPP_CONFIG['target_number']}")
+    print(f"DEBUG: Socket URL: {WHATSAPP_CONFIG['socket_url']}")
+    
+    if not WHATSAPP_CONFIG['enabled']:
+        print("WhatsApp通知已跳過（未啟用）")
+        return False
+        
+    if not whatsapp_client:
+        print("WhatsApp通知已跳過（客戶端未初始化）")
         return False
     
     try:
         def send_async():
             try:
+                print(f"DEBUG: Connecting to {WHATSAPP_CONFIG['socket_url']}")
                 # Connect to Socket.IO server
                 whatsapp_client.connect(WHATSAPP_CONFIG['socket_url'])
                 
+                print(f"DEBUG: Sending message to {WHATSAPP_CONFIG['target_number']}")
                 # Send message via Socket.IO
                 whatsapp_client.emit('sendText', {
                     'to': WHATSAPP_CONFIG['target_number'],
@@ -268,6 +279,8 @@ def send_whatsapp_notification(message: str):
                 
             except Exception as e:
                 print(f"WhatsApp發送失敗: {e}")
+                import traceback
+                traceback.print_exc()
         
         # 在新線程中運行
         thread = threading.Thread(target=send_async)
