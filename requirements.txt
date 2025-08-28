@@ -7,6 +7,3 @@ python-socketio
 # Windows service support (optional, only needed for Windows service deployment)
 pywin32==306; sys_platform == "win32"
 python-windows-service==1.0.0; sys_platform == "win32"
-
-# Python version constraint
-python_requires>=3.8,<3.12
