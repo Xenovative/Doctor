@@ -265,6 +265,17 @@ def send_whatsapp_notification(message: str):
                 # Connect to Socket.IO server
                 whatsapp_client.connect(WHATSAPP_CONFIG['socket_url'])
                 
+                # Set up response handler
+                response_received = threading.Event()
+                send_result = {'success': False, 'error': None}
+                
+                def on_send_result(data):
+                    send_result.update(data)
+                    response_received.set()
+                    print(f"DEBUG: Received response: {data}")
+                
+                whatsapp_client.on('sendText_result', on_send_result)
+                
                 print(f"DEBUG: Sending message to {WHATSAPP_CONFIG['target_number']}")
                 # Send message via Socket.IO
                 whatsapp_client.emit('sendText', {
@@ -272,7 +283,14 @@ def send_whatsapp_notification(message: str):
                     'content': message
                 })
                 
-                print(f"WhatsApp通知已發送到 {WHATSAPP_CONFIG['target_number']}")
+                # Wait for response (max 10 seconds)
+                if response_received.wait(timeout=10):
+                    if send_result['success']:
+                        print(f"✅ WhatsApp message sent successfully to {WHATSAPP_CONFIG['target_number']}")
+                    else:
+                        print(f"❌ WhatsApp send failed: {send_result.get('error', 'Unknown error')}")
+                else:
+                    print("⏰ WhatsApp send timeout - no response received")
                 
                 # Disconnect after sending
                 whatsapp_client.disconnect()
