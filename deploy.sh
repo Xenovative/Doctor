@@ -205,14 +205,33 @@ echo -e "${YELLOW}📦 Setting up virtual environment...${NC}"
 
 # Create virtual environment if it doesn't exist
 if [ ! -d "venv" ]; then
+    echo -e "${YELLOW}Creating virtual environment...${NC}"
     python3 -m venv venv
-    echo -e "${GREEN}✅ Virtual environment created${NC}"
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}✅ Virtual environment created${NC}"
+    else
+        echo -e "${RED}❌ Failed to create virtual environment${NC}"
+        exit 1
+    fi
 else
     echo -e "${GREEN}✅ Virtual environment already exists${NC}"
 fi
 
 # Activate virtual environment
-source venv/bin/activate
+if [ -f "venv/bin/activate" ]; then
+    source venv/bin/activate
+else
+    echo -e "${RED}❌ Virtual environment activation script not found${NC}"
+    echo -e "${YELLOW}Trying to recreate virtual environment...${NC}"
+    rm -rf venv
+    python3 -m venv venv
+    if [ -f "venv/bin/activate" ]; then
+        source venv/bin/activate
+    else
+        echo -e "${RED}❌ Failed to create working virtual environment${NC}"
+        exit 1
+    fi
+fi
 echo -e "${GREEN}✅ Virtual environment activated${NC}"
 
 # Upgrade pip
