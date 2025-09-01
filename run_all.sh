@@ -1,0 +1,16 @@
+#!/bin/bash
+
+echo "=== Doctor AI Reverse Proxy Setup ==="
+echo "Run these scripts in order:"
+echo ""
+echo "1. ./1_check_port.sh     - Check if your app is running on port 7001"
+echo "2. ./4_start_app.sh      - Start your app if it's not running"
+echo "3. ./2_simple_nginx.sh   - Create simple HTTP proxy config"
+echo "4. ./5_test_proxy.sh     - Test if proxy is working"
+echo "5. ./6_add_ssl.sh        - Add SSL once HTTP proxy works"
+echo ""
+echo "Debugging:"
+echo "- ./3_check_nginx_config.sh - Check Nginx configuration issues"
+echo ""
+echo "Make all scripts executable first:"
+echo "chmod +x *.sh"
