@@ -10,14 +10,11 @@ server {
 }
 
 server {
-    listen 443 ssl http2;
+    listen 443 ssl;
+    http2 on;
     server_name app.doctor-ai.io;
     
-    # Use existing SSL certificates if available
-    ssl_certificate /etc/letsencrypt/live/app.doctor-ai.io/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/app.doctor-ai.io/privkey.pem;
-    
-    # Fallback to self-signed if Let's Encrypt not available
+    # Use self-signed certificates (will be replaced by Let's Encrypt)
     ssl_certificate /etc/ssl/certs/ssl-cert-snakeoil.pem;
     ssl_certificate_key /etc/ssl/private/ssl-cert-snakeoil.key;
 
@@ -37,13 +34,10 @@ server {
 
 # Redirect www to non-www
 server {
-    listen 443 ssl http2;
+    listen 443 ssl;
+    http2 on;
     server_name www.app.doctor-ai.io;
     
-    ssl_certificate /etc/letsencrypt/live/app.doctor-ai.io/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/app.doctor-ai.io/privkey.pem;
-    
-    # Fallback to self-signed
     ssl_certificate /etc/ssl/certs/ssl-cert-snakeoil.pem;
     ssl_certificate_key /etc/ssl/private/ssl-cert-snakeoil.key;
     
