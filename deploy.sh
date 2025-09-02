@@ -206,7 +206,7 @@ echo -e "${YELLOW}📦 Setting up virtual environment...${NC}"
 # Create virtual environment if it doesn't exist
 if [ ! -d "venv" ]; then
     echo -e "${YELLOW}Creating virtual environment...${NC}"
-    python3 -m venv venv
+    python3.11 -m venv venv
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}✅ Virtual environment created${NC}"
     else
@@ -224,7 +224,7 @@ else
     echo -e "${RED}❌ Virtual environment activation script not found${NC}"
     echo -e "${YELLOW}Trying to recreate virtual environment...${NC}"
     rm -rf venv
-    python3 -m venv venv
+    python3.11 -m venv venv
     if [ -f "venv/bin/activate" ]; then
         source venv/bin/activate
     else
