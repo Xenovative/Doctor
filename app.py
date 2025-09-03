@@ -818,9 +818,10 @@ def extract_specialty_from_diagnosis(diagnosis_response: str) -> str:
     specialties_map = {
         '精神科': {
             'keywords': ['精神科', '心理科', '精神健康科', '精神醫學科'],
-            'symptoms': ['精神病', '精神分裂', '妄想', '幻覺', '躁鬱', '抑鬱', '焦慮', '恐慌', 
-                        '強迫症', '創傷後壓力', 'PTSD', '自殺', '自傷', '精神崩潰', '心理創傷',
-                        '情緒失控', '思覺失調', '雙相情感', '人格障礙', '注意力不足', 'ADHD']
+            'symptoms': ['精神病', '精神分裂', '妄想', '幻覺', '躁鬱症', '抑鬱症', '焦慮症', '恐慌症', 
+                        '強迫症', '創傷後壓力', 'PTSD', '自殺念頭', '自傷行為', '精神崩潰', '心理創傷',
+                        '情緒失控', '思覺失調', '雙相情感障礙', '人格障礙', '注意力不足過動症', 'ADHD',
+                        '心理治療', '精神藥物', '情緒病', '心理輔導']
         },
         '心臟科': {
             'keywords': ['心臟科', '心臟內科', '心血管科'],
@@ -829,8 +830,10 @@ def extract_specialty_from_diagnosis(diagnosis_response: str) -> str:
         },
         '神經科': {
             'keywords': ['神經科', '腦神經科', '神經內科'],
-            'symptoms': ['頭痛', '偏頭痛', '癲癇', '中風', '帕金森', '失智', '記憶力減退', 
-                        '手腳麻痺', '肌肉無力', '震顫', '暈眩', '意識不清']
+            'symptoms': ['頭痛', '偏頭痛', '癲癇', '中風', '帕金森病', '失智症', '記憶力減退', 
+                        '手腳麻痺', '肌肉無力', '震顫', '暈眩', '意識不清', '神經痛', '坐骨神經痛',
+                        '面癱', '三叉神經痛', '神經炎', '周邊神經病變', '運動神經元病', '多發性硬化症',
+                        '腦血管疾病', '腦腫瘤', '神經系統', '神經傳導', '神經檢查']
         },
         '急診科': {
             'keywords': ['急診科', '急症科'],
@@ -895,6 +898,13 @@ def extract_specialty_from_diagnosis(diagnosis_response: str) -> str:
     response_lower = diagnosis_response.lower()
     specialty_scores = {}
     
+    # 特殊處理：區分神經科和精神科
+    neurological_indicators = ['神經痛', '神經炎', '神經傳導', '神經檢查', '神經系統', '腦神經', '周邊神經', '運動神經', '感覺神經', '神經病變']
+    psychiatric_indicators = ['精神', '心理', '情緒', '妄想', '幻覺', '自殺', '抑鬱', '焦慮', '躁鬱']
+    
+    has_neurological = any(indicator in diagnosis_response for indicator in neurological_indicators)
+    has_psychiatric = any(indicator in diagnosis_response for indicator in psychiatric_indicators)
+    
     for specialty, data in specialties_map.items():
         score = 0
         
@@ -907,6 +917,12 @@ def extract_specialty_from_diagnosis(diagnosis_response: str) -> str:
         for keyword in data['keywords']:
             if keyword in diagnosis_response:
                 score += 20  # 專科名稱匹配得分最高
+        
+        # 特殊調整：避免神經科和精神科混淆
+        if specialty == '精神科' and has_neurological and not has_psychiatric:
+            score = max(0, score - 15)  # 降低精神科分數
+        elif specialty == '神經科' and has_psychiatric and not has_neurological:
+            score = max(0, score - 15)  # 降低神經科分數
         
         if score > 0:
             specialty_scores[specialty] = score
