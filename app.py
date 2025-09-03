@@ -814,125 +814,50 @@ def analyze_symptoms_and_match(age: int, symptoms: str, chronic_conditions: str,
 
 def extract_specialty_from_diagnosis(diagnosis_response: str) -> str:
     """從診斷結果中提取推薦的專科"""
-    # 擴展的專科匹配，包含症狀關鍵字
-    specialties_map = {
-        '精神科': {
-            'keywords': ['精神科', '心理科', '精神健康科', '精神醫學科'],
-            'symptoms': ['精神病', '精神分裂', '妄想', '幻覺', '躁鬱症', '抑鬱症', '焦慮症', '恐慌症', 
-                        '強迫症', '創傷後壓力', 'PTSD', '自殺念頭', '自傷行為', '精神崩潰', '心理創傷',
-                        '情緒失控', '思覺失調', '雙相情感障礙', '人格障礙', '注意力不足過動症', 'ADHD',
-                        '心理治療', '精神藥物', '情緒病', '心理輔導']
-        },
-        '心臟科': {
-            'keywords': ['心臟科', '心臟內科', '心血管科'],
-            'symptoms': ['胸痛', '心悸', '心律不整', '心絞痛', '心肌梗塞', '高血壓', '心衰竭', 
-                        '心跳過快', '心跳過慢', '呼吸困難', '水腫']
-        },
-        '神經科': {
-            'keywords': ['神經科', '腦神經科', '神經內科'],
-            'symptoms': ['頭痛', '偏頭痛', '癲癇', '中風', '帕金森病', '失智症', '記憶力減退', 
-                        '手腳麻痺', '肌肉無力', '震顫', '暈眩', '意識不清', '神經痛', '坐骨神經痛',
-                        '面癱', '三叉神經痛', '神經炎', '周邊神經病變', '運動神經元病', '多發性硬化症',
-                        '腦血管疾病', '腦腫瘤', '神經系統', '神經傳導', '神經檢查']
-        },
-        '急診科': {
-            'keywords': ['急診科', '急症科'],
-            'symptoms': ['急性', '緊急', '嚴重', '生命危險', '昏迷', '大量出血', '呼吸困難',
-                        '胸痛劇烈', '高燒不退', '嚴重外傷', '中毒']
-        },
-        '外科': {
-            'keywords': ['外科', '一般外科', '普通外科'],
-            'symptoms': ['外傷', '骨折', '切傷', '腫塊', '疝氣', '闌尾炎', '膽結石', '需要手術']
-        },
-        '皮膚科': {
-            'keywords': ['皮膚科', '皮膚及性病科'],
-            'symptoms': ['皮疹', '濕疹', '蕁麻疹', '痤瘡', '暗瘡', '皮膚癢', '脫髮', '指甲問題',
-                        '皮膚感染', '疣', '黑痣', '皮膚癌']
-        },
-        '眼科': {
-            'keywords': ['眼科', '眼科醫生'],
-            'symptoms': ['視力模糊', '眼痛', '眼紅', '眼乾', '飛蚊症', '閃光', '青光眼', '白內障',
-                        '視野缺損', '複視', '眼瞼下垂']
-        },
-        '耳鼻喉科': {
-            'keywords': ['耳鼻喉科', 'ENT'],
-            'symptoms': ['耳痛', '聽力下降', '耳鳴', '鼻塞', '流鼻血', '喉嚨痛', '聲音沙啞',
-                        '吞嚥困難', '頸部腫塊', '打鼾', '睡眠呼吸暫停']
-        },
-        '婦產科': {
-            'keywords': ['婦產科', '婦科', '產科'],
-            'symptoms': ['月經不調', '陰道出血', '盆腔痛', '懷孕', '產前檢查', '更年期',
-                        '子宮肌瘤', '卵巢囊腫', '不孕', '性病']
-        },
-        '兒科': {
-            'keywords': ['兒科', '兒科醫生', '小兒科'],
-            'symptoms': ['發育遲緩', '疫苗接種', '兒童發燒', '嬰兒哭鬧', '餵養問題']
-        },
-        '骨科': {
-            'keywords': ['骨科', '骨科醫生', '骨外科'],
-            'symptoms': ['關節痛', '腰痛', '頸痛', '肩痛', '膝痛', '骨折', '扭傷', '關節炎',
-                        '椎間盤突出', '坐骨神經痛', '肌腱炎']
-        },
-        '泌尿科': {
-            'keywords': ['泌尿科', '泌尿外科'],
-            'symptoms': ['尿頻', '尿急', '尿痛', '血尿', '腎結石', '前列腺', '性功能障礙',
-                        '尿失禁', '膀胱炎']
-        },
-        '腸胃科': {
-            'keywords': ['腸胃科', '消化內科', '胃腸科'],
-            'symptoms': ['腹痛', '腹瀉', '便秘', '噁心', '嘔吐', '胃痛', '胃酸倒流', '腸胃炎',
-                        '潰瘍', '肝炎', '膽囊炎']
-        },
-        '內分泌科': {
-            'keywords': ['內分泌科', '糖尿病科'],
-            'symptoms': ['糖尿病', '甲狀腺', '肥胖', '代謝異常', '荷爾蒙失調', '多飲多尿',
-                        '體重急劇變化']
-        },
-        '內科': {
-            'keywords': ['內科', '普通科', '家庭醫學科', '全科'],
-            'symptoms': ['一般不適', '發燒', '疲勞', '體檢', '慢性病管理']
+    import re
+    
+    # 直接從AI回應中解析建議專科
+    # 尋找「建議專科：」後面的內容
+    specialty_pattern = r'建議專科：\s*([^一-鿿\n]*[一-鿿]+[^一-鿿\n]*?)(?=\n|嚴重程度|緊急程度|$)'
+    match = re.search(specialty_pattern, diagnosis_response)
+    
+    if match:
+        recommended_specialty = match.group(1).strip()
+        
+        # 清理提取的專科名稱，移除不必要的標點符號和空格
+        recommended_specialty = re.sub(r'[\[\]\(\)【】《》「」『』]', '', recommended_specialty)
+        recommended_specialty = recommended_specialty.strip()
+        
+        # 專科名稱正規化映射
+        specialty_mapping = {
+            '精神科': ['精神科', '心理科', '精神健康科', '精神醫學科'],
+            '神經科': ['神經科', '腦神經科', '神經內科'],
+            '心臟科': ['心臟科', '心臟內科', '心血管科'],
+            '急診科': ['急診科', '急症科'],
+            '外科': ['外科', '一般外科', '普通外科'],
+            '皮膚科': ['皮膚科', '皮膚及性病科'],
+            '眼科': ['眼科'],
+            '耳鼻喉科': ['耳鼻喉科', 'ENT'],
+            '婦產科': ['婦產科', '婦科', '產科'],
+            '兒科': ['兒科', '小兒科'],
+            '骨科': ['骨科', '骨外科'],
+            '泌尿科': ['泌尿科', '泌尿外科'],
+            '腸胃科': ['腸胃科', '消化內科', '胃腸科'],
+            '內分泌科': ['內分泌科', '糖尿病科'],
+            '內科': ['內科', '普通科', '家庭醫學科', '全科']
         }
-    }
-    
-    # 先檢查症狀關鍵字（優先級較高）
-    response_lower = diagnosis_response.lower()
-    specialty_scores = {}
-    
-    # 特殊處理：區分神經科和精神科
-    neurological_indicators = ['神經痛', '神經炎', '神經傳導', '神經檢查', '神經系統', '腦神經', '周邊神經', '運動神經', '感覺神經', '神經病變']
-    psychiatric_indicators = ['精神', '心理', '情緒', '妄想', '幻覺', '自殺', '抑鬱', '焦慮', '躁鬱']
-    
-    has_neurological = any(indicator in diagnosis_response for indicator in neurological_indicators)
-    has_psychiatric = any(indicator in diagnosis_response for indicator in psychiatric_indicators)
-    
-    for specialty, data in specialties_map.items():
-        score = 0
         
-        # 檢查症狀關鍵字
-        for symptom in data['symptoms']:
-            if symptom in diagnosis_response:
-                score += 10  # 症狀匹配得分較高
+        # 尋找匹配的標準專科名稱
+        for standard_specialty, variations in specialty_mapping.items():
+            for variation in variations:
+                if variation in recommended_specialty:
+                    return standard_specialty
         
-        # 檢查專科關鍵字
-        for keyword in data['keywords']:
-            if keyword in diagnosis_response:
-                score += 20  # 專科名稱匹配得分最高
-        
-        # 特殊調整：避免神經科和精神科混淆
-        if specialty == '精神科' and has_neurological and not has_psychiatric:
-            score = max(0, score - 15)  # 降低精神科分數
-        elif specialty == '神經科' and has_psychiatric and not has_neurological:
-            score = max(0, score - 15)  # 降低神經科分數
-        
-        if score > 0:
-            specialty_scores[specialty] = score
+        # 如果找不到匹配，但有提取到專科名稱，直接返回
+        if recommended_specialty and len(recommended_specialty) > 0:
+            return recommended_specialty
     
-    # 返回得分最高的專科
-    if specialty_scores:
-        best_specialty = max(specialty_scores, key=specialty_scores.get)
-        return best_specialty
-    
-    # 如果沒有找到特定專科，返回內科作為默認
+    # 如果沒有找到明確的專科推薦，返回內科作為默認
     return '內科'
 
 def extract_specialty_from_ai_response(ai_response: str) -> str:
