@@ -4,16 +4,50 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI香港醫療配對系統</title>
+    
+    <!-- Favicons -->
+    <link rel="icon" type="image/x-icon" href="/assets/favicon/favicon.ico">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon/favicon-32x32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/favicon/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon/android-chrome-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/assets/favicon/android-chrome-512x512.png">
+    <link rel="manifest" href="/assets/favicon/site.webmanifest">
+    
     <link rel="stylesheet" href="static/style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Nasalization&display=swap" rel="stylesheet">
 </head>
 <body>
+    <script>
+        // Parallax effect
+        window.addEventListener('scroll', () => {
+            const scrolled = window.pageYOffset;
+            const parallax = document.body;
+            const speed = scrolled * 0.5;
+            parallax.style.setProperty('--scroll', `${speed}px`);
+        });
+    </script>
     <div class="container">
         <header class="header">
             <div class="header-content">
-                <i class="fas fa-stethoscope"></i>
-                <h1>AI香港醫療配對系統</h1>
-                <p>智能分析病徵，精準配對專科醫生</p>
+                <div class="logo-container">
+                    <a href="https://doctor-ai.io" target="_blank" class="logo-link">
+                        <div class="logo-circle">
+                            <img src="/assets/img/doctoricon.png" alt="Doctor AI Logo" class="logo">
+                        </div>
+                    </a>
+                </div>
+                <div class="title-container">
+                    <h1 class="main-title">Doctor AI.io</h1>
+                    <h2 class="subtitle">免費AI診症平台</h2>
+                </div>
+                <div class="header-button-container">
+                    <a href="https://doctor-ai.io" class="back-to-website-btn" target="_blank">
+                        <i class="fas fa-globe"></i>
+                        <span>返回主頁</span>
+                    </a>
+                </div>
             </div>
         </header>
 
@@ -227,7 +261,21 @@
             </div>
         </main>
     </div>
-
+    
+    <footer class="footer">
+        
+        <div class="footer-bottom">
+            <div class="legal-links">
+                <a href="https://www.doctor-ai.io/terms-and-conditions">條款及細則</a>
+                <span class="separator">|</span>
+                <a href="https://www.doctor-ai.io/privacy-policy">隱私權政策</a>
+                <span class="separator">|</span>
+                <a href="https://www.doctor-ai.io/accessibility-statement">無障礙聲明</a>
+            </div>
+            <p> 2025 XENOVATIVE Limited. 版權所有</p>
+        </div>
+    </footer>
+    
     <script src="static/script.js"></script>
 </body>
 </html>

@@ -75,8 +75,15 @@ def update_env_file(key: str, value: str) -> None:
     except Exception as e:
         logger.error(f"Error writing to .env file: {e}")
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static', static_url_path='/static')
 app.secret_key = os.getenv('SECRET_KEY', secrets.token_hex(32))
+
+# Add route to serve assets folder
+from flask import send_from_directory
+
+@app.route('/assets/<path:filename>')
+def serve_assets(filename):
+    return send_from_directory('assets', filename)
 
 # WhatsApp配置
 WHATSAPP_CONFIG = {
