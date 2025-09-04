@@ -933,6 +933,28 @@ def filter_doctors(recommended_specialty: str, language: str, location: str, sym
                 score += 30
                 match_reasons.append(f"語言匹配：{language}")
         
+        # Get UI language from session for doctor prioritization
+        ui_language = session.get('language', 'zh-TW')
+        
+        # Language-based doctor prioritization
+        doctor_name = doctor.get('name', '')
+        if doctor_name and not pd.isna(doctor_name):
+            doctor_name = str(doctor_name)
+            
+            # Check if doctor name contains Chinese characters
+            has_chinese = any('\u4e00' <= char <= '\u9fff' for char in doctor_name)
+            
+            if ui_language == 'en':
+                # For English UI, prioritize non-Chinese doctors
+                if not has_chinese:
+                    score += 15
+                    match_reasons.append("Non-Chinese doctor (English preference)")
+            else:
+                # For Chinese UI, slightly prioritize Chinese doctors
+                if has_chinese:
+                    score += 5
+                    match_reasons.append("Chinese doctor (Chinese preference)")
+        
         # 3層地區匹配系統
         doctor_address = doctor.get('clinic_addresses', '')
         if doctor_address and not pd.isna(doctor_address):

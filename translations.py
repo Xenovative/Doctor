@@ -110,6 +110,18 @@ TRANSLATIONS = {
         'ai_diagnosis_unavailable': 'AI診斷暫時不可用',
         'ai_diagnosis_unavailable_desc': '我們的AI診斷服務暫時無法使用，但您仍可以查看推薦的醫生。建議直接諮詢醫療專業人士。',
         
+        # User summary and diagnosis cards
+        'user_health_summary': '您的健康資料摘要',
+        'ai_diagnosis_analysis': 'AI 智能診斷分析',
+        'recommended_specialty': '推薦專科',
+        'age_years': '年齡',
+        'main_symptoms': '主要症狀',
+        'body_info': '身高體重',
+        'years_old_suffix': '歲',
+        'height_weight_format': 'cm / kg (BMI: )',
+        'important_reminder': '重要提醒：',
+        'ai_disclaimer': '此AI分析僅供參考，不能替代專業醫療診斷。請務必諮詢合格醫生進行正式診斷。',
+        
         # Location translations - Districts
         '中西區': '中西區',
         '東區': '東區', 
@@ -282,6 +294,18 @@ TRANSLATIONS = {
         'ai_diagnosis_unavailable': 'AI诊断暂时不可用',
         'ai_diagnosis_unavailable_desc': '我们的AI诊断服务暂时无法使用，但您仍可以查看推荐的医生。建议直接咨询医疗专业人士。',
         
+        # User summary and diagnosis cards
+        'user_health_summary': '您的健康资料摘要',
+        'ai_diagnosis_analysis': 'AI 智能诊断分析',
+        'recommended_specialty': '推荐专科',
+        'age_years': '年龄',
+        'main_symptoms': '主要症状',
+        'body_info': '身高体重',
+        'years_old_suffix': '岁',
+        'height_weight_format': 'cm / kg (BMI: )',
+        'important_reminder': '重要提醒：',
+        'ai_disclaimer': '此AI分析仅供参考，不能替代专业医疗诊断。请务必咨询合格医生进行正式诊断。',
+        
         # Location translations - Districts
         '中西區': '中西区',
         '東區': '东区', 
@@ -453,6 +477,18 @@ TRANSLATIONS = {
         'service_unavailable': 'Service Temporarily Unavailable',
         'ai_diagnosis_unavailable': 'AI Diagnosis Temporarily Unavailable',
         'ai_diagnosis_unavailable_desc': 'Our AI diagnosis service is temporarily unavailable, but you can still view recommended doctors. We suggest consulting medical professionals directly.',
+        
+        # User summary and diagnosis cards
+        'user_health_summary': 'Your Health Information Summary',
+        'ai_diagnosis_analysis': 'AI Diagnostic Analysis',
+        'recommended_specialty': 'Recommended Specialty',
+        'age_years': 'Age',
+        'main_symptoms': 'Main Symptoms',
+        'body_info': 'Height & Weight',
+        'years_old_suffix': ' years old',
+        'height_weight_format': 'cm / kg (BMI: )',
+        'important_reminder': 'Important Reminder:',
+        'ai_disclaimer': 'This AI analysis is for reference only and cannot replace professional medical diagnosis. Please consult a qualified physician for formal diagnosis.',
         
         # Location translations - Districts
         '中西區': 'Central and Western District',

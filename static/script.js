@@ -514,7 +514,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <i class="fas fa-user-circle"></i>
                 </div>
                 <div class="summary-title">
-                    <h3>您的健康資料摘要</h3>
+                    <h3 data-translate="user_health_summary">您的健康資料摘要</h3>
                 </div>
             </div>
             
@@ -524,6 +524,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             </div>
         `;
+        
+        // Apply translations to newly created card
+        setTimeout(() => {
+            if (window.currentTranslations) {
+                card.querySelectorAll('[data-translate]').forEach(element => {
+                    const key = element.getAttribute('data-translate');
+                    if (window.currentTranslations[key]) {
+                        element.textContent = window.currentTranslations[key];
+                    }
+                });
+            }
+        }, 0);
         
         return card;
     }
@@ -541,8 +553,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     <i class="fas fa-stethoscope"></i>
                 </div>
                 <div class="diagnosis-title">
-                    <h3>AI 智能診斷分析</h3>
-                    <div class="recommended-specialty">推薦專科：${recommendedSpecialty}</div>
+                    <h3 data-translate="ai_diagnosis_analysis">AI 智能診斷分析</h3>
+                    <div class="recommended-specialty"><span data-translate="recommended_specialty">推薦專科</span>：${recommendedSpecialty}</div>
                 </div>
             </div>
             
@@ -554,9 +566,21 @@ document.addEventListener('DOMContentLoaded', function() {
             
             <div class="diagnosis-disclaimer">
                 <i class="fas fa-exclamation-triangle"></i>
-                <strong>重要提醒：</strong>此AI分析僅供參考，不能替代專業醫療診斷。請務必諮詢合格醫生進行正式診斷。
+                <strong data-translate="important_reminder">重要提醒：</strong><span data-translate="ai_disclaimer">此AI分析僅供參考，不能替代專業醫療診斷。請務必諮詢合格醫生進行正式診斷。</span>
             </div>
         `;
+        
+        // Apply translations to newly created diagnosis card
+        setTimeout(() => {
+            if (window.currentTranslations) {
+                card.querySelectorAll('[data-translate]').forEach(element => {
+                    const key = element.getAttribute('data-translate');
+                    if (window.currentTranslations[key]) {
+                        element.textContent = window.currentTranslations[key];
+                    }
+                });
+            }
+        }, 0);
         
         return card;
     }
