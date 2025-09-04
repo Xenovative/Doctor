@@ -389,11 +389,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function translateSpecialty(specialty) {
         if (!specialty || !window.currentTranslations) {
+            console.log('translateSpecialty: No specialty or no translations available', { specialty, hasTranslations: !!window.currentTranslations });
             return specialty;
         }
         
         // Try to find translation for the specialty
         const translated = window.currentTranslations[specialty];
+        console.log('translateSpecialty:', { specialty, translated, found: !!translated });
         return translated || specialty;
     }
 
