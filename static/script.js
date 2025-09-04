@@ -333,11 +333,15 @@ document.addEventListener('DOMContentLoaded', function() {
             showMoreButton.id = 'showMoreButton';
             showMoreButton.className = 'show-more-container';
             showMoreButton.innerHTML = `
-                <button class="show-more-btn" onclick="showMoreDoctors()">
+                <button class="show-more-btn" id="showMoreBtn">
                     <i class="fas fa-plus-circle"></i>
                     顯示更多醫生 (還有 ${allDoctors.length - currentlyDisplayed} 位)
                 </button>
             `;
+            
+            // Add event listener to the button
+            const showMoreBtn = showMoreButton.querySelector('#showMoreBtn');
+            showMoreBtn.addEventListener('click', showMoreDoctors);
             doctorList.appendChild(showMoreButton);
         }
     }
