@@ -397,6 +397,22 @@ AI香港醫療配對系統"""
     
     return message
 
+def get_real_ip():
+    """Get the real client IP address, considering proxies and load balancers"""
+    # Check for forwarded headers in order of preference
+    if request.headers.get('X-Forwarded-For'):
+        # X-Forwarded-For can contain multiple IPs, get the first one (original client)
+        return request.headers.get('X-Forwarded-For').split(',')[0].strip()
+    elif request.headers.get('X-Real-IP'):
+        return request.headers.get('X-Real-IP')
+    elif request.headers.get('CF-Connecting-IP'):  # Cloudflare
+        return request.headers.get('CF-Connecting-IP')
+    elif request.headers.get('X-Client-IP'):
+        return request.headers.get('X-Client-IP')
+    else:
+        # Fallback to remote_addr
+        return request.remote_addr
+
 def log_analytics(event_type, data=None, user_ip=None, user_agent=None, session_id=None):
     """Log analytics event"""
     try:
@@ -937,7 +953,7 @@ def index():
     """主頁"""
     # Log page visit
     log_analytics('page_visit', {'page': 'index'}, 
-                 request.remote_addr, request.user_agent.string, session.get('session_id'))
+                 get_real_ip(), request.user_agent.string, session.get('session_id'))
     return render_template('index.html')
 
 @app.route('/find_doctor', methods=['POST'])
@@ -974,7 +990,7 @@ def find_doctor():
             ''', (age, symptoms, chronic_conditions, language, location, 
                   json.dumps(detailed_health_info), result['diagnosis'], 
                   result['recommended_specialty'], len(result['doctors']), 
-                  request.remote_addr, session_id))
+                  get_real_ip(), session_id))
             query_id = cursor.lastrowid
             session['last_query_id'] = query_id
             conn.commit()
@@ -986,7 +1002,7 @@ def find_doctor():
         log_analytics('doctor_search', {
             'age': age, 'symptoms': symptoms, 'language': language, 'location': location,
             'doctors_found': len(result['doctors']), 'specialty': result['recommended_specialty']
-        }, request.remote_addr, request.user_agent.string, session_id)
+        }, get_real_ip(), request.user_agent.string, session_id)
         
         return jsonify({
             'success': True,
@@ -1075,7 +1091,7 @@ def admin_login():
                 print(f"Error updating last login: {e}")
             
             log_analytics('admin_login', {'username': username, 'role': user[3]}, 
-                         request.remote_addr, request.user_agent.string)
+                         get_real_ip(), request.user_agent.string)
             flash('登入成功', 'success')
             return redirect(url_for('admin_dashboard'))
         elif (username == ADMIN_USERNAME and password_hash == ADMIN_PASSWORD_HASH):
@@ -1085,12 +1101,12 @@ def admin_login():
             session['admin_role'] = 'super_admin'
             session['admin_permissions'] = {'all': True}
             log_analytics('admin_login', {'username': username, 'role': 'super_admin'}, 
-                         request.remote_addr, request.user_agent.string)
+                         get_real_ip(), request.user_agent.string)
             flash('登入成功', 'success')
             return redirect(url_for('admin_dashboard'))
         else:
             log_analytics('admin_login_failed', {'username': username}, 
-                         request.remote_addr, request.user_agent.string)
+                         get_real_ip(), request.user_agent.string)
             flash('用戶名或密碼錯誤', 'error')
     
     return render_template('admin/login.html')
@@ -1100,7 +1116,7 @@ def admin_login():
 def admin_logout():
     """Admin logout"""
     log_analytics('admin_logout', {'username': session.get('admin_username')}, 
-                 request.remote_addr, request.user_agent.string)
+                 get_real_ip(), request.user_agent.string)
     session.clear()
     flash('已成功登出', 'success')
     return redirect(url_for('admin_login'))
@@ -1342,7 +1358,7 @@ def update_ai_config():
         load_dotenv(override=True)
         
         log_analytics('config_update', {'type': 'ai_config', 'provider': provider}, 
-                     request.remote_addr, request.user_agent.string)
+                     get_real_ip(), request.user_agent.string)
         
         flash('AI配置已更新', 'success')
     except Exception as e:
@@ -1400,7 +1416,7 @@ def change_admin_password():
             return redirect(url_for('admin_config'))
         
         log_analytics('password_change', {'username': username}, 
-                     request.remote_addr, request.user_agent.string)
+                     get_real_ip(), request.user_agent.string)
         flash('密碼更新成功', 'success')
         
     except Exception as e:
@@ -1447,7 +1463,7 @@ def create_admin_user():
             
             log_analytics('admin_user_created', {
                 'username': username, 'role': role, 'created_by': session.get('admin_username')
-            }, request.remote_addr, request.user_agent.string)
+            }, get_real_ip(), request.user_agent.string)
             
             flash(f'管理員用戶 {username} 創建成功', 'success')
         except sqlite3.IntegrityError:
@@ -1548,7 +1564,7 @@ def export_doctors_database():
         response.headers['Content-Disposition'] = f'attachment; filename=doctors_database_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
         
         log_analytics('database_export', {'type': 'doctors', 'count': len(DOCTORS_DATA)}, 
-                     request.remote_addr, request.user_agent.string)
+                     get_real_ip(), request.user_agent.string)
         
         return response
         
@@ -1647,7 +1663,7 @@ def import_doctors_database():
             'imported_count': len(new_doctors_data),
             'total_count': len(DOCTORS_DATA),
             'action': backup_action
-        }, request.remote_addr, request.user_agent.string)
+        }, get_real_ip(), request.user_agent.string)
         
     except Exception as e:
         print(f"Import error: {e}")
@@ -1857,7 +1873,7 @@ def export_analytics_database():
             'analytics_count': len(analytics_data),
             'queries_count': len(user_queries_data),
             'clicks_count': len(doctor_clicks_data)
-        }, request.remote_addr, request.user_agent.string)
+        }, get_real_ip(), request.user_agent.string)
         
         return response
         
@@ -1966,7 +1982,7 @@ def track_click():
         cursor.execute('''
             INSERT INTO doctor_clicks (doctor_name, doctor_specialty, user_ip, session_id, query_id)
             VALUES (?, ?, ?, ?, ?)
-        ''', (doctor_name, doctor_specialty, request.remote_addr, session_id, query_id))
+        ''', (doctor_name, doctor_specialty, get_real_ip(), session_id, query_id))
         conn.commit()
         
         # Get user query data for WhatsApp notification
@@ -2004,7 +2020,7 @@ def track_click():
         # Log analytics
         log_analytics('doctor_click', {
             'doctor_name': doctor_name, 'doctor_specialty': doctor_specialty
-        }, request.remote_addr, request.user_agent.string, session_id)
+        }, get_real_ip(), request.user_agent.string, session_id)
         
         return jsonify({'success': True})
     except Exception as e:

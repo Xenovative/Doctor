@@ -305,7 +305,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Track doctor click
             trackDoctorClick(doctor.name, doctor.specialty);
             
-            const whatsappUrl = 'https://api.whatsapp.com/send/?phone=85265767650';
+            const whatsappUrl = 'https://api.whatsapp.com/send/?phone=85294974070';
             window.open(whatsappUrl, '_blank');
         });
         
