@@ -5,6 +5,80 @@ document.addEventListener('DOMContentLoaded', function() {
     const doctorList = document.getElementById('doctorList');
     const diagnosisResult = document.getElementById('diagnosisResult');
     
+    // Location cascade data
+    const locationData = {
+        '香港島': {
+            '中西區': ['中環', '上環', '西環', '金鐘', '堅尼地城', '石塘咀', '西營盤'],
+            '東區': ['銅鑼灣', '天后', '炮台山', '北角', '鰂魚涌', '西灣河', '筲箕灣', '柴灣', '小西灣'],
+            '南區': ['香港仔', '鴨脷洲', '黃竹坑', '深水灣', '淺水灣', '赤柱', '石澳'],
+            '灣仔區': ['灣仔', '跑馬地', '大坑', '渣甸山', '寶馬山']
+        },
+        '九龍': {
+            '九龍城區': ['九龍城', '土瓜灣', '馬頭角', '馬頭圍', '啟德', '紅磡', '何文田'],
+            '觀塘區': ['觀塘', '牛頭角', '九龍灣', '彩虹', '坪石', '秀茂坪', '藍田', '油塘'],
+            '深水埗區': ['深水埗', '長沙灣', '荔枝角', '美孚', '石硤尾', '又一村'],
+            '黃大仙區': ['黃大仙', '新蒲崗', '樂富', '橫頭磡', '東頭', '竹園', '慈雲山', '鑽石山'],
+            '油尖旺區': ['油麻地', '尖沙咀', '旺角', '大角咀', '太子', '佐敦']
+        },
+        '新界': {
+            '離島區': ['長洲', '南丫島', '坪洲', '大嶼山', '東涌', '愉景灣'],
+            '葵青區': ['葵涌', '青衣', '葵芳', '荔景'],
+            '北區': ['上水', '粉嶺', '打鼓嶺', '沙頭角', '鹿頸'],
+            '西貢區': ['西貢', '將軍澳', '坑口', '調景嶺', '寶林', '康盛花園'],
+            '沙田區': ['沙田', '大圍', '火炭', '馬鞍山', '烏溪沙'],
+            '大埔區': ['大埔', '太和', '大埔墟', '林村', '汀角'],
+            '荃灣區': ['荃灣', '梨木樹', '象山', '城門'],
+            '屯門區': ['屯門', '友愛', '安定', '山景', '大興', '良景', '建生'],
+            '元朗區': ['元朗', '天水圍', '洪水橋', '流浮山', '錦田', '八鄉']
+        }
+    };
+    
+    // Location cascade handlers
+    const regionSelect = document.getElementById('region');
+    const districtSelect = document.getElementById('district');
+    const areaSelect = document.getElementById('area');
+    
+    regionSelect.addEventListener('change', function() {
+        const selectedRegion = this.value;
+        
+        // Reset and hide subsequent dropdowns
+        districtSelect.innerHTML = '<option value="">請選擇地區</option>';
+        areaSelect.innerHTML = '<option value="">請選擇具體位置 (可選)</option>';
+        districtSelect.style.display = 'none';
+        areaSelect.style.display = 'none';
+        
+        if (selectedRegion && locationData[selectedRegion]) {
+            // Populate district dropdown
+            Object.keys(locationData[selectedRegion]).forEach(district => {
+                const option = document.createElement('option');
+                option.value = district;
+                option.textContent = district;
+                districtSelect.appendChild(option);
+            });
+            districtSelect.style.display = 'block';
+        }
+    });
+    
+    districtSelect.addEventListener('change', function() {
+        const selectedRegion = regionSelect.value;
+        const selectedDistrict = this.value;
+        
+        // Reset area dropdown
+        areaSelect.innerHTML = '<option value="">請選擇具體位置 (可選)</option>';
+        areaSelect.style.display = 'none';
+        
+        if (selectedRegion && selectedDistrict && locationData[selectedRegion][selectedDistrict]) {
+            // Populate area dropdown
+            locationData[selectedRegion][selectedDistrict].forEach(area => {
+                const option = document.createElement('option');
+                option.value = area;
+                option.textContent = area;
+                areaSelect.appendChild(option);
+            });
+            areaSelect.style.display = 'block';
+        }
+    });
+    
     // 處理「其他」選項的顯示/隱藏
     const otherCheckbox = document.getElementById('other-condition-checkbox');
     const otherInput = document.getElementById('other-condition-input');
@@ -47,7 +121,14 @@ document.addEventListener('DOMContentLoaded', function() {
         const age = document.getElementById('age').value;
         const symptoms = document.getElementById('symptoms').value;
         const language = document.getElementById('language').value;
-        const location = document.getElementById('location').value;
+        
+        // Collect 3-tier location data
+        const region = document.getElementById('region').value;
+        const district = document.getElementById('district').value;
+        const area = document.getElementById('area').value;
+        
+        // Create location string for backend compatibility
+        const location = area || district || region;
         
         // 收集長期病史複選框數據
         const chronicConditions = (function() {
@@ -107,6 +188,11 @@ document.addEventListener('DOMContentLoaded', function() {
             chronicConditions: chronicConditions,
             language: language,
             location: location,
+            locationDetails: {
+                region: region,
+                district: district,
+                area: area
+            },
             detailedHealthInfo: detailedHealthInfo
         };
 
@@ -156,8 +242,17 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Global variables for pagination
+    let allDoctors = [];
+    let currentlyDisplayed = 0;
+    const doctorsPerPage = 5;
+
     function displayResults(data) {
         doctorList.innerHTML = '';
+        
+        // Reset pagination state
+        allDoctors = data.doctors || [];
+        currentlyDisplayed = 0;
         
         // 顯示用戶數據摘要
         if (data.user_summary) {
@@ -187,17 +282,21 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        if (data.doctors && data.doctors.length > 0) {
+        if (allDoctors.length > 0) {
             // 添加醫生推薦標題
             const doctorHeader = document.createElement('h3');
             doctorHeader.innerHTML = '<i class="fas fa-user-doctor"></i> 推薦醫生';
             doctorHeader.style.cssText = 'margin: 30px 0 20px 0; color: #333; font-size: 1.5rem; display: flex; align-items: center; gap: 10px;';
             doctorList.appendChild(doctorHeader);
             
-            data.doctors.forEach((doctor, index) => {
-                const doctorCard = createDoctorCard(doctor, index + 1);
-                doctorList.appendChild(doctorCard);
-            });
+            // Create container for doctors
+            const doctorsContainer = document.createElement('div');
+            doctorsContainer.id = 'doctorsContainer';
+            doctorList.appendChild(doctorsContainer);
+            
+            // Show initial doctors
+            showMoreDoctors();
+            
             results.style.display = 'block';
             results.scrollIntoView({ behavior: 'smooth' });
         } else {
@@ -206,6 +305,40 @@ document.addEventListener('DOMContentLoaded', function() {
             noResultsMsg.style.cssText = 'text-align: center; color: #666; font-size: 1.1rem; margin-top: 20px;';
             doctorList.appendChild(noResultsMsg);
             results.style.display = 'block';
+        }
+    }
+
+    function showMoreDoctors() {
+        const doctorsContainer = document.getElementById('doctorsContainer');
+        const startIndex = currentlyDisplayed;
+        const endIndex = Math.min(startIndex + doctorsPerPage, allDoctors.length);
+        
+        // Add doctors to display
+        for (let i = startIndex; i < endIndex; i++) {
+            const doctorCard = createDoctorCard(allDoctors[i], i + 1);
+            doctorsContainer.appendChild(doctorCard);
+        }
+        
+        currentlyDisplayed = endIndex;
+        
+        // Remove existing "Show More" button
+        const existingButton = document.getElementById('showMoreButton');
+        if (existingButton) {
+            existingButton.remove();
+        }
+        
+        // Add "Show More" button if there are more doctors
+        if (currentlyDisplayed < allDoctors.length) {
+            const showMoreButton = document.createElement('div');
+            showMoreButton.id = 'showMoreButton';
+            showMoreButton.className = 'show-more-container';
+            showMoreButton.innerHTML = `
+                <button class="show-more-btn" onclick="showMoreDoctors()">
+                    <i class="fas fa-plus-circle"></i>
+                    顯示更多醫生 (還有 ${allDoctors.length - currentlyDisplayed} 位)
+                </button>
+            `;
+            doctorList.appendChild(showMoreButton);
         }
     }
 

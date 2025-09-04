@@ -643,6 +643,66 @@ body::before {
     margin-bottom: 20px;
 }
 
+.location-cascade {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.location-cascade select {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-size: 16px;
+    background-color: white;
+    transition: all 0.3s ease;
+}
+
+.location-cascade select:focus {
+    border-color: #805ad5;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(128, 90, 213, 0.1);
+}
+
+.location-cascade select:disabled {
+    background-color: #f5f5f5;
+    color: #999;
+    cursor: not-allowed;
+}
+
+.show-more-container {
+    display: flex;
+    justify-content: center;
+    margin: 30px 0;
+}
+
+.show-more-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    border-radius: 25px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.show-more-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+}
+
+.show-more-btn:active {
+    transform: translateY(0);
+}
+
 .summary-icon {
     width: 50px;
     height: 50px;

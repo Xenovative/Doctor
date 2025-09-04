@@ -231,16 +231,26 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="location">
+                        <label for="region">
                             <i class="fas fa-map-marker-alt"></i>
                             所在地區
                         </label>
-                        <select id="location" name="location" required>
-                            <option value="">請選擇地區</option>
-                            <option value="香港島">香港島</option>
-                            <option value="九龍">九龍</option>
-                            <option value="新界">新界</option>
-                        </select>
+                        <div class="location-cascade">
+                            <select id="region" name="region" required>
+                                <option value="">請選擇大區</option>
+                                <option value="香港島">香港島</option>
+                                <option value="九龍">九龍</option>
+                                <option value="新界">新界</option>
+                            </select>
+                            
+                            <select id="district" name="district" required style="display: none;">
+                                <option value="">請選擇地區</option>
+                            </select>
+                            
+                            <select id="area" name="area" style="display: none;">
+                                <option value="">請選擇具體位置 (可選)</option>
+                            </select>
+                        </div>
                     </div>
 
                     <button type="submit" class="submit-btn">

@@ -787,7 +787,7 @@ def diagnose_symptoms(age: int, symptoms: str, chronic_conditions: str = '', det
         'recommended_specialty': recommended_specialty
     }
 
-def analyze_symptoms_and_match(age: int, symptoms: str, chronic_conditions: str, language: str, location: str, detailed_health_info: Dict = None) -> Dict[str, Any]:
+def analyze_symptoms_and_match(age: int, symptoms: str, chronic_conditions: str, language: str, location: str, detailed_health_info: Dict = None, location_details: Dict = None) -> Dict[str, Any]:
     """使用AI分析症狀並配對醫生"""
     
     if detailed_health_info is None:
@@ -805,12 +805,13 @@ def analyze_symptoms_and_match(age: int, symptoms: str, chronic_conditions: str,
         language, 
         location, 
         symptoms, 
-        diagnosis_result['diagnosis']
+        diagnosis_result['diagnosis'],
+        location_details
     )
     
     # 第三步：如果是12歲以下，添加兒科醫生
     if age <= 12:
-        pediatric_doctors = filter_doctors('兒科', language, location, symptoms, diagnosis_result['diagnosis'])
+        pediatric_doctors = filter_doctors('兒科', language, location, symptoms, diagnosis_result['diagnosis'], location_details)
         # 合併醫生清單，去除重複
         all_doctors = matched_doctors + pediatric_doctors
         seen_names = set()
@@ -886,7 +887,7 @@ def safe_str_check(value, search_term):
         return False
     return search_term in str(value)
 
-def filter_doctors(recommended_specialty: str, language: str, location: str, symptoms: str, ai_analysis: str) -> List[Dict[str, Any]]:
+def filter_doctors(recommended_specialty: str, language: str, location: str, symptoms: str, ai_analysis: str, location_details: Dict = None) -> List[Dict[str, Any]]:
     """根據條件篩選醫生"""
     matched_doctors = []
     
@@ -913,19 +914,90 @@ def filter_doctors(recommended_specialty: str, language: str, location: str, sym
                 score += 30
                 match_reasons.append(f"語言匹配：{language}")
         
-        # 地區匹配
+        # 3層地區匹配系統
         doctor_address = doctor.get('clinic_addresses', '')
         if doctor_address and not pd.isna(doctor_address):
             doctor_address = str(doctor_address)
-            if location == '香港島' and (safe_str_check(doctor_address, '中環') or safe_str_check(doctor_address, '香港')):
-                score += 20
-                match_reasons.append("地區匹配：香港島")
-            elif location == '九龍' and (safe_str_check(doctor_address, '九龍') or safe_str_check(doctor_address, '尖沙咀') or safe_str_check(doctor_address, '旺角')):
-                score += 20
-                match_reasons.append("地區匹配：九龍")
-            elif location == '新界' and safe_str_check(doctor_address, '新界'):
-                score += 20
-                match_reasons.append("地區匹配：新界")
+            
+            # 獲取3層位置信息
+            if location_details is None:
+                location_details = {}
+            
+            user_region = location_details.get('region', '')
+            user_district = location_details.get('district', '')
+            user_area = location_details.get('area', '')
+            
+            # 定義各區的關鍵詞匹配
+            district_keywords = {
+                # 香港島
+                '中西區': ['中環', '上環', '西環', '金鐘', '堅尼地城', '石塘咀', '西營盤'],
+                '東區': ['銅鑼灣', '天后', '炮台山', '北角', '鰂魚涌', '西灣河', '筲箕灣', '柴灣', '小西灣'],
+                '南區': ['香港仔', '鴨脷洲', '黃竹坑', '深水灣', '淺水灣', '赤柱', '石澳'],
+                '灣仔區': ['灣仔', '跑馬地', '大坑', '渣甸山', '寶馬山'],
+                
+                # 九龍
+                '九龍城區': ['九龍城', '土瓜灣', '馬頭角', '馬頭圍', '啟德', '紅磡', '何文田'],
+                '觀塘區': ['觀塘', '牛頭角', '九龍灣', '彩虹', '坪石', '秀茂坪', '藍田', '油塘'],
+                '深水埗區': ['深水埗', '長沙灣', '荔枝角', '美孚', '石硤尾', '又一村'],
+                '黃大仙區': ['黃大仙', '新蒲崗', '樂富', '橫頭磡', '東頭', '竹園', '慈雲山', '鑽石山'],
+                '油尖旺區': ['油麻地', '尖沙咀', '旺角', '大角咀', '太子', '佐敦'],
+                
+                # 新界
+                '離島區': ['長洲', '南丫島', '坪洲', '大嶼山', '東涌', '愉景灣'],
+                '葵青區': ['葵涌', '青衣', '葵芳', '荔景'],
+                '北區': ['上水', '粉嶺', '打鼓嶺', '沙頭角', '鹿頸'],
+                '西貢區': ['西貢', '將軍澳', '坑口', '調景嶺', '寶林', '康盛花園'],
+                '沙田區': ['沙田', '大圍', '火炭', '馬鞍山', '烏溪沙'],
+                '大埔區': ['大埔', '太和', '大埔墟', '林村', '汀角'],
+                '荃灣區': ['荃灣', '梨木樹', '象山', '城門'],
+                '屯門區': ['屯門', '友愛', '安定', '山景', '大興', '良景', '建生'],
+                '元朗區': ['元朗', '天水圍', '洪水橋', '流浮山', '錦田', '八鄉']
+            }
+            
+            location_matched = False
+            
+            # 第1層：精確地區匹配 (最高分)
+            if user_area and safe_str_check(doctor_address, user_area):
+                score += 35
+                match_reasons.append(f"精確位置匹配：{user_area}")
+                location_matched = True
+            
+            # 第2層：地區匹配
+            elif user_district and user_district in district_keywords:
+                keywords = district_keywords[user_district]
+                for keyword in keywords:
+                    if safe_str_check(doctor_address, keyword):
+                        score += 25
+                        match_reasons.append(f"地區匹配：{user_district}")
+                        location_matched = True
+                        break
+            
+            # 第3層：大區匹配 (最低分)
+            if not location_matched and user_region:
+                # 香港島大區
+                if user_region == '香港島' and (safe_str_check(doctor_address, '香港') or safe_str_check(doctor_address, '中環')):
+                    score += 15
+                    match_reasons.append("大區匹配：香港島")
+                
+                # 九龍大區
+                elif user_region == '九龍' and safe_str_check(doctor_address, '九龍'):
+                    score += 15
+                    match_reasons.append("大區匹配：九龍")
+                
+                # 新界大區
+                elif user_region == '新界' and safe_str_check(doctor_address, '新界'):
+                    score += 15
+                    match_reasons.append("大區匹配：新界")
+            
+            # 向後兼容：如果沒有location_details，使用舊的location匹配
+            if not location_matched and not user_region and location:
+                if location in district_keywords:
+                    keywords = district_keywords[location]
+                    for keyword in keywords:
+                        if safe_str_check(doctor_address, keyword):
+                            score += 25
+                            match_reasons.append(f"地區匹配：{location}")
+                            break
         
         # 只保留有一定匹配度的醫生
         if score >= 30:
@@ -945,8 +1017,8 @@ def filter_doctors(recommended_specialty: str, language: str, location: str, sym
     # 按匹配分數排序
     matched_doctors.sort(key=lambda x: x['match_score'], reverse=True)
     
-    # 返回前5名
-    return matched_doctors[:5]
+    # 返回前20名供分頁使用
+    return matched_doctors[:20]
 
 @app.route('/')
 def index():
@@ -964,16 +1036,17 @@ def find_doctor():
         age = int(data.get('age', 0))
         symptoms = data.get('symptoms', '')
         chronic_conditions = data.get('chronicConditions', '')
-        language = data.get('language', '中文')
+        language = data.get('language', '')
         location = data.get('location', '')
+        location_details = data.get('locationDetails', {})
         detailed_health_info = data.get('detailedHealthInfo', {})
         
         # 驗證輸入
         if not all([age, symptoms, language, location]):
             return jsonify({'error': '請填寫所有必要資料'}), 400
         
-        # 使用AI分析症狀並配對醫生
-        result = analyze_symptoms_and_match(age, symptoms, chronic_conditions, language, location, detailed_health_info)
+        # 使用AI分析症狀並配對醫生 (傳遞location_details)
+        result = analyze_symptoms_and_match(age, symptoms, chronic_conditions, language, location, detailed_health_info, location_details)
         
         # Log user query to database
         session_id = session.get('session_id', secrets.token_hex(16))
