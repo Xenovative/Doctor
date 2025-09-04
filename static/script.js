@@ -387,6 +387,16 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    function translateSpecialty(specialty) {
+        if (!specialty || !window.currentTranslations) {
+            return specialty;
+        }
+        
+        // Try to find translation for the specialty
+        const translated = window.currentTranslations[specialty];
+        return translated || specialty;
+    }
+
     function createDoctorCard(doctor, rank) {
         const card = document.createElement('div');
         card.className = 'doctor-card';
@@ -423,7 +433,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
                 <div class="doctor-info">
                     <h3>${doctor.name || '未知醫生'}</h3>
-                    <div class="doctor-specialty">${doctor.specialty || '專科醫生'}</div>
+                    <div class="doctor-specialty">${translateSpecialty(doctor.specialty || '專科醫生')}</div>
                 </div>
             </div>
             
@@ -554,7 +564,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
                 <div class="diagnosis-title">
                     <h3 data-translate="ai_diagnosis_analysis">AI 智能診斷分析</h3>
-                    <div class="recommended-specialty"><span data-translate="recommended_specialty">推薦專科</span>：${recommendedSpecialty}</div>
+                    <div class="recommended-specialty"><span data-translate="recommended_specialty">推薦專科</span>：${translateSpecialty(recommendedSpecialty)}</div>
                 </div>
             </div>
             
