@@ -89,6 +89,12 @@ TRANSLATIONS = {
         'language_toggle': '語言',
         'switch_language': '切換語言',
         
+        # Missing UI translations
+        'select_language': '請選擇語言',
+        'select_region': '請選擇大區',
+        'select_district': '請選擇地區',
+        'select_area': '請選擇具體位置 (可選)',
+        
         # AI Diagnosis Prompts
         'diagnosis_prompt_intro': '作為一名經驗豐富的醫療專家，請根據以下病人資料進行初步診斷分析：',
         'patient_data': '病人資料：',
@@ -200,6 +206,12 @@ TRANSLATIONS = {
         'language_toggle': '语言',
         'switch_language': '切换语言',
         
+        # Missing UI translations
+        'select_language': '请选择语言',
+        'select_region': '请选择大区',
+        'select_district': '请选择地区',
+        'select_area': '请选择具体位置 (可选)',
+        
         # AI Diagnosis Prompts
         'diagnosis_prompt_intro': '作为一名经验丰富的医疗专家，请根据以下病人资料进行初步诊断分析：',
         'patient_data': '病人资料：',
@@ -310,6 +322,12 @@ TRANSLATIONS = {
         # Language Toggle
         'language_toggle': 'Language',
         'switch_language': 'Switch Language',
+        
+        # Missing UI translations
+        'select_language': 'Please select language',
+        'select_region': 'Please select region',
+        'select_district': 'Please select district',
+        'select_area': 'Please select specific area (optional)',
         
         # AI Diagnosis Prompts
         'diagnosis_prompt_intro': 'As an experienced medical expert, please provide a preliminary diagnostic analysis based on the following patient information:',
