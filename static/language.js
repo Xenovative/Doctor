@@ -119,21 +119,52 @@ class LanguageManager {
     }
 
     translatePage() {
-        // Translate elements with data-translate attribute
-        document.querySelectorAll('[data-translate]').forEach(element => {
-            const key = element.getAttribute('data-translate');
-            if (this.translations[key]) {
-                element.textContent = this.translations[key];
-            }
-        });
+        function updateTranslations(translations) {
+            // Update text content
+            document.querySelectorAll('[data-translate]').forEach(element => {
+                const key = element.getAttribute('data-translate');
+                if (translations[key]) {
+                    element.textContent = translations[key];
+                }
+            });
 
-        // Translate placeholders
-        document.querySelectorAll('[data-translate-placeholder]').forEach(element => {
-            const key = element.getAttribute('data-translate-placeholder');
-            if (this.translations[key]) {
-                element.placeholder = this.translations[key];
+            // Update placeholders
+            document.querySelectorAll('[data-translate-placeholder]').forEach(element => {
+                const key = element.getAttribute('data-translate-placeholder');
+                if (translations[key]) {
+                    element.placeholder = translations[key];
+                }
+            });
+
+            // Update dynamically created location options
+            updateLocationDropdowns(translations);
+        }
+
+        // Update location dropdown options with translations
+        function updateLocationDropdowns(translations) {
+            const districtSelect = document.getElementById('district');
+            const areaSelect = document.getElementById('area');
+            
+            if (districtSelect) {
+                Array.from(districtSelect.options).forEach(option => {
+                    const key = option.getAttribute('data-translate');
+                    if (key && translations[key]) {
+                        option.textContent = translations[key];
+                    }
+                });
             }
-        });
+            
+            if (areaSelect) {
+                Array.from(areaSelect.options).forEach(option => {
+                    const key = option.getAttribute('data-translate');
+                    if (key && translations[key]) {
+                        option.textContent = translations[key];
+                    }
+                });
+            }
+        }
+
+        updateTranslations(this.translations);
 
         // Update page title
         if (this.translations.app_title) {

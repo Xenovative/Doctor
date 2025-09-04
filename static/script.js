@@ -42,8 +42,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const selectedRegion = this.value;
         
         // Reset and hide subsequent dropdowns
-        districtSelect.innerHTML = '<option value="">請選擇地區</option>';
-        areaSelect.innerHTML = '<option value="">請選擇具體位置 (可選)</option>';
+        districtSelect.innerHTML = '<option value="" data-translate="select_district">請選擇地區</option>';
+        areaSelect.innerHTML = '<option value="" data-translate="select_area">請選擇具體位置 (可選)</option>';
         districtSelect.style.display = 'none';
         areaSelect.style.display = 'none';
         
@@ -53,6 +53,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const option = document.createElement('option');
                 option.value = district;
                 option.textContent = district;
+                option.setAttribute('data-translate', district);
                 districtSelect.appendChild(option);
             });
             districtSelect.style.display = 'block';
@@ -64,7 +65,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const selectedDistrict = this.value;
         
         // Reset area dropdown
-        areaSelect.innerHTML = '<option value="">請選擇具體位置 (可選)</option>';
+        areaSelect.innerHTML = '<option value="" data-translate="select_area">請選擇具體位置 (可選)</option>';
         areaSelect.style.display = 'none';
         
         if (selectedRegion && selectedDistrict && locationData[selectedRegion][selectedDistrict]) {
@@ -73,6 +74,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const option = document.createElement('option');
                 option.value = area;
                 option.textContent = area;
+                option.setAttribute('data-translate', area);
                 areaSelect.appendChild(option);
             });
             areaSelect.style.display = 'block';
