@@ -95,6 +95,11 @@ TRANSLATIONS = {
         'select_district': '請選擇地區',
         'select_area': '請選擇具體位置 (可選)',
         
+        # Region translations
+        '香港島': '香港島',
+        '九龍': '九龍', 
+        '新界': '新界',
+        
         # Location translations - Districts
         '中西區': '中西區',
         '東區': '東區', 
@@ -252,6 +257,11 @@ TRANSLATIONS = {
         'select_district': '请选择地区',
         'select_area': '请选择具体位置 (可选)',
         
+        # Region translations
+        '香港島': '香港岛',
+        '九龍': '九龙', 
+        '新界': '新界',
+        
         # Location translations - Districts
         '中西區': '中西区',
         '東區': '东区', 
@@ -408,6 +418,11 @@ TRANSLATIONS = {
         'select_region': 'Please select region',
         'select_district': 'Please select district',
         'select_area': 'Please select specific area (optional)',
+        
+        # Region translations
+        '香港島': 'Hong Kong Island',
+        '九龍': 'Kowloon', 
+        '新界': 'New Territories',
         
         # Location translations - Districts
         '中西區': 'Central and Western District',
