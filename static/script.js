@@ -397,6 +397,16 @@ document.addEventListener('DOMContentLoaded', function() {
         return translated || specialty;
     }
 
+    function translateText(key) {
+        if (!key || !window.currentTranslations) {
+            return key;
+        }
+        
+        // Try to find translation for the key
+        const translated = window.currentTranslations[key];
+        return translated || key;
+    }
+
     function createDoctorCard(doctor, rank) {
         const card = document.createElement('div');
         card.className = 'doctor-card';
@@ -406,25 +416,25 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 處理聯絡電話（可能有多個）
         const phones = doctor.contact_numbers ? doctor.contact_numbers.split(',').map(p => p.trim()) : [];
-        const phoneDisplay = phones.length > 0 ? phones.join(' / ') : '未提供';
+        const phoneDisplay = phones.length > 0 ? phones.join(' / ') : translateText('not_provided');
         
         // 處理地址
-        const address = doctor.clinic_addresses || '未提供';
+        const address = doctor.clinic_addresses || translateText('not_provided');
         
         // 處理語言
-        const languages = doctor.languages || '未提供';
+        const languages = doctor.languages || translateText('not_provided');
         
         // 處理資格
-        const qualifications = doctor.qualifications || '未提供';
+        const qualifications = doctor.qualifications || translateText('not_provided');
         
         card.innerHTML = `
             <div class="match-score">
                 <i class="fas fa-star"></i>
-                第 ${rank} 推薦
+                ${translateText('recommendation_rank')} ${rank} ${translateText('recommendation_suffix')}
             </div>
             <div class="whatsapp-hint">
                 <i class="fab fa-whatsapp"></i>
-                點擊聯絡
+                ${translateText('click_to_contact')}
             </div>
             
             <div class="doctor-header">
@@ -432,8 +442,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     ${avatarText}
                 </div>
                 <div class="doctor-info">
-                    <h3>${doctor.name || '未知醫生'}</h3>
-                    <div class="doctor-specialty">${translateSpecialty(doctor.specialty || '專科醫生')}</div>
+                    <h3>${doctor.name || translateText('unknown_doctor')}</h3>
+                    <div class="doctor-specialty">${translateSpecialty(doctor.specialty || translateText('general_specialist'))}</div>
                 </div>
             </div>
             
@@ -441,7 +451,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="detail-item">
                     <i class="fas fa-language"></i>
                     <div>
-                        <strong>語言：</strong>
+                        <strong>${translateText('language_label')}</strong>
                         ${languages}
                     </div>
                 </div>
@@ -449,7 +459,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="detail-item">
                     <i class="fas fa-phone"></i>
                     <div>
-                        <strong>電話：</strong>
+                        <strong>${translateText('phone_label')}</strong>
                         ${phoneDisplay}
                     </div>
                 </div>
@@ -457,15 +467,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="detail-item">
                     <i class="fas fa-envelope"></i>
                     <div>
-                        <strong>電郵：</strong>
-                        ${doctor.email || '未提供'}
+                        <strong>${translateText('email_label')}</strong>
+                        ${doctor.email || translateText('not_provided')}
                     </div>
                 </div>
                 
                 <div class="detail-item">
                     <i class="fas fa-map-marker-alt"></i>
                     <div>
-                        <strong>診所地址：</strong>
+                        <strong>${translateText('clinic_address_label')}</strong>
                         ${address}
                     </div>
                 </div>
@@ -474,7 +484,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="detail-item" style="margin-top: 15px;">
                 <i class="fas fa-graduation-cap"></i>
                 <div>
-                    <strong>專業資格：</strong>
+                    <strong>${translateText('qualifications_label')}</strong>
                     ${qualifications}
                 </div>
             </div>

@@ -153,6 +153,19 @@ TRANSLATIONS = {
         '職業醫學科': 'Occupational Medicine',
         '預防醫學科': 'Preventive Medicine',
         
+        # Doctor Card Labels
+        'recommendation_rank': '#',
+        'recommendation_suffix': ' recommended',
+        'click_to_contact': 'Click to Contact',
+        'language_label': 'Language:',
+        'phone_label': 'Phone:',
+        'email_label': 'Email:',
+        'clinic_address_label': 'Clinic Address:',
+        'qualifications_label': 'Professional Qualifications:',
+        'not_provided': 'Not Provided',
+        'unknown_doctor': 'Unknown Doctor',
+        'general_specialist': 'Specialist',
+        
         # Location translations - Districts
         '中西區': '中西區',
         '東區': '東區', 
@@ -368,6 +381,19 @@ TRANSLATIONS = {
         '職業醫學科': '职业医学科',
         '預防醫學科': '预防医学科',
         
+        # Doctor Card Labels
+        'recommendation_rank': '第',
+        'recommendation_suffix': '推荐',
+        'click_to_contact': '点击联络',
+        'language_label': '语言：',
+        'phone_label': '电话：',
+        'email_label': '电邮：',
+        'clinic_address_label': '诊所地址：',
+        'qualifications_label': '专业资格：',
+        'not_provided': '未提供',
+        'unknown_doctor': '未知医生',
+        'general_specialist': '专科医生',
+        
         # Location translations - Districts
         '中西區': '中西区',
         '東區': '东区', 
@@ -582,6 +608,19 @@ TRANSLATIONS = {
         '核醫科': 'Nuclear Medicine',
         '職業醫學科': 'Occupational Medicine',
         '預防醫學科': 'Preventive Medicine',
+        
+        # Doctor Card Labels
+        'recommendation_rank': '#',
+        'recommendation_suffix': ' recommended',
+        'click_to_contact': 'Click to Contact',
+        'language_label': 'Language:',
+        'phone_label': 'Phone:',
+        'email_label': 'Email:',
+        'clinic_address_label': 'Clinic Address:',
+        'qualifications_label': 'Professional Qualifications:',
+        'not_provided': 'Not Provided',
+        'unknown_doctor': 'Unknown Doctor',
+        'general_specialist': 'Specialist',
         
         # Location translations - Districts
         '中西區': 'Central and Western District',
