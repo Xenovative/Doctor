@@ -42,8 +42,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const selectedRegion = this.value;
         
         // Reset and hide subsequent dropdowns
-        districtSelect.innerHTML = '<option value="" data-translate="select_district">請選擇地區</option>';
-        areaSelect.innerHTML = '<option value="" data-translate="select_area">請選擇具體位置 (可選)</option>';
+        const districtPlaceholder = window.currentTranslations && window.currentTranslations['select_district'] 
+            ? window.currentTranslations['select_district'] : '請選擇地區';
+        const areaPlaceholder = window.currentTranslations && window.currentTranslations['select_area'] 
+            ? window.currentTranslations['select_area'] : '請選擇具體位置 (可選)';
+            
+        districtSelect.innerHTML = `<option value="" data-translate="select_district">${districtPlaceholder}</option>`;
+        areaSelect.innerHTML = `<option value="" data-translate="select_area">${areaPlaceholder}</option>`;
         districtSelect.style.display = 'none';
         areaSelect.style.display = 'none';
         
@@ -52,8 +57,15 @@ document.addEventListener('DOMContentLoaded', function() {
             Object.keys(locationData[selectedRegion]).forEach(district => {
                 const option = document.createElement('option');
                 option.value = district;
-                option.textContent = district;
                 option.setAttribute('data-translate', district);
+                
+                // Use current translation if available
+                if (window.currentTranslations && window.currentTranslations[district]) {
+                    option.textContent = window.currentTranslations[district];
+                } else {
+                    option.textContent = district;
+                }
+                
                 districtSelect.appendChild(option);
             });
             districtSelect.style.display = 'block';
@@ -65,7 +77,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const selectedDistrict = this.value;
         
         // Reset area dropdown
-        areaSelect.innerHTML = '<option value="" data-translate="select_area">請選擇具體位置 (可選)</option>';
+        const areaPlaceholder = window.currentTranslations && window.currentTranslations['select_area'] 
+            ? window.currentTranslations['select_area'] : '請選擇具體位置 (可選)';
+        areaSelect.innerHTML = `<option value="" data-translate="select_area">${areaPlaceholder}</option>`;
         areaSelect.style.display = 'none';
         
         if (selectedRegion && selectedDistrict && locationData[selectedRegion][selectedDistrict]) {
@@ -73,8 +87,15 @@ document.addEventListener('DOMContentLoaded', function() {
             locationData[selectedRegion][selectedDistrict].forEach(area => {
                 const option = document.createElement('option');
                 option.value = area;
-                option.textContent = area;
                 option.setAttribute('data-translate', area);
+                
+                // Use current translation if available
+                if (window.currentTranslations && window.currentTranslations[area]) {
+                    option.textContent = window.currentTranslations[area];
+                } else {
+                    option.textContent = area;
+                }
+                
                 areaSelect.appendChild(option);
             });
             areaSelect.style.display = 'block';
@@ -108,11 +129,15 @@ document.addEventListener('DOMContentLoaded', function() {
             if (isVisible) {
                 moreInfoSection.style.display = 'none';
                 this.classList.remove('expanded');
-                this.innerHTML = '<i class="fas fa-plus-circle"></i> 更多資料';
+                const moreText = window.currentTranslations && window.currentTranslations['more_info'] 
+                    ? window.currentTranslations['more_info'] : '更多資料';
+                this.innerHTML = `<i class="fas fa-plus-circle"></i> ${moreText}`;
             } else {
                 moreInfoSection.style.display = 'block';
                 this.classList.add('expanded');
-                this.innerHTML = '<i class="fas fa-minus-circle"></i> 收起資料';
+                const lessText = window.currentTranslations && window.currentTranslations['less_info'] 
+                    ? window.currentTranslations['less_info'] : '收起資料';
+                this.innerHTML = `<i class="fas fa-minus-circle"></i> ${lessText}`;
             }
         });
     }
@@ -230,14 +255,14 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Show graceful error message
             results.style.display = 'block';
+            const serviceUnavailableTitle = window.currentTranslations && window.currentTranslations['service_unavailable'] 
+                ? window.currentTranslations['service_unavailable'] : '服務暫時不可用';
             doctorList.innerHTML = `
                 <div class="alert alert-warning" style="text-align: center; padding: 20px; margin: 20px 0; border-radius: 10px; background-color: #fff3cd; border: 1px solid #ffeaa7;">
                     <i class="fas fa-exclamation-triangle" style="font-size: 2rem; color: #856404; margin-bottom: 10px;"></i>
-                    <h4 style="color: #856404; margin-bottom: 10px;">服務暫時不可用</h4>
-                    <p style="color: #856404; margin-bottom: 15px;">抱歉，AI診斷服務暫時無法使用。請稍後再試，或直接聯繫醫療專業人士。</p>
-                    <button onclick="location.reload()" class="btn btn-primary" style="background-color: #007bff; border: none; padding: 10px 20px; border-radius: 5px; color: white;">
-                        <i class="fas fa-redo"></i> 重新嘗試
-                    </button>
+                    <h4 style="color: #856404; margin-bottom: 10px;">${serviceUnavailableTitle}</h4>
+                    <p style="color: #856404; margin-bottom: 15px;">我們的服務暫時遇到問題，請稍後再試。如有緊急醫療需要，請直接聯繫醫療機構。</p>
+                    <p style="color: #856404; font-size: 0.9rem;">錯誤代碼: ${error.message || 'Unknown error'}</p>
                 </div>
             `;
             results.scrollIntoView({ behavior: 'smooth' });
@@ -272,10 +297,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 const errorCard = document.createElement('div');
                 errorCard.className = 'alert alert-warning';
                 errorCard.style.cssText = 'text-align: center; padding: 20px; margin: 20px 0; border-radius: 10px; background-color: #fff3cd; border: 1px solid #ffeaa7;';
+                const aiUnavailableTitle = window.currentTranslations && window.currentTranslations['ai_diagnosis_unavailable'] 
+                    ? window.currentTranslations['ai_diagnosis_unavailable'] : 'AI診斷暫時不可用';
+                const aiUnavailableDesc = window.currentTranslations && window.currentTranslations['ai_diagnosis_unavailable_desc'] 
+                    ? window.currentTranslations['ai_diagnosis_unavailable_desc'] : '我們的AI診斷服務暫時無法使用，但您仍可以查看推薦的醫生。建議直接諮詢醫療專業人士。';
                 errorCard.innerHTML = `
                     <i class="fas fa-exclamation-triangle" style="font-size: 2rem; color: #856404; margin-bottom: 10px;"></i>
-                    <h4 style="color: #856404; margin-bottom: 10px;">AI診斷暫時不可用</h4>
-                    <p style="color: #856404; margin-bottom: 15px;">我們的AI診斷服務暫時無法使用，但您仍可以查看推薦的醫生。建議直接諮詢醫療專業人士。</p>
+                    <h4 style="color: #856404; margin-bottom: 10px;">${aiUnavailableTitle}</h4>
+                    <p style="color: #856404; margin-bottom: 15px;">${aiUnavailableDesc}</p>
                 `;
                 doctorList.appendChild(errorCard);
             } else {
@@ -287,7 +316,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (allDoctors.length > 0) {
             // 添加醫生推薦標題
             const doctorHeader = document.createElement('h3');
-            doctorHeader.innerHTML = '<i class="fas fa-user-doctor"></i> 推薦醫生';
+            const headerText = window.currentTranslations && window.currentTranslations['recommended_doctors'] 
+                ? window.currentTranslations['recommended_doctors'] : '推薦醫生';
+            doctorHeader.innerHTML = `<i class="fas fa-user-doctor"></i> ${headerText}`;
             doctorHeader.style.cssText = 'margin: 30px 0 20px 0; color: #333; font-size: 1.5rem; display: flex; align-items: center; gap: 10px;';
             doctorList.appendChild(doctorHeader);
             
@@ -303,7 +334,9 @@ document.addEventListener('DOMContentLoaded', function() {
             results.scrollIntoView({ behavior: 'smooth' });
         } else {
             const noResultsMsg = document.createElement('p');
-            noResultsMsg.innerHTML = '抱歉，未能找到合適的醫生。請嘗試修改搜索條件。';
+            const noResultsText = window.currentTranslations && window.currentTranslations['no_doctors_found'] 
+                ? window.currentTranslations['no_doctors_found'] : '抱歉，未能找到合適的醫生。請嘗試修改搜索條件。';
+            noResultsMsg.innerHTML = noResultsText;
             noResultsMsg.style.cssText = 'text-align: center; color: #666; font-size: 1.1rem; margin-top: 20px;';
             doctorList.appendChild(noResultsMsg);
             results.style.display = 'block';
@@ -334,10 +367,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const showMoreButton = document.createElement('div');
             showMoreButton.id = 'showMoreButton';
             showMoreButton.className = 'show-more-container';
+            const showMoreText = window.currentTranslations && window.currentTranslations['show_more_doctors'] 
+                ? window.currentTranslations['show_more_doctors'] : '顯示更多醫生';
             showMoreButton.innerHTML = `
                 <button class="show-more-btn" id="showMoreBtn">
                     <i class="fas fa-plus-circle"></i>
-                    顯示更多醫生 (還有 ${allDoctors.length - currentlyDisplayed} 位)
+                    ${showMoreText} (還有 ${allDoctors.length - currentlyDisplayed} 位)
                 </button>
             `;
             

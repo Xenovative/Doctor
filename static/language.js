@@ -162,6 +162,9 @@ class LanguageManager {
                     }
                 });
             }
+            
+            // Store current translations for use when dropdowns are populated
+            window.currentTranslations = translations;
         }
 
         updateTranslations(this.translations);

@@ -100,6 +100,16 @@ TRANSLATIONS = {
         '九龍': '九龍', 
         '新界': '新界',
         
+        # Dynamic UI elements
+        'more_info': '更多資料',
+        'less_info': '收起資料',
+        'show_more_doctors': '顯示更多醫生',
+        'recommended_doctors': '推薦醫生',
+        'no_doctors_found': '抱歉，未能找到合適的醫生。請嘗試修改搜索條件。',
+        'service_unavailable': '服務暫時不可用',
+        'ai_diagnosis_unavailable': 'AI診斷暫時不可用',
+        'ai_diagnosis_unavailable_desc': '我們的AI診斷服務暫時無法使用，但您仍可以查看推薦的醫生。建議直接諮詢醫療專業人士。',
+        
         # Location translations - Districts
         '中西區': '中西區',
         '東區': '東區', 
@@ -262,6 +272,16 @@ TRANSLATIONS = {
         '九龍': '九龙', 
         '新界': '新界',
         
+        # Dynamic UI elements
+        'more_info': '更多资料',
+        'less_info': '收起资料',
+        'show_more_doctors': '显示更多医生',
+        'recommended_doctors': '推荐医生',
+        'no_doctors_found': '抱歉，未能找到合适的医生。请尝试修改搜索条件。',
+        'service_unavailable': '服务暂时不可用',
+        'ai_diagnosis_unavailable': 'AI诊断暂时不可用',
+        'ai_diagnosis_unavailable_desc': '我们的AI诊断服务暂时无法使用，但您仍可以查看推荐的医生。建议直接咨询医疗专业人士。',
+        
         # Location translations - Districts
         '中西區': '中西区',
         '東區': '东区', 
@@ -423,6 +443,16 @@ TRANSLATIONS = {
         '香港島': 'Hong Kong Island',
         '九龍': 'Kowloon', 
         '新界': 'New Territories',
+        
+        # Dynamic UI elements
+        'more_info': 'More Information',
+        'less_info': 'Less Information',
+        'show_more_doctors': 'Show More Doctors',
+        'recommended_doctors': 'Recommended Doctors',
+        'no_doctors_found': 'Sorry, no suitable doctors found. Please try modifying your search criteria.',
+        'service_unavailable': 'Service Temporarily Unavailable',
+        'ai_diagnosis_unavailable': 'AI Diagnosis Temporarily Unavailable',
+        'ai_diagnosis_unavailable_desc': 'Our AI diagnosis service is temporarily unavailable, but you can still view recommended doctors. We suggest consulting medical professionals directly.',
         
         # Location translations - Districts
         '中西區': 'Central and Western District',
