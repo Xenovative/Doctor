@@ -784,16 +784,10 @@ def diagnose_symptoms(age: int, symptoms: str, chronic_conditions: str = '', det
     {t('response_language')}
     
     {t('diagnosis_format')}
-    1. [最可能的病症] - [可能性百分比]
-    2. [第二可能的病症] - [可能性百分比]
-    3. [第三可能的病症] - [可能性百分比]
-    
-    {t('specialty_format')}[專科名稱]
-    {t('severity_format')}[輕微/中等/嚴重]
-    {t('emergency_format')}[是/否]
-    
+    {t('specialty_format')}
+    {t('severity_format')}
+    {t('emergency_format')}
     {t('advice_format')}
-    [詳細建議和注意事項]
     
     {t('disclaimer')}
     """
