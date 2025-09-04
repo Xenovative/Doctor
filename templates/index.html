@@ -40,12 +40,34 @@
                 </div>
                 <div class="title-container">
                     <h1 class="main-title">Doctor AI.io</h1>
-                    <h2 class="subtitle">免費AI診症平台</h2>
+                    <h2 class="subtitle" data-translate="subtitle">免費AI診症平台</h2>
                 </div>
                 <div class="header-button-container">
+                    <!-- Language Toggle -->
+                    <div class="language-toggle">
+                        <button class="language-btn" id="languageToggle">
+                            <i class="fas fa-language"></i>
+                            <span id="currentLang">繁</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                        <div class="language-dropdown" id="languageDropdown">
+                            <div class="language-option" data-lang="zh-TW">
+                                <span class="flag">🇭🇰</span>
+                                <span>繁體中文</span>
+                            </div>
+                            <div class="language-option" data-lang="zh-CN">
+                                <span class="flag">🇨🇳</span>
+                                <span>简体中文</span>
+                            </div>
+                            <div class="language-option" data-lang="en">
+                                <span class="flag">🇺🇸</span>
+                                <span>English</span>
+                            </div>
+                        </div>
+                    </div>
                     <a href="https://doctor-ai.io" class="back-to-website-btn" target="_blank">
                         <i class="fas fa-globe"></i>
-                        <span>返回主頁</span>
+                        <span data-translate="back_to_website">返回主頁</span>
                     </a>
                 </div>
             </div>
@@ -53,12 +75,12 @@
 
         <main class="main-content">
             <div class="form-container">
-                <h2><i class="fas fa-user-md"></i> 病人資料</h2>
+                <h2><i class="fas fa-user-md"></i> <span data-translate="patient_info">病人資料</span></h2>
                 <form id="patientForm">
                     <div class="form-group">
                         <label for="age">
                             <i class="fas fa-birthday-cake"></i>
-                            年齡
+                            <span data-translate="age">年齡</span>
                         </label>
                         <input type="number" id="age" name="age" min="1" max="120" required>
                     </div>
@@ -66,10 +88,10 @@
                     <div class="form-group">
                         <label for="symptoms">
                             <i class="fas fa-stethoscope"></i>
-                            症狀描述 <span class="required-note">(至少需要3個症狀)</span>
+                            <span data-translate="symptoms">症狀描述</span> <span class="required-note" data-translate="symptoms_note">(至少需要3個症狀)</span>
                         </label>
-                        <textarea id="symptoms" name="symptoms" required placeholder="請詳細描述您的症狀，例如：頭痛、發燒、咳嗽、疲勞等（至少3個症狀以便AI準確分析）"></textarea>
-                        <div class="input-hint">請盡量詳細描述症狀，包括持續時間、嚴重程度等</div>
+                        <textarea id="symptoms" name="symptoms" required data-translate-placeholder="symptoms_placeholder" placeholder="請詳細描述您的症狀，例如：頭痛、發燒、咳嗽、疲勞等（至少3個症狀以便AI準確分析）"></textarea>
+                        <div class="input-hint" data-translate="symptoms_hint">請盡量詳細描述症狀，包括持續時間、嚴重程度等</div>
                     </div>
 
                     <div class="form-group">
@@ -286,6 +308,7 @@
         </div>
     </footer>
     
+    <script src="static/language.js"></script>
     <script src="static/script.js"></script>
 </body>
 </html>

@@ -8,6 +8,7 @@ if sys.version_info >= (3, 12):
     sys.exit(1)
 
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for, flash
+from translations import get_translation, get_available_languages, TRANSLATIONS
 import pandas as pd
 import requests
 import json
@@ -77,6 +78,23 @@ def update_env_file(key: str, value: str) -> None:
 
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 app.secret_key = os.getenv('SECRET_KEY', secrets.token_hex(32))
+
+# Language switching route
+@app.route('/set_language/<lang>')
+def set_language(lang):
+    """Set user's preferred language"""
+    if lang in ['zh-TW', 'zh-CN', 'en']:
+        session['language'] = lang
+        return jsonify({'success': True, 'language': lang})
+    return jsonify({'success': False, 'error': 'Invalid language'}), 400
+
+# API endpoint to get translations
+@app.route('/api/translations/<lang>')
+def get_translations_api(lang):
+    """Get translations for a specific language"""
+    if lang in TRANSLATIONS:
+        return jsonify(TRANSLATIONS[lang])
+    return jsonify(TRANSLATIONS['zh-TW'])  # Default fallback
 
 # Add route to serve assets folder
 from flask import send_from_directory
@@ -688,7 +706,7 @@ def call_ai_api(prompt: str) -> str:
     else:
         return f"不支援的AI提供商: {provider}"
 
-def diagnose_symptoms(age: int, symptoms: str, chronic_conditions: str = '', detailed_health_info: Dict = None) -> Dict[str, str]:
+def diagnose_symptoms(age: int, symptoms: str, chronic_conditions: str = '', detailed_health_info: Dict = None, user_language: str = 'zh-TW') -> Dict[str, str]:
     """使用AI診斷症狀"""
     
     if detailed_health_info is None:
@@ -735,45 +753,49 @@ def diagnose_symptoms(age: int, symptoms: str, chronic_conditions: str = '', det
     if special_conditions:
         health_details.append(f"特殊情況：{'、'.join(special_conditions)}")
     
-    # 構建AI診斷提示
-    health_info = "\n    - ".join(health_details) if health_details else "無特殊健康信息"
+    # Get translations for the user's language
+    t = lambda key: get_translation(key, user_language)
     
+    # Build health info with translated labels
+    health_info = "\n    - ".join(health_details) if health_details else t('no_special_health_info')
+    
+    # Build AI diagnosis prompt in user's language
     diagnosis_prompt = f"""
-    作為一名經驗豐富的醫療專家，請根據以下病人資料進行初步診斷分析：
+    {t('diagnosis_prompt_intro')}
 
-    病人資料：
-    - 年齡：{age}歲
-    - 主要症狀：{symptoms}
+    {t('patient_data')}
+    - {t('age_label')}{age}{t('years_old')}
+    - {t('main_symptoms')}{symptoms}
     - {health_info}
 
-    請提供：
-    1. 可能的病症診斷（最多3個可能性，按可能性排序）
-    2. 建議就診的專科
-    3. 症狀嚴重程度評估（輕微/中等/嚴重）
-    4. 是否需要緊急就醫
-    5. 一般建議和注意事項
+    {t('please_provide')}
+    1. {t('possible_diagnosis')}
+    2. {t('recommended_specialty')}
+    3. {t('severity_assessment')}
+    4. {t('emergency_needed')}
+    5. {t('general_advice')}
 
-    **重要指引：**
-    - 如涉及精神健康問題（如精神崩潰、妄想、幻覺、自殺念頭、嚴重抑鬱/焦慮等），必須推薦精神科
-    - 如涉及心理創傷、PTSD、情緒失控等，應推薦精神科而非內科
-    - 如症狀涉及急性或危及生命情況，應推薦急診科
-    - 根據症狀的主要系統選擇最適合的專科，避免一律推薦內科
+    **{t('important_guidelines')}**
+    - {t('mental_health_guideline')}
+    - {t('trauma_guideline')}
+    - {t('emergency_guideline')}
+    - {t('specialty_guideline')}
 
-    請用繁體中文回答，格式如下：
+    {t('response_language')}
     
-    可能診斷：
+    {t('diagnosis_format')}
     1. [最可能的病症] - [可能性百分比]
     2. [第二可能的病症] - [可能性百分比]
     3. [第三可能的病症] - [可能性百分比]
     
-    建議專科：[專科名稱]
-    嚴重程度：[輕微/中等/嚴重]
-    緊急程度：[是/否]
+    {t('specialty_format')}[專科名稱]
+    {t('severity_format')}[輕微/中等/嚴重]
+    {t('emergency_format')}[是/否]
     
-    建議：
+    {t('advice_format')}
     [詳細建議和注意事項]
     
-    免責聲明：此分析僅供參考，不能替代專業醫療診斷，請務必諮詢合格醫生。
+    {t('disclaimer')}
     """
     
     # 獲取AI診斷
@@ -796,8 +818,11 @@ def analyze_symptoms_and_match(age: int, symptoms: str, chronic_conditions: str,
     # 生成用戶數據摘要
     user_summary = generate_user_summary(age, symptoms, chronic_conditions, detailed_health_info)
     
-    # 第一步：AI診斷
-    diagnosis_result = diagnose_symptoms(age, symptoms, chronic_conditions, detailed_health_info)
+    # Get user's language from session
+    user_language = session.get('language', 'zh-TW')
+    
+    # 第一步：AI診斷 (pass user language)
+    diagnosis_result = diagnose_symptoms(age, symptoms, chronic_conditions, detailed_health_info, user_language)
     
     # 第二步：根據診斷結果推薦醫生
     matched_doctors = filter_doctors(
@@ -1023,10 +1048,13 @@ def filter_doctors(recommended_specialty: str, language: str, location: str, sym
 @app.route('/')
 def index():
     """主頁"""
+    # Get user's preferred language from session or default to zh-TW
+    current_lang = session.get('language', 'zh-TW')
+    
     # Log page visit
-    log_analytics('page_visit', {'page': 'index'}, 
+    log_analytics('page_visit', {'page': 'index', 'language': current_lang}, 
                  get_real_ip(), request.user_agent.string, session.get('session_id'))
-    return render_template('index.html')
+    return render_template('index.html', current_lang=current_lang, translations=TRANSLATIONS.get(current_lang, TRANSLATIONS['zh-TW']))
 
 @app.route('/find_doctor', methods=['POST'])
 def find_doctor():

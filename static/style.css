@@ -211,6 +211,86 @@ body::before {
 
 .header-button-container {
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+/* Language Toggle Styles */
+.language-toggle {
+    position: relative;
+    display: inline-block;
+}
+
+.language-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 25px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.language-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.language-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    min-width: 180px;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.language-dropdown.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.language-option {
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    transition: background-color 0.2s ease;
+    border-radius: 8px;
+    margin: 0.25rem;
+}
+
+.language-option:hover {
+    background-color: #f8f9ff;
+}
+
+.language-option.active {
+    background-color: #667eea;
+    color: white;
+}
+
+.language-option .flag {
+    font-size: 1.2rem;
+}
+
+.language-option span:last-child {
+    font-weight: 500;
 }
 
 .back-to-website-btn {
@@ -371,21 +451,6 @@ body::before {
 .form-container h2 i {
     color: #667eea;
 }
-
-.form-group {
-    margin-bottom: 25px;
-}
-
-.form-group label {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-weight: 600;
-    margin-bottom: 8px;
-    color: #333;
-    font-size: 1.1rem;
-}
-
 .form-group label i {
     color: #667eea;
     width: 20px;
