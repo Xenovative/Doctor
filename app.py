@@ -812,8 +812,8 @@ def analyze_symptoms_and_match(age: int, symptoms: str, chronic_conditions: str,
     # 生成用戶數據摘要
     user_summary = generate_user_summary(age, symptoms, chronic_conditions, detailed_health_info)
     
-    # Get user's language from session
-    user_language = session.get('language', 'zh-TW')
+    # Get user's language from session or use the language parameter passed in
+    user_language = session.get('language', language if language else 'zh-TW')
     
     # 第一步：AI診斷 (pass user language)
     diagnosis_result = diagnose_symptoms(age, symptoms, chronic_conditions, detailed_health_info, user_language)
@@ -1062,10 +1062,14 @@ def find_doctor():
         location = data.get('location', '')
         location_details = data.get('locationDetails', {})
         detailed_health_info = data.get('detailedHealthInfo', {})
+        ui_language = data.get('uiLanguage', 'zh-TW')  # Get UI language for diagnosis
         
         # 驗證輸入
         if not all([age, symptoms, language, location]):
             return jsonify({'error': '請填寫所有必要資料'}), 400
+        
+        # Set session language for diagnosis
+        session['language'] = ui_language
         
         # 使用AI分析症狀並配對醫生 (傳遞location_details)
         result = analyze_symptoms_and_match(age, symptoms, chronic_conditions, language, location, detailed_health_info, location_details)

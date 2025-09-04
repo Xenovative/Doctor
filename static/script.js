@@ -208,6 +208,9 @@ document.addEventListener('DOMContentLoaded', function() {
             };
         })();
         
+        // Get current UI language from language manager
+        const currentUILanguage = window.languageManager ? window.languageManager.currentLang : 'zh-TW';
+        
         // 收集表單數據
         const formData = {
             age: age,
@@ -220,7 +223,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 district: district,
                 area: area
             },
-            detailedHealthInfo: detailedHealthInfo
+            detailedHealthInfo: detailedHealthInfo,
+            uiLanguage: currentUILanguage  // Add UI language for diagnosis
         };
 
         // 顯示載入動畫
