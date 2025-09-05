@@ -471,7 +471,7 @@ class LanguageManager {
         if (!specialty) return specialty;
         
         // Clean up specialty by removing common suffixes
-        let cleanSpecialty = specialty.replace(/醫生$|医生$|醫師$|医师$|科醫生$|科医生$/, '');
+        let cleanSpecialty = specialty.replace(/醫生$|医生$|醫師$|医师$/, '');
         console.log(`[DEBUG] translateSpecialty: original="${specialty}", cleaned="${cleanSpecialty}", currentLang="${this.currentLang}"`);
         
         // Specialty translation mapping
