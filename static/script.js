@@ -232,6 +232,8 @@ document.addEventListener('DOMContentLoaded', function() {
         results.style.display = 'none';
 
         try {
+            console.log('[DEBUG] Sending request to /find_doctor with data:', formData);
+            
             // 發送請求到後端
             const response = await fetch('/find_doctor', {
                 method: 'POST',
@@ -241,11 +243,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 body: JSON.stringify(formData)
             });
 
+            console.log('[DEBUG] Response status:', response.status);
+
             if (!response.ok) {
+                const errorText = await response.text();
+                console.error('[DEBUG] Response error:', errorText);
                 throw new Error('網絡請求失敗');
             }
 
             const data = await response.json();
+            console.log('[DEBUG] Response data:', data);
             
             // 隱藏載入動畫
             loading.style.display = 'none';

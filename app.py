@@ -789,15 +789,23 @@ def diagnose_symptoms(age: int, symptoms: str, chronic_conditions: str = '', det
     """
     
     try:
+        print(f"[DEBUG] Starting diagnosis generation for age={age}, symptoms={symptoms}")
+        
         # Get Chinese diagnosis
+        print("[DEBUG] Generating Traditional Chinese diagnosis...")
         chinese_diagnosis = call_ai_api(chinese_prompt)
+        print(f"[DEBUG] Chinese diagnosis result: {chinese_diagnosis[:100]}...")
+        
         diagnosis_results['zh-TW'] = {
             'diagnosis': chinese_diagnosis,
             'recommended_specialty': extract_specialty_from_diagnosis(chinese_diagnosis, 'zh-TW')
         }
         
         # Get English diagnosis
+        print("[DEBUG] Generating English diagnosis...")
         english_diagnosis = call_ai_api(english_prompt)
+        print(f"[DEBUG] English diagnosis result: {english_diagnosis[:100]}...")
+        
         diagnosis_results['en'] = {
             'diagnosis': english_diagnosis,
             'recommended_specialty': extract_specialty_from_diagnosis(english_diagnosis, 'en')
@@ -819,13 +827,21 @@ def diagnose_symptoms(age: int, symptoms: str, chronic_conditions: str = '', det
         请用简体中文回答，语调专业但易懂。
         """
         
+        print("[DEBUG] Generating Simplified Chinese diagnosis...")
         simplified_diagnosis = call_ai_api(simplified_chinese_prompt)
+        print(f"[DEBUG] Simplified Chinese diagnosis result: {simplified_diagnosis[:100]}...")
+        
         diagnosis_results['zh-CN'] = {
             'diagnosis': simplified_diagnosis,
             'recommended_specialty': extract_specialty_from_diagnosis(simplified_diagnosis, 'zh-CN')
         }
         
+        print(f"[DEBUG] Successfully generated all diagnoses. Results keys: {list(diagnosis_results.keys())}")
+        
     except Exception as e:
+        print(f"[ERROR] Exception in diagnosis generation: {str(e)}")
+        import traceback
+        traceback.print_exc()
         # Fallback if AI service fails
         fallback_diagnosis = "AI診斷服務暫時不可用，建議直接諮詢醫療專業人士。"
         fallback_diagnosis_en = "AI diagnosis service is temporarily unavailable. Please consult a medical professional directly."
@@ -1186,6 +1202,7 @@ def index():
 
 @app.route('/find_doctor', methods=['POST'])
 def find_doctor():
+    print("[DEBUG] /find_doctor endpoint called")
     """處理醫生搜索請求"""
     try:
         data = request.get_json()
@@ -1206,7 +1223,15 @@ def find_doctor():
         session['language'] = ui_language
         
         # 使用AI分析症狀並配對醫生 (傳遞location_details)
+        print(f"[DEBUG] Calling analyze_symptoms_and_match with params: age={age}, symptoms={symptoms}, language={language}")
         result = analyze_symptoms_and_match(age, symptoms, chronic_conditions, language, location, detailed_health_info, location_details)
+        print(f"[DEBUG] analyze_symptoms_and_match result keys: {list(result.keys()) if result else 'None'}")
+        if result and 'diagnosis' in result:
+            print(f"[DEBUG] Diagnosis type: {type(result['diagnosis'])}")
+            if isinstance(result['diagnosis'], dict):
+                print(f"[DEBUG] Diagnosis languages: {list(result['diagnosis'].keys())}")
+            else:
+                print(f"[DEBUG] Diagnosis content preview: {str(result['diagnosis'])[:100]}...")
         
         # Log user query to database
         session_id = session.get('session_id', secrets.token_hex(16))
