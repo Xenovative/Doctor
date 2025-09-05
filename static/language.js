@@ -169,11 +169,11 @@ class LanguageManager {
             updateLocationDropdowns(translations);
             
             // Update doctor cards if they exist
-            updateDoctorCardLabels();
+            updateDoctorCardLabels(translations);
         }
 
         // Update doctor card labels dynamically
-        function updateDoctorCardLabels() {
+        function updateDoctorCardLabels(translations) {
             const doctorCards = document.querySelectorAll('.doctor-card');
             doctorCards.forEach(card => {
                 // Update recommendation rank
@@ -184,7 +184,7 @@ class LanguageManager {
                         const rank = rankMatch[1];
                         matchScore.innerHTML = `
                             <i class="fas fa-star"></i>
-                            ${translations['recommendation_rank'] || '第'} ${rank} ${translations['recommendation_suffix'] || '推薦'}
+                            ${translations && translations['recommendation_rank'] || '第'} ${rank} ${translations && translations['recommendation_suffix'] || '推薦'}
                         `;
                     }
                 }
@@ -194,7 +194,7 @@ class LanguageManager {
                 if (whatsappHint) {
                     whatsappHint.innerHTML = `
                         <i class="fab fa-whatsapp"></i>
-                        ${translations['click_to_contact'] || '點擊聯絡'}
+                        ${translations && translations['click_to_contact'] || '點擊聯絡'}
                     `;
                 }
                 
@@ -206,15 +206,15 @@ class LanguageManager {
                     
                     if (icon && strongElement) {
                         if (icon.classList.contains('fa-language')) {
-                            strongElement.textContent = translations['language_label'] || '語言：';
+                            strongElement.textContent = translations && translations['language_label'] || '語言：';
                         } else if (icon.classList.contains('fa-phone')) {
-                            strongElement.textContent = translations['phone_label'] || '電話：';
+                            strongElement.textContent = translations && translations['phone_label'] || '電話：';
                         } else if (icon.classList.contains('fa-envelope')) {
-                            strongElement.textContent = translations['email_label'] || '電郵：';
+                            strongElement.textContent = translations && translations['email_label'] || '電郵：';
                         } else if (icon.classList.contains('fa-map-marker-alt')) {
-                            strongElement.textContent = translations['clinic_address_label'] || '診所地址：';
+                            strongElement.textContent = translations && translations['clinic_address_label'] || '診所地址：';
                         } else if (icon.classList.contains('fa-graduation-cap')) {
-                            strongElement.textContent = translations['qualifications_label'] || '專業資格：';
+                            strongElement.textContent = translations && translations['qualifications_label'] || '專業資格：';
                         }
                     }
                 });
