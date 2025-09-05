@@ -38,8 +38,11 @@ class LanguageManager {
     setupEventListeners() {
         const languageToggle = document.getElementById('languageToggle');
         const languageDropdown = document.getElementById('languageDropdown');
+        const languageToggleMobile = document.getElementById('languageToggleMobile');
+        const languageDropdownMobile = document.getElementById('languageDropdownMobile');
         const languageOptions = document.querySelectorAll('.language-option');
 
+        // Desktop language toggle
         if (languageToggle && languageDropdown) {
             // Toggle dropdown
             languageToggle.addEventListener('click', (e) => {
@@ -51,19 +54,31 @@ class LanguageManager {
             document.addEventListener('click', () => {
                 languageDropdown.classList.remove('show');
             });
+        }
 
-            // Prevent dropdown from closing when clicking inside
-            languageDropdown.addEventListener('click', (e) => {
+        // Mobile language toggle
+        if (languageToggleMobile && languageDropdownMobile) {
+            // Toggle dropdown
+            languageToggleMobile.addEventListener('click', (e) => {
                 e.stopPropagation();
+                languageDropdownMobile.classList.toggle('show');
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', () => {
+                languageDropdownMobile.classList.remove('show');
             });
         }
 
-        // Language option selection
+        // Language option selection (works for both desktop and mobile)
         languageOptions.forEach(option => {
-            option.addEventListener('click', async (e) => {
-                const selectedLang = option.dataset.lang;
-                await this.switchLanguage(selectedLang);
-                languageDropdown.classList.remove('show');
+            option.addEventListener('click', (e) => {
+                const selectedLang = option.getAttribute('data-lang');
+                this.switchLanguage(selectedLang);
+                
+                // Close both dropdowns
+                if (languageDropdown) languageDropdown.classList.remove('show');
+                if (languageDropdownMobile) languageDropdownMobile.classList.remove('show');
             });
         });
     }
@@ -100,21 +115,32 @@ class LanguageManager {
     }
 
     updateLanguageDisplay() {
-        const currentLangElement = document.getElementById('currentLang');
-        const languageOptions = document.querySelectorAll('.language-option');
+        const currentLangSpan = document.getElementById('currentLang');
+        const currentLangMobileSpan = document.getElementById('currentLangMobile');
         
-        if (currentLangElement) {
-            const langMap = {
-                'zh-TW': '繁',
-                'zh-CN': '简',
-                'en': 'EN'
-            };
-            currentLangElement.textContent = langMap[this.currentLang] || '繁';
+        const langMap = {
+            'zh-TW': '繁',
+            'zh-CN': '简', 
+            'en': 'EN'
+        };
+        
+        const displayText = langMap[this.currentLang] || '繁';
+        
+        if (currentLangSpan) {
+            currentLangSpan.textContent = displayText;
         }
-
-        // Update active state
-        languageOptions.forEach(option => {
-            option.classList.toggle('active', option.dataset.lang === this.currentLang);
+        
+        if (currentLangMobileSpan) {
+            currentLangMobileSpan.textContent = displayText;
+        }
+        
+        // Update active state for both desktop and mobile dropdowns
+        document.querySelectorAll('.language-option').forEach(option => {
+            if (option.getAttribute('data-lang') === this.currentLang) {
+                option.classList.add('active');
+            } else {
+                option.classList.remove('active');
+            }
         });
     }
 
