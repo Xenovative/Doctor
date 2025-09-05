@@ -1475,7 +1475,7 @@ body::before {
     }
     
     .mobile-language-toggle {
-        display: block;
+        display: block !important;
         margin-left: 15px;
     }
     
