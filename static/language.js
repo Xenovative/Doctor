@@ -107,6 +107,9 @@ class LanguageManager {
                 // Update form placeholders and options
                 this.updateFormElements();
                 
+                // Update diagnosis card content if available
+                this.updateDiagnosisContent();
+                
                 console.log(`Language switched to: ${lang}`);
             }
         } catch (error) {
@@ -165,8 +168,57 @@ class LanguageManager {
             // Update dynamically created location options
             updateLocationDropdowns(translations);
             
-            // Update diagnosis content if available
-            updateDiagnosisContent(translations);
+            // Update doctor cards if they exist
+            updateDoctorCards(translations);
+        }
+
+        // Update doctor card labels dynamically
+        function updateDoctorCardLabels() {
+            const doctorCards = document.querySelectorAll('.doctor-card');
+            doctorCards.forEach(card => {
+                // Update recommendation rank
+                const matchScore = card.querySelector('.match-score');
+                if (matchScore) {
+                    const rankMatch = matchScore.textContent.match(/(\d+)/);
+                    if (rankMatch) {
+                        const rank = rankMatch[1];
+                        matchScore.innerHTML = `
+                            <i class="fas fa-star"></i>
+                            ${translations['recommendation_rank'] || '第'} ${rank} ${translations['recommendation_suffix'] || '推薦'}
+                        `;
+                    }
+                }
+                
+                // Update WhatsApp hint
+                const whatsappHint = card.querySelector('.whatsapp-hint');
+                if (whatsappHint) {
+                    whatsappHint.innerHTML = `
+                        <i class="fab fa-whatsapp"></i>
+                        ${translations['click_to_contact'] || '點擊聯絡'}
+                    `;
+                }
+                
+                // Update detail labels
+                const detailItems = card.querySelectorAll('.detail-item');
+                detailItems.forEach(item => {
+                    const icon = item.querySelector('i');
+                    const strongElement = item.querySelector('strong');
+                    
+                    if (icon && strongElement) {
+                        if (icon.classList.contains('fa-language')) {
+                            strongElement.textContent = translations['language_label'] || '語言：';
+                        } else if (icon.classList.contains('fa-phone')) {
+                            strongElement.textContent = translations['phone_label'] || '電話：';
+                        } else if (icon.classList.contains('fa-envelope')) {
+                            strongElement.textContent = translations['email_label'] || '電郵：';
+                        } else if (icon.classList.contains('fa-map-marker-alt')) {
+                            strongElement.textContent = translations['clinic_address_label'] || '診所地址：';
+                        } else if (icon.classList.contains('fa-graduation-cap')) {
+                            strongElement.textContent = translations['qualifications_label'] || '專業資格：';
+                        }
+                    }
+                });
+            });
         }
 
         // Update location dropdown options with translations
@@ -194,21 +246,6 @@ class LanguageManager {
             
             // Store current translations for use when dropdowns are populated
             window.currentTranslations = translations;
-        }
-        
-        // Update diagnosis content when language changes
-        function updateDiagnosisContent(translations) {
-            const diagnosisCards = document.querySelectorAll('.diagnosis-card');
-            const currentLang = window.languageManager ? window.languageManager.currentLang : 'zh-TW';
-            diagnosisCards.forEach(card => {
-                if (card.diagnosisData && card.diagnosisData[currentLang]) {
-                    const diagnosisContent = card.querySelector('[data-diagnosis-content]');
-                    if (diagnosisContent) {
-                        const langData = card.diagnosisData[currentLang];
-                        diagnosisContent.textContent = langData.diagnosis || langData;
-                    }
-                }
-            });
         }
 
         updateTranslations(this.translations);
@@ -368,6 +405,120 @@ class LanguageManager {
     // Public method to get translation
     getTranslation(key) {
         return this.translations[key] || key;
+    }
+
+    updateDiagnosisContent() {
+        // Update diagnosis card content if multi-language diagnosis data is available
+        if (window.currentDiagnosisData) {
+            const diagnosisCard = document.getElementById('diagnosisCard');
+            if (diagnosisCard) {
+                const currentLang = this.currentLang;
+                const currentDiagnosis = window.currentDiagnosisData[currentLang] || window.currentDiagnosisData['zh-TW'] || {};
+                
+                // Update diagnosis text
+                const diagnosisText = diagnosisCard.querySelector('.diagnosis-text');
+                if (diagnosisText && currentDiagnosis.diagnosis) {
+                    const formattedDiagnosis = currentDiagnosis.diagnosis.replace(/\n/g, '<br>');
+                    diagnosisText.innerHTML = formattedDiagnosis;
+                }
+                
+                // Update recommended specialty
+                const specialtyDiv = diagnosisCard.querySelector('.recommended-specialty');
+                if (specialtyDiv && currentDiagnosis.recommended_specialty) {
+                    const specialtyLabel = this.translations['recommended_specialty'] || '推薦專科';
+                    specialtyDiv.innerHTML = `${specialtyLabel}：${this.translateSpecialty(currentDiagnosis.recommended_specialty)}`;
+                }
+                
+                // Re-apply translations to the diagnosis card
+                diagnosisCard.querySelectorAll('[data-translate]').forEach(element => {
+                    const key = element.getAttribute('data-translate');
+                    if (this.translations[key]) {
+                        element.textContent = this.translations[key];
+                    }
+                });
+            }
+        }
+    }
+
+    translateSpecialty(specialty) {
+        // Specialty translation mapping
+        const specialtyTranslations = {
+            'zh-TW': {
+                'Internal Medicine': '內科',
+                'Cardiology': '心臟科',
+                'Neurology': '神經科',
+                'Gastroenterology': '腸胃科',
+                'Pulmonology': '呼吸科',
+                'Orthopedics': '骨科',
+                'Dermatology': '皮膚科',
+                'Ophthalmology': '眼科',
+                'Otolaryngology (ENT)': '耳鼻喉科',
+                'Obstetrics & Gynecology': '婦產科',
+                'Pediatrics': '兒科',
+                'Psychiatry': '精神科',
+                'Urology': '泌尿科',
+                'Emergency Medicine': '急診科'
+            },
+            'zh-CN': {
+                'Internal Medicine': '内科',
+                'Cardiology': '心脏科',
+                'Neurology': '神经科',
+                'Gastroenterology': '肠胃科',
+                'Pulmonology': '呼吸科',
+                'Orthopedics': '骨科',
+                'Dermatology': '皮肤科',
+                'Ophthalmology': '眼科',
+                'Otolaryngology (ENT)': '耳鼻喉科',
+                'Obstetrics & Gynecology': '妇产科',
+                'Pediatrics': '儿科',
+                'Psychiatry': '精神科',
+                'Urology': '泌尿科',
+                'Emergency Medicine': '急诊科',
+                '內科': '内科',
+                '心臟科': '心脏科',
+                '神經科': '神经科',
+                '腸胃科': '肠胃科',
+                '呼吸科': '呼吸科',
+                '骨科': '骨科',
+                '皮膚科': '皮肤科',
+                '眼科': '眼科',
+                '耳鼻喉科': '耳鼻喉科',
+                '婦產科': '妇产科',
+                '兒科': '儿科',
+                '精神科': '精神科',
+                '泌尿科': '泌尿科',
+                '急診科': '急诊科'
+            },
+            'en': {
+                '內科': 'Internal Medicine',
+                '心臟科': 'Cardiology',
+                '神經科': 'Neurology',
+                '腸胃科': 'Gastroenterology',
+                '呼吸科': 'Pulmonology',
+                '骨科': 'Orthopedics',
+                '皮膚科': 'Dermatology',
+                '眼科': 'Ophthalmology',
+                '耳鼻喉科': 'Otolaryngology (ENT)',
+                '婦產科': 'Obstetrics & Gynecology',
+                '兒科': 'Pediatrics',
+                '精神科': 'Psychiatry',
+                '泌尿科': 'Urology',
+                '急診科': 'Emergency Medicine',
+                '内科': 'Internal Medicine',
+                '心脏科': 'Cardiology',
+                '神经科': 'Neurology',
+                '肠胃科': 'Gastroenterology',
+                '妇产科': 'Obstetrics & Gynecology',
+                '儿科': 'Pediatrics',
+                '皮肤科': 'Dermatology',
+                '耳鼻喉科': 'Otolaryngology (ENT)',
+                '泌尿科': 'Urology',
+                '急诊科': 'Emergency Medicine'
+            }
+        };
+
+        const translations = specialtyTranslations[this.currentLang];
+        return translations && translations[specialty] ? translations[specialty] : specialty;
     }
 }
 

@@ -293,27 +293,43 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 顯示AI診斷結果
         if (data.diagnosis) {
-            // Check if diagnosis contains error messages
-            if (data.diagnosis.includes('AI分析服務暫時不可用') || 
-                data.diagnosis.includes('AI服務配置不完整') ||
-                data.diagnosis.includes('請稍後再試')) {
+            // Check if diagnosis is multi-language object or string
+            if (typeof data.diagnosis === 'object' && data.diagnosis !== null) {
+                // Multi-language diagnosis - store globally for language switching
+                window.currentDiagnosisData = data.diagnosis;
+                window.currentRecommendedSpecialty = data.recommended_specialty;
                 
-                const errorCard = document.createElement('div');
-                errorCard.className = 'alert alert-warning';
-                errorCard.style.cssText = 'text-align: center; padding: 20px; margin: 20px 0; border-radius: 10px; background-color: #fff3cd; border: 1px solid #ffeaa7;';
-                const aiUnavailableTitle = window.currentTranslations && window.currentTranslations['ai_diagnosis_unavailable'] 
-                    ? window.currentTranslations['ai_diagnosis_unavailable'] : 'AI診斷暫時不可用';
-                const aiUnavailableDesc = window.currentTranslations && window.currentTranslations['ai_diagnosis_unavailable_desc'] 
-                    ? window.currentTranslations['ai_diagnosis_unavailable_desc'] : '我們的AI診斷服務暫時無法使用，但您仍可以查看推薦的醫生。建議直接諮詢醫療專業人士。';
-                errorCard.innerHTML = `
-                    <i class="fas fa-exclamation-triangle" style="font-size: 2rem; color: #856404; margin-bottom: 10px;"></i>
-                    <h4 style="color: #856404; margin-bottom: 10px;">${aiUnavailableTitle}</h4>
-                    <p style="color: #856404; margin-bottom: 15px;">${aiUnavailableDesc}</p>
-                `;
-                doctorList.appendChild(errorCard);
-            } else {
-                const diagnosisCard = createDiagnosisCard(data.diagnosis, data.diagnosis_multilingual, data.recommended_specialty);
+                // Get current language diagnosis
+                const currentLang = window.languageManager ? window.languageManager.currentLang : 'zh-TW';
+                const currentDiagnosis = data.diagnosis[currentLang] || data.diagnosis['zh-TW'] || {};
+                
+                const diagnosisCard = createDiagnosisCard(currentDiagnosis.diagnosis || '', currentDiagnosis.recommended_specialty || data.recommended_specialty);
+                diagnosisCard.id = 'diagnosisCard'; // Add ID for dynamic updates
                 doctorList.appendChild(diagnosisCard);
+            } else {
+                // Legacy string diagnosis - check for error messages
+                if (data.diagnosis.includes('AI分析服務暫時不可用') || 
+                    data.diagnosis.includes('AI服務配置不完整') ||
+                    data.diagnosis.includes('請稍後再試')) {
+                    
+                    const errorCard = document.createElement('div');
+                    errorCard.className = 'alert alert-warning';
+                    errorCard.style.cssText = 'text-align: center; padding: 20px; margin: 20px 0; border-radius: 10px; background-color: #fff3cd; border: 1px solid #ffeaa7;';
+                    const aiUnavailableTitle = window.currentTranslations && window.currentTranslations['ai_diagnosis_unavailable'] 
+                        ? window.currentTranslations['ai_diagnosis_unavailable'] : 'AI診斷暫時不可用';
+                    const aiUnavailableDesc = window.currentTranslations && window.currentTranslations['ai_diagnosis_unavailable_desc'] 
+                        ? window.currentTranslations['ai_diagnosis_unavailable_desc'] : '我們的AI診斷服務暫時無法使用，但您仍可以查看推薦的醫生。建議直接諮詢醫療專業人士。';
+                    errorCard.innerHTML = `
+                        <i class="fas fa-exclamation-triangle" style="font-size: 2rem; color: #856404; margin-bottom: 10px;"></i>
+                        <h4 style="color: #856404; margin-bottom: 10px;">${aiUnavailableTitle}</h4>
+                        <p style="color: #856404; margin-bottom: 15px;">${aiUnavailableDesc}</p>
+                    `;
+                    doctorList.appendChild(errorCard);
+                } else {
+                    const diagnosisCard = createDiagnosisCard(data.diagnosis, data.recommended_specialty);
+                    diagnosisCard.id = 'diagnosisCard'; // Add ID for dynamic updates
+                    doctorList.appendChild(diagnosisCard);
+                }
             }
         }
         
@@ -432,11 +448,11 @@ document.addEventListener('DOMContentLoaded', function() {
         card.innerHTML = `
             <div class="match-score">
                 <i class="fas fa-star"></i>
-                <span data-translate="recommendation_rank">${translateText('recommendation_rank')}</span> ${rank} <span data-translate="recommendation_suffix">${translateText('recommendation_suffix')}</span>
+                ${translateText('recommendation_rank')} ${rank} ${translateText('recommendation_suffix')}
             </div>
             <div class="whatsapp-hint">
                 <i class="fab fa-whatsapp"></i>
-                <span data-translate="click_to_contact">${translateText('click_to_contact')}</span>
+                ${translateText('click_to_contact')}
             </div>
             
             <div class="doctor-header">
@@ -453,20 +469,52 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="detail-item">
                     <i class="fas fa-language"></i>
                     <div>
-                        <strong><span data-translate="language_label">${translateText('language_label')}</span></strong>
+                        <strong>${translateText('language_label')}</strong>
                         ${languages}
                     </div>
                 </div>
                 
                 <div class="detail-item">
-                    <i class="fas fa-graduation-cap"></i>
+                    <i class="fas fa-phone"></i>
                     <div>
-                        <strong><span data-translate="qualifications_label">${translateText('qualifications_label')}</span></strong>
-                        ${qualifications}
+                        <strong>${translateText('phone_label')}</strong>
+                        ${phoneDisplay}
+                    </div>
+                </div>
+                
+                <div class="detail-item">
+                    <i class="fas fa-envelope"></i>
+                    <div>
+                        <strong>${translateText('email_label')}</strong>
+                        ${doctor.email || translateText('not_provided')}
+                    </div>
+                </div>
+                
+                <div class="detail-item">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <div>
+                        <strong>${translateText('clinic_address_label')}</strong>
+                        ${address}
                     </div>
                 </div>
             </div>
+            
+            <div class="detail-item" style="margin-top: 15px;">
+                <i class="fas fa-graduation-cap"></i>
+                <div>
+                    <strong>${translateText('qualifications_label')}</strong>
+                    ${qualifications}
+                </div>
+            </div>
+            
+            ${false ? `
+                <div class="ai-analysis">
+                    <h4><i class="fas fa-robot"></i> AI 分析</h4>
+                    <p>${doctor.ai_analysis}</p>
+                </div>
+            ` : ''}
         `;
+        
         // 添加WhatsApp鏈接功能
         card.style.cursor = 'pointer';
         card.addEventListener('click', function() {
@@ -530,17 +578,12 @@ document.addEventListener('DOMContentLoaded', function() {
         return card;
     }
 
-    function createDiagnosisCard(diagnosis, diagnosisMultilingual, recommendedSpecialty) {
+    function createDiagnosisCard(diagnosis, recommendedSpecialty) {
         const card = document.createElement('div');
         card.className = 'diagnosis-card';
         
-        // Store multilingual data for dynamic switching
-        card.diagnosisData = diagnosisMultilingual || {};
-        
-        // Get current language diagnosis
-        const currentLang = window.languageManager ? window.languageManager.currentLang : 'zh-TW';
-        const currentDiagnosis = diagnosisMultilingual[currentLang] ? 
-            diagnosisMultilingual[currentLang].diagnosis : diagnosis;
+        // 處理診斷文本，保留換行格式
+        const formattedDiagnosis = diagnosis.replace(/\n/g, '<br>');
         
         card.innerHTML = `
             <div class="diagnosis-header">
@@ -548,27 +591,34 @@ document.addEventListener('DOMContentLoaded', function() {
                     <i class="fas fa-stethoscope"></i>
                 </div>
                 <div class="diagnosis-title">
-                    <h3><span data-translate="ai_diagnosis_analysis">${translateText('ai_diagnosis_analysis')}</span></h3>
-                    <div class="recommended-specialty">
-                        <span data-translate="recommended_specialty">${translateText('recommended_specialty')}</span>: ${translateSpecialty(recommendedSpecialty)}
-                    </div>
+                    <h3 data-translate="ai_diagnosis_analysis">AI 智能診斷分析</h3>
+                    <div class="recommended-specialty"><span data-translate="recommended_specialty">推薦專科</span>：${translateSpecialty(recommendedSpecialty)}</div>
                 </div>
             </div>
             
             <div class="diagnosis-content">
-                <div class="diagnosis-text" data-diagnosis-content>
-                    ${currentDiagnosis}
+                <div class="diagnosis-text">
+                    ${formattedDiagnosis}
                 </div>
             </div>
             
             <div class="diagnosis-disclaimer">
                 <i class="fas fa-exclamation-triangle"></i>
-                <div>
-                    <strong><span data-translate="important_reminder">${translateText('important_reminder')}</span></strong>
-                    <span data-translate="ai_disclaimer">${translateText('ai_disclaimer')}</span>
-                </div>
+                <strong data-translate="important_reminder">重要提醒：</strong><span data-translate="ai_disclaimer">此AI分析僅供參考，不能替代專業醫療診斷。請務必諮詢合格醫生進行正式診斷。</span>
             </div>
         `;
+        
+        // Apply translations to newly created diagnosis card
+        setTimeout(() => {
+            if (window.currentTranslations) {
+                card.querySelectorAll('[data-translate]').forEach(element => {
+                    const key = element.getAttribute('data-translate');
+                    if (window.currentTranslations[key]) {
+                        element.textContent = window.currentTranslations[key];
+                    }
+                });
+            }
+        }, 0);
         
         return card;
     }
