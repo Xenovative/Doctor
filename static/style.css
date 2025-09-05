@@ -503,18 +503,10 @@ body::before {
     gap: 30px;
 }
 
-/* Tablet and Mobile Styles */
+/* Hide back to website button on tablet and mobile */
 @media (max-width: 1024px) {
-    .main-content {
-        gap: 20px;
-    }
-    
-    .form-container,
-    .results-container,
-    .loading,
-    .user-summary-card,
-    .diagnosis-card {
-        margin: 0 10px;
+    .back-to-website-btn {
+        display: none !important;
     }
 }
 
