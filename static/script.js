@@ -404,13 +404,22 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function translateText(key) {
-        if (!key || !window.currentTranslations) {
-            return key;
+        if (!key) {
+            return '';
         }
         
-        // Try to find translation for the key
-        const translated = window.currentTranslations[key];
-        return translated || key;
+        // Use language manager if available
+        if (window.languageManager) {
+            return window.languageManager.getTranslation(key);
+        }
+        
+        // Fallback to window.currentTranslations
+        if (window.currentTranslations) {
+            const translated = window.currentTranslations[key];
+            return translated !== undefined ? translated : key;
+        }
+        
+        return key;
     }
 
     // Helper function to get bilingual text based on current language
