@@ -112,73 +112,64 @@ body::before {
     justify-content: space-between;
 }
 
-/* Reposition language selector next to subtitle */
+.logo-container {
+    flex-shrink: 0;
+}
+
+.logo-link {
+    display: block;
+    text-decoration: none;
+    transition: transform 0.3s ease;
+}
+
+.logo-link:hover {
+    transform: scale(1.05);
+}
+
+.logo-circle {
+    width: 120px;
+    height: 120px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    border: 3px solid rgba(255, 255, 255, 0.3);
+}
+
+.logo {
+    width: 150px;
+    height: 150px;
+    object-fit: contain;
+    border-radius: 50%;
+}
+
 .title-container {
     flex: 1;
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
 }
 
-.language-toggle {
-    position: absolute;
-    top: 50%;
-    right: 0;
-    transform: translateY(-50%);
-    margin-top: 1rem;
+.main-title {
+    font-family: 'Nasalization', 'Arial Black', sans-serif;
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem 0;
+    color: #333;
+    text-shadow: none;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
 }
 
-.language-btn {
-    padding: 0.4rem 0.8rem;
-    font-size: 0.8rem;
+.subtitle {
+    font-size: 1.8rem;
+    font-weight: 400;
+    margin: 0;
+    color: #666;
+    opacity: 0.9;
 }
 
-/* Responsive title scaling */
+/* Mobile/Tablet Header Layout */
 @media (max-width: 768px) {
-    .main-title {
-        font-size: 0.7rem;
-        white-space: nowrap;
-        letter-spacing: 0.01em;
-    }
-    .header-content {
-        flex-direction: column;
-        text-align: center;
-        gap: 1rem;
-        align-items: center;
-        padding: 0 0.2rem;
-    }
-    
-    .title-container {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 0.5rem;
-        position: relative;
-    }
-    
-    .subtitle {
-        margin-bottom: 0.5rem;
-    }
-    
-    .language-toggle {
-        position: absolute;
-        top: 50%;
-        right: 0;
-        transform: translateY(-50%);
-        margin-top: 1rem;
-    }
-    
-    .language-btn {
-        padding: 0.4rem 0.8rem;
-        font-size: 0.8rem;
-    }
-    
-    .header-button-container {
-        display: none;
-    }
-    
     .main-title {
         font-size: 0.7rem;
         white-space: nowrap;
@@ -193,6 +184,25 @@ body::before {
         padding: 3rem 0;
     }
     
+    .header-content {
+        flex-direction: row;
+        text-align: left;
+        gap: 1rem;
+        align-items: center;
+        padding: 0 0.2rem;
+    }
+    
+    .header-button-container {
+        display: none;
+    }
+    
+    .title-container {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        flex: 1;
+    }
+    
     .logo-circle {
         width: 100px;
         height: 100px;
@@ -205,6 +215,23 @@ body::before {
     
     .back-to-website-btn {
         display: none;
+    }
+    
+    /* Move language selector next to subtitle */
+    .title-container {
+        position: relative;
+    }
+    
+    .language-toggle {
+        position: absolute;
+        top: -10px;
+        right: 0;
+        margin-left: auto;
+    }
+    
+    .language-btn {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.8rem;
     }
 }
 
@@ -245,11 +272,26 @@ body::before {
     .back-to-website-btn {
         display: none;
     }
+    
+    /* Language selector positioning for mobile */
+    .language-toggle {
+        position: absolute;
+        top: -5px;
+        right: 0;
+        margin-left: auto;
+    }
+    
+    .language-btn {
+        padding: 0.3rem 0.6rem;
+        font-size: 0.7rem;
+    }
 }
 
-/* Hide original header button container since language selector is now positioned next to subtitle */
 .header-button-container {
-    display: none;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
 }
 
 /* Language Toggle Styles */
@@ -468,10 +510,18 @@ body::before {
     gap: 30px;
 }
 
-/* Hide back to website button on tablet and mobile */
+/* Tablet and Mobile Styles */
 @media (max-width: 1024px) {
-    .back-to-website-btn {
-        display: none !important;
+    .main-content {
+        gap: 20px;
+    }
+    
+    .form-container,
+    .results-container,
+    .loading,
+    .user-summary-card,
+    .diagnosis-card {
+        margin: 0 10px;
     }
 }
 
