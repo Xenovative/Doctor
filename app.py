@@ -866,11 +866,12 @@ def diagnose_symptoms(age: int, symptoms: str, chronic_conditions: str = '', det
 
 def extract_specialty_from_diagnosis(diagnosis_text: str, language: str = 'zh-TW') -> str:
     """從診斷文本中提取推薦專科"""
+    print(f"[DEBUG] Extracting specialty from diagnosis (lang={language}): {diagnosis_text[:200]}...")
+    
     # 專科關鍵詞映射
     specialty_keywords = {
         'zh-TW': {
-            '內科': ['內科', '一般內科', '家庭醫學', '普通科'],
-            '心臟科': ['心臟', '心血管', '胸痛', '心律不整'],
+            '心臟科': ['心臟', '心血管', '胸痛', '心律不整', '心悸', '心跳', '血壓', '高血壓'],
             '神經科': ['神經', '頭痛', '暈眩', '中風'],
             '腸胃科': ['腸胃', '消化', '胃痛', '腹痛'],
             '呼吸科': ['呼吸', '咳嗽', '氣喘', '肺部'],
@@ -882,11 +883,11 @@ def extract_specialty_from_diagnosis(diagnosis_text: str, language: str = 'zh-TW
             '兒科': ['兒科', '小兒', '嬰兒', '兒童'],
             '精神科': ['精神', '憂鬱', '焦慮', '失眠'],
             '泌尿科': ['泌尿', '腎臟', '膀胱'],
-            '急診科': ['急診', '緊急', '嚴重']
+            '急診科': ['急診', '緊急', '嚴重'],
+            '內科': ['內科', '一般內科', '家庭醫學', '普通科']
         },
         'en': {
-            'Internal Medicine': ['internal', 'general', 'family', 'primary'],
-            'Cardiology': ['heart', 'cardiac', 'chest pain', 'cardiovascular'],
+            'Cardiology': ['heart', 'cardiac', 'chest pain', 'cardiovascular', 'blood pressure', 'hypertension', 'palpitation'],
             'Neurology': ['neuro', 'headache', 'dizziness', 'stroke'],
             'Gastroenterology': ['gastro', 'stomach', 'abdominal', 'digestive'],
             'Pulmonology': ['lung', 'respiratory', 'cough', 'breathing'],
@@ -898,11 +899,11 @@ def extract_specialty_from_diagnosis(diagnosis_text: str, language: str = 'zh-TW
             'Pediatrics': ['pediatric', 'child', 'infant', 'baby'],
             'Psychiatry': ['mental', 'depression', 'anxiety', 'psychiatric'],
             'Urology': ['urology', 'kidney', 'bladder', 'urinary'],
-            'Emergency Medicine': ['emergency', 'urgent', 'severe']
+            'Emergency Medicine': ['emergency', 'urgent', 'severe'],
+            'Internal Medicine': ['internal', 'general', 'family', 'primary']
         },
         'zh-CN': {
-            '内科': ['内科', '一般内科', '家庭医学', '普通科'],
-            '心脏科': ['心脏', '心血管', '胸痛', '心律不整'],
+            '心脏科': ['心脏', '心血管', '胸痛', '心律不整', '心悸', '心跳', '血压', '高血压'],
             '神经科': ['神经', '头痛', '晕眩', '中风'],
             '肠胃科': ['肠胃', '消化', '胃痛', '腹痛'],
             '呼吸科': ['呼吸', '咳嗽', '气喘', '肺部'],
@@ -914,18 +915,22 @@ def extract_specialty_from_diagnosis(diagnosis_text: str, language: str = 'zh-TW
             '儿科': ['儿科', '小儿', '婴儿', '儿童'],
             '精神科': ['精神', '忧郁', '焦虑', '失眠'],
             '泌尿科': ['泌尿', '肾脏', '膀胱'],
-            '急诊科': ['急诊', '紧急', '严重']
+            '急诊科': ['急诊', '紧急', '严重'],
+            '内科': ['内科', '一般内科', '家庭医学', '普通科']
         }
     }
     
     keywords = specialty_keywords.get(language, specialty_keywords['zh-TW'])
     diagnosis_lower = diagnosis_text.lower()
     
+    # Check each specialty in priority order (most specific first)
     for specialty, terms in keywords.items():
         for term in terms:
             if term.lower() in diagnosis_lower:
+                print(f"[DEBUG] Found specialty match: '{term}' -> {specialty}")
                 return specialty
     
+    print(f"[DEBUG] No specialty match found, using default")
     # 默認返回內科/普通科
     if language == 'en':
         return 'Internal Medicine'
