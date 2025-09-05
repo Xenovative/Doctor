@@ -169,7 +169,7 @@ class LanguageManager {
             updateLocationDropdowns(translations);
             
             // Update doctor cards if they exist
-            updateDoctorCards(translations);
+            updateDoctorCardLabels();
         }
 
         // Update doctor card labels dynamically
