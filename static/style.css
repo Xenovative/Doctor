@@ -198,7 +198,9 @@ body::before {
     
     .title-container {
         display: flex;
-        flex-direction: column;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
     }
     
     .logo-circle {
@@ -1475,7 +1477,7 @@ body::before {
     }
     
     .mobile-language-toggle {
-        display: block !important;
+        display: block;
         margin-left: 15px;
     }
     
