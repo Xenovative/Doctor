@@ -409,12 +409,35 @@ document.addEventListener('DOMContentLoaded', function() {
         return translated || key;
     }
 
+    // Helper function to get bilingual text based on current language
+    function getBilingualText(doctor, field, currentLang) {
+        const isEnglish = currentLang === 'en';
+        
+        // For English UI, prefer English then Chinese
+        if (isEnglish) {
+            return doctor[field + '_en'] || doctor[field + '_zh'] || doctor[field] || '';
+        }
+        // For Chinese UI, prefer Chinese then English
+        else {
+            return doctor[field + '_zh'] || doctor[field + '_en'] || doctor[field] || '';
+        }
+    }
+
     function createDoctorCard(doctor, rank) {
         const card = document.createElement('div');
         card.className = 'doctor-card';
         
+        // Get current language from session
+        const currentLang = window.currentLanguage || 'zh-TW';
+        
+        // Use bilingual data based on current language
+        const doctorName = getBilingualText(doctor, 'name', currentLang);
+        const doctorSpecialty = getBilingualText(doctor, 'specialty', currentLang);
+        const doctorQualifications = getBilingualText(doctor, 'qualifications', currentLang);
+        const doctorLanguages = getBilingualText(doctor, 'languages', currentLang);
+        
         // 獲取醫生姓名的第一個字符作為頭像
-        const avatarText = doctor.name ? doctor.name.charAt(0) : 'Dr';
+        const avatarText = doctorName ? doctorName.charAt(0) : 'Dr';
         
         // 處理聯絡電話（可能有多個）
         const phones = doctor.contact_numbers ? doctor.contact_numbers.split(',').map(p => p.trim()) : [];
@@ -422,12 +445,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 處理地址
         const address = doctor.clinic_addresses || translateText('not_provided');
-        
-        // 處理語言
-        const languages = doctor.languages || translateText('not_provided');
-        
-        // 處理資格
-        const qualifications = doctor.qualifications || translateText('not_provided');
         
         card.innerHTML = `
             <div class="match-score">
@@ -444,8 +461,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     ${avatarText}
                 </div>
                 <div class="doctor-info">
-                    <h3>${doctor.name || translateText('unknown_doctor')}</h3>
-                    <div class="doctor-specialty">${translateSpecialty(doctor.specialty || translateText('general_specialist'))}</div>
+                    <h3>${doctorName || translateText('unknown_doctor')}</h3>
+                    <div class="doctor-specialty">${translateSpecialty(doctorSpecialty || translateText('general_specialist'))}</div>
                 </div>
             </div>
             
@@ -454,7 +471,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <i class="fas fa-language"></i>
                     <div>
                         <strong>${translateText('language_label')}</strong>
-                        ${languages}
+                        ${doctorLanguages || translateText('not_provided')}
                     </div>
                 </div>
                 
@@ -487,7 +504,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <i class="fas fa-graduation-cap"></i>
                 <div>
                     <strong>${translateText('qualifications_label')}</strong>
-                    ${qualifications}
+                    ${doctorQualifications || translateText('not_provided')}
                 </div>
             </div>
             

@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>醫生資料庫 - AI醫生配對系統</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.8);
+            border-radius: 8px;
+            margin: 0.2rem 0;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            color: white;
+            background: rgba(255,255,255,0.1);
+        }
+        .db-stats {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .stat-box {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            margin: 5px;
+        }
+        .doctor-card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 15px;
+            transition: transform 0.2s;
+        }
+        .doctor-card:hover {
+            transform: translateY(-2px);
+        }
+        .specialty-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+        }
+        .search-filters {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .table-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .btn-view-mode {
+            border-radius: 20px;
+            margin: 0 5px;
+        }
+        .btn-view-mode.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse">
+                <div class="position-sticky pt-3">
+                    <div class="text-center mb-4">
+                        <h5 class="text-white">
+                            <i class="fas fa-user-md me-2"></i>AI醫生配對系統
+                        </h5>
+                        <small class="text-white-50">管理後台</small>
+                    </div>
+                    
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_dashboard') }}">
+                                <i class="fas fa-tachometer-alt me-2"></i>儀表板
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="{{ url_for('admin_doctors') }}">
+                                <i class="fas fa-user-md me-2"></i>醫生資料庫
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_analytics') }}">
+                                <i class="fas fa-chart-bar me-2"></i>分析報告
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_config') }}">
+                                <i class="fas fa-cogs me-2"></i>系統配置
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_users') }}">
+                                <i class="fas fa-users me-2"></i>用戶管理
+                            </a>
+                        </li>
+                        <li class="nav-item mt-3">
+                            <a class="nav-link" href="/" target="_blank">
+                                <i class="fas fa-external-link-alt me-2"></i>查看網站
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_logout') }}">
+                                <i class="fas fa-sign-out-alt me-2"></i>登出
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Main content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2 class="mb-0">醫生資料庫管理</h2>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-success" onclick="addDoctor()">
+                            <i class="fas fa-plus"></i> 新增醫生
+                        </button>
+                        <button class="btn btn-outline-primary" onclick="exportDoctors()">
+                            <i class="fas fa-download"></i> 匯出 CSV
+                        </button>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-secondary" id="tableViewBtn" onclick="switchView('table')">
+                                <i class="fas fa-table"></i> 表格檢視
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary active" id="cardViewBtn" onclick="switchView('cards')">
+                                <i class="fas fa-th-large"></i> 卡片檢視
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Database Statistics -->
+                <div class="db-stats">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="stat-box">
+                                <h3>{{ total_doctors|default(0) }}</h3>
+                                <small>總醫生數</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-box">
+                                <h3>{{ total_specialties|default(0) }}</h3>
+                                <small>專科類別</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-box">
+                                <h3>{{ bilingual_doctors|default(0) }}</h3>
+                                <small>雙語醫生</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-box">
+                                <h3>{{ with_contact|default(0) }}</h3>
+                                <small>有聯絡資訊</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- View Mode Toggle -->
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-view-mode active" onclick="switchView('table')" id="tableViewBtn">
+                            <i class="fas fa-table me-1"></i>表格檢視
+                        </button>
+                        <button type="button" class="btn btn-view-mode" onclick="switchView('cards')" id="cardsViewBtn">
+                            <i class="fas fa-th-large me-1"></i>卡片檢視
+                        </button>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <span class="me-2">顯示:</span>
+                        <select class="form-select form-select-sm" style="width: auto;" onchange="changePageSize(this.value)">
+                            <option value="25">25</option>
+                            <option value="50" selected>50</option>
+                            <option value="100">100</option>
+                            <option value="500">500</option>
+                            <option value="1000">1000</option>
+                            <option value="-1">全部 ({{ total_doctors }})</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Search and Filters -->
+                <div class="search-filters">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <label class="form-label">搜尋醫生</label>
+                            <input type="text" class="form-control" id="searchInput" placeholder="輸入醫生姓名或專科...">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">專科篩選</label>
+                            <select class="form-select" id="specialtyFilter">
+                                <option value="">所有專科</option>
+                                {% for specialty in specialties %}
+                                <option value="{{ specialty }}">{{ specialty }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">語言篩選</label>
+                            <select class="form-select" id="languageFilter">
+                                <option value="">所有語言</option>
+                                <option value="中文">中文</option>
+                                <option value="English">English</option>
+                                <option value="雙語">雙語</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">&nbsp;</label>
+                            <div class="d-grid">
+                                <button class="btn btn-primary" onclick="applyFilters()">
+                                    <i class="fas fa-search me-1"></i>搜尋
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Table View -->
+                <div id="tableView" class="table-container">
+                    <table id="doctorsTable" class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>醫生姓名</th>
+                                <th>專科</th>
+                                <th>語言</th>
+                                <th>資格</th>
+                                <th>聯絡方式</th>
+                                <th>診所地址</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for doctor in doctors %}
+                            <tr>
+                                <td>
+                                    {% if doctor.name_zh %}
+                                        <strong>{{ doctor.name_zh }}</strong>
+                                        {% if doctor.name_en %}
+                                            <br><small class="text-muted">{{ doctor.name_en }}</small>
+                                        {% endif %}
+                                    {% elif doctor.name_en %}
+                                        <strong>{{ doctor.name_en }}</strong>
+                                    {% else %}
+                                        <strong>{{ doctor.name or 'Unknown' }}</strong>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="specialty-badge">
+                                        {{ doctor.specialty_zh or doctor.specialty_en or doctor.specialty }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <small>{{ doctor.languages_zh or doctor.languages_en or doctor.languages or '未提供' }}</small>
+                                </td>
+                                <td>
+                                    <small>{{ (doctor.qualifications_zh or doctor.qualifications_en or doctor.qualifications or '未提供')[:50] }}{% if (doctor.qualifications_zh or doctor.qualifications_en or doctor.qualifications or '')|length > 50 %}...{% endif %}</small>
+                                </td>
+                                <td>
+                                    {% if doctor.contact_numbers %}
+                                        <small><i class="fas fa-phone me-1"></i>{{ doctor.contact_numbers.split(',')[0] }}</small>
+                                    {% endif %}
+                                    {% if doctor.email %}
+                                        <br><small><i class="fas fa-envelope me-1"></i>{{ doctor.email }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <small>{{ (doctor.clinic_addresses or '未提供')[:40] }}{% if (doctor.clinic_addresses or '')|length > 40 %}...{% endif %}</small>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-sm btn-success me-1" onclick="editDoctor({{ doctor.id }})">
+                                            <i class="fas fa-edit"></i> 編輯
+                                        </button>
+                                        <button class="btn btn-sm btn-info me-1" onclick="viewDoctor({{ doctor.id }})">
+                                            <i class="fas fa-eye"></i> 檢視
+                                        </button>
+                                        <button class="btn btn-sm btn-danger" onclick="deleteDoctor({{ doctor.id }}, '{{ (doctor.name_zh or doctor.name_en or 'Unknown')|replace("'", "\\'") }}')">
+                                            <i class="fas fa-trash"></i> 刪除
+                                        </button>
+                                        {% if doctor.profile_url %}
+                                        <a href="{{ doctor.profile_url }}" target="_blank" class="btn btn-sm btn-outline-info">
+                                            <i class="fas fa-external-link-alt me-1"></i>檔案
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Cards View -->
+                <div id="cardsView" class="row" style="display: none;">
+                    {% for doctor in doctors %}
+                    <div class="col-md-6 col-lg-4">
+                        <div class="doctor-card card">
+                            <div class="card-body">
+                                <h6 class="card-title">
+                                    {% if doctor.name_zh %}
+                                        {{ doctor.name_zh }}
+                                        {% if doctor.name_en %}
+                                            <br><small class="text-muted">{{ doctor.name_en }}</small>
+                                        {% endif %}
+                                    {% elif doctor.name_en %}
+                                        {{ doctor.name_en }}
+                                    {% else %}
+                                        {{ doctor.name or 'Unknown' }}
+                                    {% endif %}
+                                </h6>
+                                <p class="card-text">
+                                    <span class="specialty-badge">
+                                        {{ doctor.specialty_zh or doctor.specialty_en or doctor.specialty }}
+                                    </span>
+                                </p>
+                                <p class="card-text">
+                                    <small class="text-muted">
+                                        <i class="fas fa-language me-1"></i>
+                                        {{ doctor.languages_zh or doctor.languages_en or doctor.languages or '未提供' }}
+                                    </small>
+                                </p>
+                                {% if doctor.contact_numbers %}
+                                <p class="card-text">
+                                    <small><i class="fas fa-phone me-1"></i>{{ doctor.contact_numbers.split(',')[0] }}</small>
+                                </p>
+                                {% endif %}
+                                <div class="d-flex justify-content-between">
+                                    <button class="btn btn-sm btn-success me-1" onclick="editDoctor({{ doctor.id }})">
+                                        <i class="fas fa-edit"></i> 編輯
+                                    </button>
+                                    <button class="btn btn-sm btn-info me-1" onclick="viewDoctor({{ doctor.id }})">
+                                        <i class="fas fa-eye"></i> 檢視
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteDoctor({{ doctor.id }}, '{{ (doctor.name_zh or doctor.name_en or 'Unknown')|replace("'", "\\'") }}')">
+                                        <i class="fas fa-trash"></i> 刪除
+                                    </button>
+                                    {% if doctor.profile_url %}
+                                    <a href="{{ doctor.profile_url }}" target="_blank" class="btn btn-sm btn-outline-info">
+                                        <i class="fas fa-external-link-alt me-1"></i>檔案
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Doctor Detail Modal -->
+    <div class="modal fade" id="doctorModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">醫生詳細資訊</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="doctorModalBody">
+                    <!-- Doctor details will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Doctor Edit Modal -->
+    <div class="modal fade" id="editDoctorModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">編輯醫生資料</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editDoctorForm">
+                        <input type="hidden" id="editDoctorId" name="doctor_id">
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="text-primary mb-3">基本資訊</h6>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">中文姓名</label>
+                                    <input type="text" class="form-control" id="editNameZh" name="name_zh">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">英文姓名</label>
+                                    <input type="text" class="form-control" id="editNameEn" name="name_en">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">中文專科</label>
+                                    <input type="text" class="form-control" id="editSpecialtyZh" name="specialty_zh">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">英文專科</label>
+                                    <input type="text" class="form-control" id="editSpecialtyEn" name="specialty_en">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">中文語言</label>
+                                    <input type="text" class="form-control" id="editLanguagesZh" name="languages_zh">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">英文語言</label>
+                                    <input type="text" class="form-control" id="editLanguagesEn" name="languages_en">
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <h6 class="text-primary mb-3">聯絡資訊</h6>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">聯絡電話</label>
+                                    <input type="text" class="form-control" id="editContactNumbers" name="contact_numbers">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">電子郵件</label>
+                                    <input type="email" class="form-control" id="editEmail" name="email">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">診所地址</label>
+                                    <textarea class="form-control" id="editClinicAddresses" name="clinic_addresses" rows="2"></textarea>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">應診時間</label>
+                                    <textarea class="form-control" id="editConsultationHours" name="consultation_hours" rows="2"></textarea>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">診金</label>
+                                    <input type="text" class="form-control" id="editConsultationFee" name="consultation_fee">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="text-primary mb-3">專業資訊</h6>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">資格認證 (中文)</label>
+                                    <textarea class="form-control" id="editQualificationsZh" name="qualifications_zh" rows="2"></textarea>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">資格認證 (English)</label>
+                                    <textarea class="form-control" id="editQualificationsEn" name="qualifications_en" rows="2"></textarea>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">註冊號碼</label>
+                                    <input type="text" class="form-control" id="editRegistrationNumber" name="registration_number">
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <h6 class="text-primary mb-3">其他設定</h6>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">優先級別</label>
+                                    <select class="form-control" id="editPriorityFlag" name="priority_flag">
+                                        <option value="0">一般 (0)</option>
+                                        <option value="1">優先 (1)</option>
+                                        <option value="2">高優先 (2)</option>
+                                        <option value="3">最高優先 (3)</option>
+                                    </select>
+                                    <small class="form-text text-muted">優先級別越高，在相同地區內排序越前</small>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">個人檔案連結</label>
+                                    <input type="url" class="form-control" id="editProfileUrl" name="profile_url">
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="saveDoctorChanges()">儲存變更</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+
+    <script>
+        let doctorsTable;
+        let currentView = 'table';
+        
+        $(document).ready(function() {
+            // Initialize DataTable
+            doctorsTable = $('#doctorsTable').DataTable({
+                "pageLength": 50,
+                "order": [[ 0, "asc" ]],
+                "language": {
+                    "url": "//cdn.datatables.net/plug-ins/1.11.5/i18n/zh_Hant.json"
+                },
+                "columnDefs": [
+                    { "orderable": false, "targets": 6 } // Disable sorting on action column
+                ]
+            });
+            
+            // Search functionality
+            $('#searchInput').on('keyup', function() {
+                doctorsTable.search(this.value).draw();
+            });
+            
+            // Specialty filter
+            $('#specialtyFilter').on('change', function() {
+                var specialty = this.value;
+                if (specialty === '') {
+                    doctorsTable.column(1).search('').draw();
+                } else {
+                    doctorsTable.column(1).search(specialty).draw();
+                }
+            });
+        });
+        
+        function switchView(view) {
+            currentView = view;
+            if (view === 'table') {
+                document.getElementById('tableView').style.display = 'block';
+                document.getElementById('cardsView').style.display = 'none';
+                document.getElementById('tableViewBtn').classList.add('active');
+                document.getElementById('cardsViewBtn').classList.remove('active');
+            } else {
+                document.getElementById('tableView').style.display = 'none';
+                document.getElementById('cardsView').style.display = 'block';
+                document.getElementById('tableViewBtn').classList.remove('active');
+                document.getElementById('cardsViewBtn').classList.add('active');
+            }
+        }
+        
+        function changePageSize(size) {
+            if (size == -1) {
+                doctorsTable.page.len(-1).draw();
+            } else {
+                doctorsTable.page.len(parseInt(size)).draw();
+            }
+        }
+        
+        function applyFilters() {
+            var searchTerm = document.getElementById('searchInput').value;
+            var specialty = document.getElementById('specialtyFilter').value;
+            
+            doctorsTable.search(searchTerm);
+            if (specialty) {
+                doctorsTable.column(1).search(specialty);
+            }
+            doctorsTable.draw();
+        }
+        
+        function deleteDoctor(doctorId, doctorName) {
+            if (confirm(`確定要刪除醫生「${doctorName}」嗎？此操作無法復原。`)) {
+                fetch(`/admin/doctors/${doctorId}/delete`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        alert('醫生已成功刪除！');
+                        location.reload();
+                    } else {
+                        alert('刪除失敗：' + (result.error || '未知錯誤'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting doctor:', error);
+                    alert('刪除醫生時發生錯誤');
+                });
+            }
+        }
+        
+        function addDoctor() {
+            // Clear form and show modal for adding new doctor
+            document.getElementById('editDoctorId').value = '';
+            document.getElementById('editNameZh').value = '';
+            document.getElementById('editNameEn').value = '';
+            document.getElementById('editSpecialtyZh').value = '';
+            document.getElementById('editSpecialtyEn').value = '';
+            document.getElementById('editQualificationsZh').value = '';
+            document.getElementById('editQualificationsEn').value = '';
+            document.getElementById('editLanguagesZh').value = '';
+            document.getElementById('editLanguagesEn').value = '';
+            document.getElementById('editContactNumbers').value = '';
+            document.getElementById('editEmail').value = '';
+            document.getElementById('editClinicAddresses').value = '';
+            document.getElementById('editConsultationHours').value = '';
+            document.getElementById('editConsultationFee').value = '';
+            document.getElementById('editProfileUrl').value = '';
+            document.getElementById('editRegistrationNumber').value = '';
+            document.getElementById('editPriorityFlag').value = '0';
+            
+            // Update modal title
+            document.querySelector('#editDoctorModal .modal-title').textContent = '新增醫生';
+            
+            // Show modal
+            new bootstrap.Modal(document.getElementById('editDoctorModal')).show();
+        }
+        
+        function editDoctor(doctorId) {
+            // Load doctor data and show edit modal
+            fetch(`/admin/doctors/${doctorId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert('錯誤: ' + data.error);
+                        return;
+                    }
+                    
+                    // Populate edit form
+                    document.getElementById('editDoctorId').value = data.id;
+                    document.getElementById('editNameZh').value = data.name_zh || '';
+                    document.getElementById('editNameEn').value = data.name_en || '';
+                    document.getElementById('editSpecialtyZh').value = data.specialty_zh || '';
+                    document.getElementById('editSpecialtyEn').value = data.specialty_en || '';
+                    document.getElementById('editQualificationsZh').value = data.qualifications_zh || '';
+                    document.getElementById('editQualificationsEn').value = data.qualifications_en || '';
+                    document.getElementById('editLanguagesZh').value = data.languages_zh || '';
+                    document.getElementById('editLanguagesEn').value = data.languages_en || '';
+                    document.getElementById('editContactNumbers').value = data.contact_numbers || '';
+                    document.getElementById('editEmail').value = data.email || '';
+                    document.getElementById('editClinicAddresses').value = data.clinic_addresses || '';
+                    document.getElementById('editConsultationHours').value = data.consultation_hours || '';
+                    document.getElementById('editConsultationFee').value = data.consultation_fee || '';
+                    document.getElementById('editProfileUrl').value = data.profile_url || '';
+                    document.getElementById('editRegistrationNumber').value = data.registration_number || '';
+                    document.getElementById('editPriorityFlag').value = data.priority_flag || '0';
+                    
+                    // Update modal title
+                    document.querySelector('#editDoctorModal .modal-title').textContent = '編輯醫生資料';
+                    
+                    // Show modal
+                    new bootstrap.Modal(document.getElementById('editDoctorModal')).show();
+                })
+                .catch(error => {
+                    console.error('Error loading doctor data:', error);
+                    alert('載入醫生資料時發生錯誤');
+                });
+        }
+        
+        function viewDoctor(doctorId) {
+            // Load doctor details via AJAX
+            fetch(`/admin/doctors/${doctorId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const modalBody = document.getElementById('doctorModalBody');
+                    modalBody.innerHTML = `
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>基本資訊</h6>
+                                <p><strong>中文姓名:</strong> ${data.name_zh || '未提供'}</p>
+                                <p><strong>英文姓名:</strong> ${data.name_en || '未提供'}</p>
+                                <p><strong>中文專科:</strong> ${data.specialty_zh || '未提供'}</p>
+                                <p><strong>英文專科:</strong> ${data.specialty_en || '未提供'}</p>
+                                <p><strong>語言:</strong> ${data.languages_zh || data.languages_en || '未提供'}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>聯絡資訊</h6>
+                                <p><strong>電話:</strong> ${data.contact_numbers || '未提供'}</p>
+                                <p><strong>電郵:</strong> ${data.email || '未提供'}</p>
+                                <p><strong>診所地址:</strong> ${data.clinic_addresses || '未提供'}</p>
+                                <p><strong>應診時間:</strong> ${data.consultation_hours || '未提供'}</p>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <h6>專業資格</h6>
+                                <p>${data.qualifications_zh || data.qualifications_en || '未提供'}</p>
+                            </div>
+                        </div>
+                        ${data.profile_url ? `
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <a href="${data.profile_url}" target="_blank" class="btn btn-primary">
+                                    <i class="fas fa-external-link-alt me-1"></i>查看完整檔案
+                                </a>
+                            </div>
+                        </div>
+                        ` : ''}
+                    `;
+                    
+                    const modal = new bootstrap.Modal(document.getElementById('doctorModal'));
+                    modal.show();
+                })
+                .catch(error => {
+                    console.error('Error loading doctor details:', error);
+                    alert('載入醫生詳情時發生錯誤');
+                });
+        }
+        
+        function refreshData() {
+            location.reload();
+        }
+        
+        function exportData() {
+            window.open('/admin/database/export-doctors', '_blank');
+        }
+        
+        
+        function saveDoctorChanges() {
+            const formData = new FormData(document.getElementById('editDoctorForm'));
+            const doctorId = document.getElementById('editDoctorId').value;
+            
+            // Convert FormData to JSON
+            const data = {};
+            formData.forEach((value, key) => {
+                data[key] = value;
+            });
+            
+            fetch(`/admin/doctors/${doctorId}/update`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    alert('醫生資料已成功更新！');
+                    // Hide modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('editDoctorModal'));
+                    modal.hide();
+                    // Refresh page to show updated data
+                    location.reload();
+                } else {
+                    alert('更新失敗：' + (result.error || '未知錯誤'));
+                }
+            })
+            .catch(error => {
+                console.error('Error saving doctor data:', error);
+                alert('儲存醫生資料時發生錯誤');
+            });
+        }
+    </script>
+</body>
+</html>

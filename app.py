@@ -135,13 +135,66 @@ AI_CONFIG = {
 
 # 載入醫生資料
 def load_doctors_data():
-    """載入醫生資料"""
+    """載入醫生資料 - 從SQLite數據庫"""
+    try:
+        conn = sqlite3.connect('doctors.db')
+        cursor = conn.cursor()
+        
+        # 查詢所有醫生資料，優先使用中文資料，英文作為備用，按優先級和名稱排序
+        cursor.execute('''
+            SELECT 
+                COALESCE(name_zh, name_en, name) as name,
+                COALESCE(specialty_zh, specialty_en, specialty) as specialty,
+                COALESCE(qualifications_zh, qualifications_en, qualifications) as qualifications,
+                COALESCE(languages_zh, languages_en, languages) as languages,
+                contact_numbers as phone,
+                clinic_addresses as address,
+                email,
+                consultation_fee,
+                consultation_hours,
+                profile_url,
+                registration_number,
+                languages_available,
+                name_zh,
+                name_en,
+                specialty_zh,
+                specialty_en,
+                COALESCE(priority_flag, 0) as priority_flag
+            FROM doctors 
+            ORDER BY COALESCE(priority_flag, 0) DESC, name
+        ''')
+        
+        columns = [description[0] for description in cursor.description]
+        rows = cursor.fetchall()
+        
+        doctors_data = []
+        for row in rows:
+            doctor_dict = dict(zip(columns, row))
+            # 確保必要欄位不為空
+            if not doctor_dict.get('name'):
+                doctor_dict['name'] = doctor_dict.get('name_en', 'Unknown')
+            if not doctor_dict.get('specialty'):
+                doctor_dict['specialty'] = doctor_dict.get('specialty_en', 'General')
+            doctors_data.append(doctor_dict)
+        
+        conn.close()
+        print(f"✅ 從數據庫載入了 {len(doctors_data):,} 位醫生資料")
+        return doctors_data
+        
+    except Exception as e:
+        print(f"從數據庫載入醫生資料時發生錯誤: {e}")
+        # 備用方案：嘗試從CSV載入
+        return load_doctors_data_csv()
+
+def load_doctors_data_csv():
+    """備用方案：從CSV載入醫生資料"""
     csv_path = os.path.join('assets', 'finddoc_doctors_detailed 2.csv')
     try:
         df = pd.read_csv(csv_path)
+        print(f"⚠️ 使用備用CSV載入了 {len(df)} 位醫生資料")
         return df.to_dict('records')
     except Exception as e:
-        print(f"載入醫生資料時發生錯誤: {e}")
+        print(f"載入CSV醫生資料時發生錯誤: {e}")
         return []
 
 # 全局變數存儲醫生資料
@@ -1037,6 +1090,14 @@ def filter_doctors(recommended_specialty: str, language: str, location: str, sym
                             match_reasons.append(f"地區匹配：{location}")
                             break
         
+        # 加入優先級別到匹配分數
+        priority_flag = doctor.get('priority_flag', 0)
+        if priority_flag and not pd.isna(priority_flag):
+            priority_bonus = int(priority_flag) * 10  # 每級優先級加10分
+            score += priority_bonus
+            if priority_bonus > 0:
+                match_reasons.append(f"優先醫生 (級別 {priority_flag})")
+        
         # 只保留有一定匹配度的醫生
         if score >= 30:
             # 清理醫生數據，確保所有字段都是字符串
@@ -1052,7 +1113,7 @@ def filter_doctors(recommended_specialty: str, language: str, location: str, sym
             doctor_copy['ai_analysis'] = ai_analysis
             matched_doctors.append(doctor_copy)
     
-    # 按匹配分數排序
+    # 按匹配分數排序 (優先級已包含在分數中)
     matched_doctors.sort(key=lambda x: x['match_score'], reverse=True)
     
     # 返回前20名供分頁使用
@@ -1999,6 +2060,239 @@ def export_analytics_database():
         print(f"Analytics export error: {e}")
         flash('導出分析數據時發生錯誤', 'error')
         return redirect(url_for('admin_analytics'))
+
+@app.route('/admin/doctors')
+@require_permission('config')
+def admin_doctors():
+    """醫生資料庫管理頁面"""
+    try:
+        conn = sqlite3.connect('doctors.db')
+        cursor = conn.cursor()
+        
+        # 獲取統計資料
+        cursor.execute("SELECT COUNT(*) FROM doctors")
+        total_doctors = cursor.fetchone()[0]
+        
+        cursor.execute("SELECT COUNT(DISTINCT COALESCE(specialty_zh, specialty_en, specialty)) FROM doctors WHERE COALESCE(specialty_zh, specialty_en, specialty) IS NOT NULL")
+        total_specialties = cursor.fetchone()[0]
+        
+        cursor.execute("SELECT COUNT(*) FROM doctors WHERE (languages_zh LIKE '%中文%' OR languages_zh LIKE '%English%' OR languages_en LIKE '%中文%' OR languages_en LIKE '%English%')")
+        bilingual_doctors = cursor.fetchone()[0]
+        
+        cursor.execute("SELECT COUNT(*) FROM doctors WHERE contact_numbers IS NOT NULL AND contact_numbers != ''")
+        with_contact = cursor.fetchone()[0]
+        
+        # 獲取所有專科列表
+        cursor.execute("SELECT DISTINCT COALESCE(specialty_zh, specialty_en, specialty) as specialty FROM doctors WHERE specialty IS NOT NULL ORDER BY specialty")
+        specialties = [row[0] for row in cursor.fetchall() if row[0]]
+        
+        # 獲取醫生列表（使用DataTables服務端處理）
+        cursor.execute("""
+            SELECT * FROM doctors 
+            ORDER BY name_zh, name_en, name
+        """)
+        
+        columns = [description[0] for description in cursor.description]
+        doctors_data = []
+        for row in cursor.fetchall():
+            doctor_dict = dict(zip(columns, row))
+            doctors_data.append(doctor_dict)
+        
+        conn.close()
+        
+        return render_template('admin/doctors.html',
+                             doctors=doctors_data,
+                             total_doctors=total_doctors,
+                             total_specialties=total_specialties,
+                             bilingual_doctors=bilingual_doctors,
+                             with_contact=with_contact,
+                             specialties=specialties)
+                             
+    except Exception as e:
+        print(f"Error in admin_doctors: {e}")
+        flash('載入醫生資料時發生錯誤', 'error')
+        return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/doctors/<int:doctor_id>')
+@require_permission('config')
+def get_doctor_details(doctor_id):
+    """獲取醫生詳細資料 (AJAX)"""
+    try:
+        conn = sqlite3.connect('doctors.db')
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT * FROM doctors WHERE id = ?", (doctor_id,))
+        row = cursor.fetchone()
+        
+        if row:
+            columns = [description[0] for description in cursor.description]
+            doctor_data = dict(zip(columns, row))
+            conn.close()
+            return jsonify(doctor_data)
+        else:
+            conn.close()
+            return jsonify({'error': 'Doctor not found'}), 404
+            
+    except Exception as e:
+        print(f"Error getting doctor details: {e}")
+        return jsonify({'error': 'Database error'}), 500
+
+@app.route('/admin/doctors/<int:doctor_id>/update', methods=['POST'])
+@require_permission('config')
+def update_doctor(doctor_id):
+    """更新醫生資料"""
+    try:
+        data = request.get_json()
+        
+        conn = sqlite3.connect('doctors.db')
+        cursor = conn.cursor()
+        
+        # Update doctor record
+        cursor.execute('''
+            UPDATE doctors SET
+                name_zh = ?, specialty_zh = ?, qualifications_zh = ?, languages_zh = ?,
+                name_en = ?, specialty_en = ?, qualifications_en = ?, languages_en = ?,
+                contact_numbers = ?, email = ?, clinic_addresses = ?,
+                consultation_hours = ?, consultation_fee = ?, profile_url = ?,
+                registration_number = ?, priority_flag = ?,
+                name = ?, specialty = ?, qualifications = ?, languages = ?,
+                phone = ?, address = ?,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        ''', (
+            data.get('name_zh'), data.get('specialty_zh'), data.get('qualifications_zh'), data.get('languages_zh'),
+            data.get('name_en'), data.get('specialty_en'), data.get('qualifications_en'), data.get('languages_en'),
+            data.get('contact_numbers'), data.get('email'), data.get('clinic_addresses'),
+            data.get('consultation_hours'), data.get('consultation_fee'), data.get('profile_url'),
+            data.get('registration_number'), data.get('priority_flag', 0),
+            # Legacy columns - use Chinese first, then English
+            data.get('name_zh') or data.get('name_en'),
+            data.get('specialty_zh') or data.get('specialty_en'),
+            data.get('qualifications_zh') or data.get('qualifications_en'),
+            data.get('languages_zh') or data.get('languages_en'),
+            data.get('contact_numbers'),
+            data.get('clinic_addresses'),
+            doctor_id
+        ))
+        
+        if cursor.rowcount == 0:
+            conn.close()
+            return jsonify({'success': False, 'error': 'Doctor not found'}), 404
+        
+        conn.commit()
+        conn.close()
+        
+        # Log the update
+        log_analytics('doctor_update', {
+            'doctor_id': doctor_id,
+            'updated_fields': list(data.keys())
+        }, get_real_ip(), request.user_agent.string)
+        
+        return jsonify({'success': True, 'message': 'Doctor updated successfully'})
+        
+    except Exception as e:
+        print(f"Error updating doctor: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/doctors/add', methods=['POST'])
+@require_permission('config')
+def add_doctor():
+    """新增醫生"""
+    try:
+        data = request.get_json()
+        
+        conn = sqlite3.connect('doctors.db')
+        cursor = conn.cursor()
+        
+        # Insert new doctor record
+        cursor.execute('''
+            INSERT INTO doctors (
+                name_zh, specialty_zh, qualifications_zh, languages_zh,
+                name_en, specialty_en, qualifications_en, languages_en,
+                contact_numbers, email, clinic_addresses,
+                consultation_hours, consultation_fee, profile_url,
+                registration_number, priority_flag,
+                name, specialty, qualifications, languages,
+                phone, address,
+                created_at, updated_at
+            ) VALUES (
+                ?, ?, ?, ?,
+                ?, ?, ?, ?,
+                ?, ?, ?,
+                ?, ?, ?,
+                ?, ?,
+                ?, ?, ?, ?,
+                ?, ?,
+                CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+            )
+        ''', (
+            data.get('name_zh'), data.get('specialty_zh'), data.get('qualifications_zh'), data.get('languages_zh'),
+            data.get('name_en'), data.get('specialty_en'), data.get('qualifications_en'), data.get('languages_en'),
+            data.get('contact_numbers'), data.get('email'), data.get('clinic_addresses'),
+            data.get('consultation_hours'), data.get('consultation_fee'), data.get('profile_url'),
+            data.get('registration_number'), data.get('priority_flag', 0),
+            # Legacy columns - use Chinese first, then English
+            data.get('name_zh') or data.get('name_en'),
+            data.get('specialty_zh') or data.get('specialty_en'),
+            data.get('qualifications_zh') or data.get('qualifications_en'),
+            data.get('languages_zh') or data.get('languages_en'),
+            data.get('contact_numbers'),
+            data.get('clinic_addresses')
+        ))
+        
+        new_doctor_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        
+        # Log the addition
+        log_analytics('doctor_add', {
+            'doctor_id': new_doctor_id,
+            'name': data.get('name_zh') or data.get('name_en')
+        }, get_real_ip(), request.user_agent.string)
+        
+        return jsonify({'success': True, 'message': 'Doctor added successfully', 'doctor_id': new_doctor_id})
+        
+    except Exception as e:
+        print(f"Error adding doctor: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/doctors/<int:doctor_id>/delete', methods=['DELETE'])
+@require_permission('config')
+def delete_doctor(doctor_id):
+    """刪除醫生"""
+    try:
+        conn = sqlite3.connect('doctors.db')
+        cursor = conn.cursor()
+        
+        # Get doctor info for logging
+        cursor.execute("SELECT name_zh, name_en FROM doctors WHERE id = ?", (doctor_id,))
+        doctor = cursor.fetchone()
+        
+        if not doctor:
+            conn.close()
+            return jsonify({'success': False, 'error': 'Doctor not found'}), 404
+        
+        # Delete doctor record
+        cursor.execute("DELETE FROM doctors WHERE id = ?", (doctor_id,))
+        
+        if cursor.rowcount == 0:
+            conn.close()
+            return jsonify({'success': False, 'error': 'Doctor not found'}), 404
+        
+        conn.commit()
+        conn.close()
+        
+        # Log the deletion
+        log_analytics('doctor_delete', {
+            'doctor_id': doctor_id,
+            'name': doctor[0] or doctor[1]
+        }, get_real_ip(), request.user_agent.string)
+        
+        return jsonify({'success': True, 'message': 'Doctor deleted successfully'})
+        
+    except Exception as e:
+        print(f"Error deleting doctor: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/admin/users')
 @require_admin
