@@ -979,53 +979,6 @@ def analyze_symptoms_and_match(age: int, symptoms: str, chronic_conditions: str,
         'doctors': matched_doctors
     }
 
-def extract_specialty_from_diagnosis(diagnosis_response: str) -> str:
-    """從診斷結果中提取推薦的專科"""
-    import re
-    
-    # 直接從AI回應中解析建議專科
-    # 尋找「建議專科：」後面的內容
-    specialty_pattern = r'建議專科：\s*([^一-鿿\n]*[一-鿿]+[^一-鿿\n]*?)(?=\n|嚴重程度|緊急程度|$)'
-    match = re.search(specialty_pattern, diagnosis_response)
-    
-    if match:
-        recommended_specialty = match.group(1).strip()
-        
-        # 清理提取的專科名稱，移除不必要的標點符號和空格
-        recommended_specialty = re.sub(r'[\[\]\(\)【】《》「」『』]', '', recommended_specialty)
-        recommended_specialty = recommended_specialty.strip()
-        
-        # 專科名稱正規化映射
-        specialty_mapping = {
-            '精神科': ['精神科', '心理科', '精神健康科', '精神醫學科'],
-            '神經科': ['神經科', '腦神經科', '神經內科'],
-            '心臟科': ['心臟科', '心臟內科', '心血管科'],
-            '急診科': ['急診科', '急症科'],
-            '外科': ['外科', '一般外科', '普通外科'],
-            '皮膚科': ['皮膚科', '皮膚及性病科'],
-            '眼科': ['眼科'],
-            '耳鼻喉科': ['耳鼻喉科', 'ENT'],
-            '婦產科': ['婦產科', '婦科', '產科'],
-            '兒科': ['兒科', '小兒科'],
-            '骨科': ['骨科', '骨外科'],
-            '泌尿科': ['泌尿科', '泌尿外科'],
-            '腸胃科': ['腸胃科', '消化內科', '胃腸科'],
-            '內分泌科': ['內分泌科', '糖尿病科'],
-            '內科': ['內科', '普通科', '家庭醫學科', '全科']
-        }
-        
-        # 尋找匹配的標準專科名稱
-        for standard_specialty, variations in specialty_mapping.items():
-            for variation in variations:
-                if variation in recommended_specialty:
-                    return standard_specialty
-        
-        # 如果找不到匹配，但有提取到專科名稱，直接返回
-        if recommended_specialty and len(recommended_specialty) > 0:
-            return recommended_specialty
-    
-    # 如果沒有找到明確的專科推薦，返回內科作為默認
-    return '內科'
 
 def extract_specialty_from_ai_response(ai_response: str) -> str:
     """從AI回應中提取推薦的專科（保留兼容性）"""
