@@ -726,82 +726,78 @@ def diagnose_symptoms(age: int, symptoms: str, chronic_conditions: str = '', det
                 health_details.append(f"身高體重：{height}cm / {weight}kg (BMI: {bmi})")
             except:
                 health_details.append(f"身高體重：{height}cm / {weight}kg")
-        elif height:
-            health_details.append(f"身高：{height}cm")
-        elif weight:
-            health_details.append(f"體重：{weight}kg")
-    
-    if detailed_health_info.get('medications'):
-        health_details.append(f"長期藥物：{detailed_health_info['medications']}")
-    
-    if detailed_health_info.get('allergies'):
-        health_details.append(f"敏感史：{detailed_health_info['allergies']}")
-    
-    if detailed_health_info.get('surgeries'):
-        health_details.append(f"手術史：{detailed_health_info['surgeries']}")
-    
-    special_conditions = []
-    if detailed_health_info.get('bloodThinner'):
-        special_conditions.append("有服薄血藥")
-    if detailed_health_info.get('recentVisit'):
-        special_conditions.append("三個月內曾就診")
-    if detailed_health_info.get('cpapMachine'):
-        special_conditions.append("使用呼吸機")
-    if detailed_health_info.get('looseTeeth'):
-        special_conditions.append("有鬆牙問題")
-    
-    if special_conditions:
-        health_details.append(f"特殊情況：{'、'.join(special_conditions)}")
-    
-    # Get translations for the user's language
-    t = lambda key: get_translation(key, user_language)
-    
     # Build health info with translated labels
     health_info = "\n    - ".join(health_details) if health_details else t('no_special_health_info')
     
-    # Build AI diagnosis prompt in user's language
+    # Build AI diagnosis prompt for BOTH languages
     diagnosis_prompt = f"""
-    {t('diagnosis_prompt_intro')}
+    Please provide a comprehensive medical analysis in BOTH Traditional Chinese AND English. Generate two complete diagnosis reports - one in Traditional Chinese and one in English.
 
-    {t('patient_data')}
-    - {t('age_label')}{age}{t('years_old')}
-    - {t('main_symptoms')}{symptoms}
-    - {health_info}
+    Patient Data:
+    - Age: {age} years old
+    - Main symptoms: {symptoms}
+    - Health information: {health_info}
 
-    {t('please_provide')}
-    1. {t('possible_diagnosis')}
-    2. {t('recommended_specialty')}
-    3. {t('severity_assessment')}
-    4. {t('emergency_needed')}
-    5. {t('general_advice')}
+    Please provide for BOTH languages:
+    1. Possible diagnosis/condition
+    2. Recommended medical specialty
+    3. Severity assessment
+    4. Whether emergency care is needed
+    5. General advice
 
-    **{t('important_guidelines')}**
-    - {t('mental_health_guideline')}
-    - {t('trauma_guideline')}
-    - {t('emergency_guideline')}
-    - {t('specialty_guideline')}
+    **Important Guidelines:**
+    - For mental health symptoms, recommend psychiatry or psychology
+    - For trauma/injury symptoms, recommend emergency or orthopedics
+    - For emergency symptoms, clearly state immediate medical attention needed
+    - Choose the most appropriate specialty based on primary symptoms
 
-    {t('response_language')}
+    Format your response as JSON with the following structure:
+    {{
+        "zh-TW": {{
+            "diagnosis": "Traditional Chinese diagnosis text",
+            "specialty": "Traditional Chinese specialty name",
+            "severity": "Traditional Chinese severity assessment",
+            "emergency": "Traditional Chinese emergency assessment",
+            "advice": "Traditional Chinese advice"
+        }},
+        "en": {{
+            "diagnosis": "English diagnosis text",
+            "specialty": "English specialty name", 
+            "severity": "English severity assessment",
+            "emergency": "English emergency assessment",
+            "advice": "English advice"
+        }}
+    }}
     
-    {t('diagnosis_format')}
-    {t('specialty_format')}
-    {t('severity_format')}
-    {t('emergency_format')}
-    {t('advice_format')}
-    
-    {t('disclaimer')}
+    This analysis is for reference only and cannot replace professional medical diagnosis. Please consult a qualified doctor for formal diagnosis.
     """
     
     # 獲取AI診斷
     diagnosis_response = call_ai_api(diagnosis_prompt)
     
-    # 解析診斷結果
-    recommended_specialty = extract_specialty_from_diagnosis(diagnosis_response)
-    
-    return {
-        'diagnosis': diagnosis_response,
-        'recommended_specialty': recommended_specialty
-    }
+    # Parse JSON response
+    try:
+        import json
+        diagnosis_data = json.loads(diagnosis_response)
+        
+        # Extract specialty for current language
+        current_lang_data = diagnosis_data.get(user_language, diagnosis_data.get('zh-TW', {}))
+        recommended_specialty = current_lang_data.get('specialty', '普通科')
+        
+        return {
+            'diagnosis_multilingual': diagnosis_data,  # Store full multilingual data
+            'diagnosis': current_lang_data.get('diagnosis', diagnosis_response),  # Fallback to current language
+            'recommended_specialty': recommended_specialty
+        }
+    except (json.JSONDecodeError, KeyError) as e:
+        print(f"Failed to parse multilingual diagnosis: {e}")
+        # Fallback to original single-language approach
+        recommended_specialty = extract_specialty_from_diagnosis(diagnosis_response)
+        return {
+            'diagnosis_multilingual': {user_language: {'diagnosis': diagnosis_response}},
+            'diagnosis': diagnosis_response,
+            'recommended_specialty': recommended_specialty
+        }
 
 def analyze_symptoms_and_match(age: int, symptoms: str, chronic_conditions: str, language: str, location: str, detailed_health_info: Dict = None, location_details: Dict = None) -> Dict[str, Any]:
     """使用AI分析症狀並配對醫生"""
@@ -1126,6 +1122,7 @@ def find_doctor():
             'success': True,
             'user_summary': result['user_summary'],
             'diagnosis': result['diagnosis'],
+            'diagnosis_multilingual': result.get('diagnosis_multilingual', {}),  # Add multilingual data
             'recommended_specialty': result['recommended_specialty'],
             'doctors': result['doctors'],
             'total': len(result['doctors'])

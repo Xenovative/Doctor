@@ -164,6 +164,9 @@ class LanguageManager {
 
             // Update dynamically created location options
             updateLocationDropdowns(translations);
+            
+            // Update diagnosis content if available
+            updateDiagnosisContent(translations);
         }
 
         // Update location dropdown options with translations
@@ -191,6 +194,21 @@ class LanguageManager {
             
             // Store current translations for use when dropdowns are populated
             window.currentTranslations = translations;
+        }
+        
+        // Update diagnosis content when language changes
+        function updateDiagnosisContent(translations) {
+            const diagnosisCards = document.querySelectorAll('.diagnosis-card');
+            const currentLang = window.languageManager ? window.languageManager.currentLang : 'zh-TW';
+            diagnosisCards.forEach(card => {
+                if (card.diagnosisData && card.diagnosisData[currentLang]) {
+                    const diagnosisContent = card.querySelector('[data-diagnosis-content]');
+                    if (diagnosisContent) {
+                        const langData = card.diagnosisData[currentLang];
+                        diagnosisContent.textContent = langData.diagnosis || langData;
+                    }
+                }
+            });
         }
 
         updateTranslations(this.translations);
