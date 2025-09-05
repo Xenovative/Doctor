@@ -186,8 +186,10 @@ class LanguageManager {
                     const originalSpecialty = specialtyElement.getAttribute('data-original-specialty');
                     if (originalSpecialty && window.languageManager) {
                         const translatedSpecialty = window.languageManager.translateSpecialty(originalSpecialty);
-                        console.log(`[DEBUG] Translating specialty: ${originalSpecialty} -> ${translatedSpecialty}`);
+                        console.log(`[DEBUG] Translating specialty: ${originalSpecialty} -> ${translatedSpecialty} (lang: ${window.languageManager.currentLang})`);
                         specialtyElement.textContent = translatedSpecialty;
+                    } else {
+                        console.log(`[DEBUG] Missing data: originalSpecialty=${originalSpecialty}, hasLanguageManager=${!!window.languageManager}`);
                     }
                 }
             });
@@ -466,6 +468,11 @@ class LanguageManager {
     }
 
     translateSpecialty(specialty) {
+        if (!specialty) return specialty;
+        
+        // Clean up specialty by removing common suffixes
+        let cleanSpecialty = specialty.replace(/醫生$|医生$|醫師$|医师$|科醫生$|科医生$/, '');
+        
         // Specialty translation mapping
         const specialtyTranslations = {
             'zh-TW': {
@@ -482,7 +489,17 @@ class LanguageManager {
                 'Pediatrics': '兒科',
                 'Psychiatry': '精神科',
                 'Urology': '泌尿科',
-                'Emergency Medicine': '急診科'
+                'Emergency Medicine': '急診科',
+                '内科': '內科',
+                '心脏科': '心臟科',
+                '神经科': '神經科',
+                '肠胃科': '腸胃科',
+                '妇产科': '婦產科',
+                '儿科': '兒科',
+                '皮肤科': '皮膚科',
+                '耳鼻喉科': '耳鼻喉科',
+                '泌尿科': '泌尿科',
+                '急诊科': '急診科'
             },
             'zh-CN': {
                 'Internal Medicine': '内科',
@@ -543,7 +560,19 @@ class LanguageManager {
         };
 
         const translations = specialtyTranslations[this.currentLang];
-        return translations && translations[specialty] ? translations[specialty] : specialty;
+        
+        // Try exact match first
+        if (translations && translations[specialty]) {
+            return translations[specialty];
+        }
+        
+        // Try cleaned specialty
+        if (translations && translations[cleanSpecialty]) {
+            return translations[cleanSpecialty];
+        }
+        
+        // Return original if no translation found
+        return specialty;
     }
 }
 
