@@ -317,6 +317,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
+        // Store doctor results globally for language switching
+        window.lastDoctorResults = allDoctors;
+        
+        // 顯示醫生結果
         if (allDoctors.length > 0) {
             // 添加醫生推薦標題
             const doctorHeader = document.createElement('h3');
@@ -423,12 +427,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function createDoctorCard(doctor, rank) {
+    // Make createDoctorCard globally accessible
+    window.createDoctorCard = function createDoctorCard(doctor, rank) {
         const card = document.createElement('div');
         card.className = 'doctor-card';
         
-        // Get current language from session
-        const currentLang = window.currentLanguage || 'zh-TW';
+        // Get current language from language manager
+        const currentLang = window.languageManager ? window.languageManager.getCurrentLanguage() : 'zh-TW';
         
         // Use bilingual data based on current language
         const doctorName = getBilingualText(doctor, 'name', currentLang);

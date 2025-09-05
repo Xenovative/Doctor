@@ -107,6 +107,9 @@ class LanguageManager {
                 // Update form placeholders and options
                 this.updateFormElements();
                 
+                // Update doctor cards if they exist
+                this.updateDoctorCards();
+                
                 console.log(`Language switched to: ${lang}`);
             }
         } catch (error) {
@@ -350,6 +353,26 @@ class LanguageManager {
     // Public method to get translation
     getTranslation(key) {
         return this.translations[key] || key;
+    }
+
+    // Update doctor cards when language changes
+    updateDoctorCards() {
+        const doctorList = document.getElementById('doctorList');
+        if (doctorList && window.lastDoctorResults) {
+            // Clear current cards
+            doctorList.innerHTML = '';
+            
+            // Recreate cards with new language
+            window.lastDoctorResults.forEach((doctor, index) => {
+                if (typeof createDoctorCard === 'function') {
+                    const card = createDoctorCard(doctor, index + 1);
+                    doctorList.appendChild(card);
+                } else if (window.createDoctorCard) {
+                    const card = window.createDoctorCard(doctor, index + 1);
+                    doctorList.appendChild(card);
+                }
+            });
+        }
     }
 }
 
