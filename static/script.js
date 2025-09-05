@@ -454,7 +454,7 @@ document.addEventListener('DOMContentLoaded', function() {
         card.innerHTML = `
             <div class="match-score">
                 <i class="fas fa-star"></i>
-                ${translateText('recommendation_rank')} ${rank} ${translateText('recommendation_suffix')}
+                ${translateText('recommendation_rank')} ${rank}${translateText('recommendation_suffix') ? ' ' + translateText('recommendation_suffix') : ''}
             </div>
             <div class="whatsapp-hint">
                 <i class="fab fa-whatsapp"></i>
