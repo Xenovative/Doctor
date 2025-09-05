@@ -159,6 +159,10 @@ def load_doctors_data():
                 name_en,
                 specialty_zh,
                 specialty_en,
+                qualifications_zh,
+                qualifications_en,
+                languages_zh,
+                languages_en,
                 COALESCE(priority_flag, 0) as priority_flag
             FROM doctors 
             ORDER BY COALESCE(priority_flag, 0) DESC, name
