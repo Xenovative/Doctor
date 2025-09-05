@@ -1240,13 +1240,16 @@ def find_doctor():
         try:
             conn = sqlite3.connect('admin_data.db')
             cursor = conn.cursor()
+            # Convert diagnosis dict to JSON string for database storage
+            diagnosis_for_db = json.dumps(result['diagnosis']) if isinstance(result['diagnosis'], dict) else result['diagnosis']
+            
             cursor.execute('''
                 INSERT INTO user_queries 
                 (age, symptoms, chronic_conditions, language, location, detailed_health_info, 
                  ai_diagnosis, recommended_specialty, matched_doctors_count, user_ip, session_id)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (age, symptoms, chronic_conditions, language, location, 
-                  json.dumps(detailed_health_info), result['diagnosis'], 
+                  json.dumps(detailed_health_info), diagnosis_for_db, 
                   result['recommended_specialty'], len(result['doctors']), 
                   get_real_ip(), session_id))
             query_id = cursor.lastrowid
