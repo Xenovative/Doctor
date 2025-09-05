@@ -472,6 +472,7 @@ class LanguageManager {
         
         // Clean up specialty by removing common suffixes
         let cleanSpecialty = specialty.replace(/醫生$|医生$|醫師$|医师$|科醫生$|科医生$/, '');
+        console.log(`[DEBUG] translateSpecialty: original="${specialty}", cleaned="${cleanSpecialty}", currentLang="${this.currentLang}"`);
         
         // Specialty translation mapping
         const specialtyTranslations = {
@@ -563,13 +564,18 @@ class LanguageManager {
         
         // Try exact match first
         if (translations && translations[specialty]) {
+            console.log(`[DEBUG] Found exact match: ${specialty} -> ${translations[specialty]}`);
             return translations[specialty];
         }
         
         // Try cleaned specialty
         if (translations && translations[cleanSpecialty]) {
+            console.log(`[DEBUG] Found cleaned match: ${cleanSpecialty} -> ${translations[cleanSpecialty]}`);
             return translations[cleanSpecialty];
         }
+        
+        console.log(`[DEBUG] No translation found for "${specialty}" or "${cleanSpecialty}" in language "${this.currentLang}"`);
+        console.log(`[DEBUG] Available translations:`, Object.keys(translations || {}));
         
         // Return original if no translation found
         return specialty;
