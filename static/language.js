@@ -170,11 +170,33 @@ class LanguageManager {
             
             // Update doctor cards if they exist
             updateDoctorCardLabels(translations);
+            
+            // Also update doctor specialties using script.js functions
+            updateDoctorSpecialties();
+        }
+
+        // Update doctor specialties dynamically
+        function updateDoctorSpecialties() {
+            const doctorCards = document.querySelectorAll('.doctor-card');
+            console.log(`[DEBUG] Updating specialties for ${doctorCards.length} doctor cards`);
+            
+            doctorCards.forEach(card => {
+                const specialtyElement = card.querySelector('.doctor-specialty');
+                if (specialtyElement) {
+                    const originalSpecialty = specialtyElement.getAttribute('data-original-specialty');
+                    if (originalSpecialty && window.languageManager) {
+                        const translatedSpecialty = window.languageManager.translateSpecialty(originalSpecialty);
+                        console.log(`[DEBUG] Translating specialty: ${originalSpecialty} -> ${translatedSpecialty}`);
+                        specialtyElement.textContent = translatedSpecialty;
+                    }
+                }
+            });
         }
 
         // Update doctor card labels dynamically
         function updateDoctorCardLabels(translations) {
             const doctorCards = document.querySelectorAll('.doctor-card');
+            console.log(`[DEBUG] Found ${doctorCards.length} doctor cards to update`);
             doctorCards.forEach(card => {
                 // Update recommendation rank
                 const matchScore = card.querySelector('.match-score');
@@ -249,6 +271,9 @@ class LanguageManager {
         }
 
         updateTranslations(this.translations);
+        
+        // Ensure window.currentTranslations is updated for script.js functions
+        window.currentTranslations = this.translations;
 
         // Update page title
         if (this.translations.app_title) {

@@ -468,7 +468,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
                 <div class="doctor-info">
                     <h3>${doctor.name || translateText('unknown_doctor')}</h3>
-                    <div class="doctor-specialty">${translateSpecialty(doctor.specialty || translateText('general_specialist'))}</div>
+                    <div class="doctor-specialty" data-original-specialty="${doctor.specialty || 'General Practice'}">${translateSpecialty(doctor.specialty || translateText('general_specialist'))}</div>
                 </div>
             </div>
             
