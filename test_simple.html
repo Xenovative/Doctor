@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Translation</title>
+</head>
+<body>
+    <div id="test"></div>
+    
+    <script>
+        // Simulate the exact scenario
+        window.currentTranslations = {
+            'recommendation_rank': 'Recommendation #',
+            'recommendation_suffix': '',
+            'click_to_contact': 'Click to Contact'
+        };
+        
+        function translateText(key) {
+            if (!key) {
+                return '';
+            }
+            
+            // Use language manager if available
+            if (window.languageManager) {
+                return window.languageManager.getTranslation(key);
+            }
+            
+            // Fallback to window.currentTranslations
+            if (window.currentTranslations) {
+                const translated = window.currentTranslations[key];
+                return translated !== undefined ? translated : key;
+            }
+            
+            return key;
+        }
+        
+        // Test the exact template logic
+        const rank = 3;
+        const result = `${translateText('recommendation_rank')} ${rank}${translateText('recommendation_suffix') ? ' ' + translateText('recommendation_suffix') : ''}`;
+        
+        document.getElementById('test').innerHTML = `
+            <p>Result: "${result}"</p>
+            <p>recommendation_rank: "${translateText('recommendation_rank')}"</p>
+            <p>recommendation_suffix: "${translateText('recommendation_suffix')}"</p>
+            <p>suffix boolean: ${!!translateText('recommendation_suffix')}</p>
+            <p>suffix === '': ${translateText('recommendation_suffix') === ''}</p>
+        `;
+    </script>
+</body>
+</html>

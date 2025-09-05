@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Template</title>
+</head>
+<body>
+    <div id="debug-output"></div>
+    
+    <script>
+        // Add debug logging to the exact template logic
+        function debugTranslateText(key) {
+            console.log(`Translating key: "${key}"`);
+            
+            if (!key) {
+                console.log('Key is falsy, returning empty string');
+                return '';
+            }
+            
+            // Check language manager
+            if (window.languageManager) {
+                const result = window.languageManager.getTranslation(key);
+                console.log(`Language manager result: "${result}"`);
+                return result;
+            }
+            
+            // Check currentTranslations
+            if (window.currentTranslations) {
+                const translated = window.currentTranslations[key];
+                console.log(`currentTranslations[${key}]: "${translated}" (type: ${typeof translated})`);
+                const result = translated !== undefined ? translated : key;
+                console.log(`Final result: "${result}"`);
+                return result;
+            }
+            
+            console.log(`No translations found, returning key: "${key}"`);
+            return key;
+        }
+        
+        // Test with different scenarios
+        console.log('=== Testing without any translations ===');
+        const result1 = debugTranslateText('recommendation_suffix');
+        
+        console.log('\n=== Testing with currentTranslations ===');
+        window.currentTranslations = {
+            'recommendation_rank': 'Recommendation #',
+            'recommendation_suffix': '',
+            'click_to_contact': 'Click to Contact'
+        };
+        const result2 = debugTranslateText('recommendation_suffix');
+        
+        // Test the template logic
+        const rank = 3;
+        const suffixValue = debugTranslateText('recommendation_suffix');
+        const templateResult = `${debugTranslateText('recommendation_rank')} ${rank}${suffixValue && suffixValue.trim() ? ' ' + suffixValue : ''}`;
+        
+        document.getElementById('debug-output').innerHTML = `
+            <h3>Debug Results:</h3>
+            <p>Without translations: "${result1}"</p>
+            <p>With translations: "${result2}"</p>
+            <p>Suffix value: "${suffixValue}"</p>
+            <p>Suffix boolean: ${!!suffixValue}</p>
+            <p>Suffix after trim: "${suffixValue.trim()}"</p>
+            <p>Template result: "${templateResult}"</p>
+        `;
+    </script>
+</body>
+</html>
