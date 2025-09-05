@@ -707,7 +707,7 @@ def call_ai_api(prompt: str) -> str:
         return f"不支援的AI提供商: {provider}"
 
 def diagnose_symptoms(age: int, symptoms: str, chronic_conditions: str = '', detailed_health_info: Dict = None, user_language: str = 'zh-TW') -> Dict[str, str]:
-    """使用AI診斷症狀 - 同時生成中英文版本"""
+    """使用AI診斷症狀"""
     
     if detailed_health_info is None:
         detailed_health_info = {}
@@ -753,220 +753,84 @@ def diagnose_symptoms(age: int, symptoms: str, chronic_conditions: str = '', det
     if special_conditions:
         health_details.append(f"特殊情況：{'、'.join(special_conditions)}")
     
-    # Generate diagnosis in both Chinese and English
-    diagnosis_results = {}
+    # Get translations for the user's language
+    t = lambda key: get_translation(key, user_language)
     
-    # Chinese diagnosis
-    chinese_prompt = f"""
-    作為一位專業的AI醫療助手，請根據以下病人資料進行初步分析：
+    # Build health info with translated labels
+    health_info = "\n    - ".join(health_details) if health_details else t('no_special_health_info')
+    
+    # Build AI diagnosis prompt in user's language
+    diagnosis_prompt = f"""
+    {t('diagnosis_prompt_intro')}
 
-    年齡：{age}歲
-    主要症狀：{symptoms}
-    {chr(10).join(health_details) if health_details else '無額外健康資料'}
+    {t('patient_data')}
+    - {t('age_label')}{age}{t('years_old')}
+    - {t('main_symptoms')}{symptoms}
+    - {health_info}
 
-    請提供：
-    1. 可能的診斷分析（2-3個可能性，按可能性排序）
-    2. 推薦的專科醫生類型
-    3. 建議的下一步行動
+    {t('please_provide')}
+    1. {t('possible_diagnosis')}
+    2. {t('recommended_specialty')}
+    3. {t('severity_assessment')}
+    4. {t('emergency_needed')}
+    5. {t('general_advice')}
 
-    請用繁體中文回答，語調專業但易懂。
+    **{t('important_guidelines')}**
+    - {t('mental_health_guideline')}
+    - {t('trauma_guideline')}
+    - {t('emergency_guideline')}
+    - {t('specialty_guideline')}
+
+    {t('response_language')}
+    
+    {t('diagnosis_format')}
+    {t('specialty_format')}
+    {t('severity_format')}
+    {t('emergency_format')}
+    {t('advice_format')}
+    
+    {t('disclaimer')}
     """
     
-    # English diagnosis  
-    english_prompt = f"""
-    As a professional AI medical assistant, please analyze the following patient information:
-
-    Age: {age} years old
-    Main symptoms: {symptoms}
-    {chr(10).join(health_details) if health_details else 'No additional health information'}
-
-    Please provide:
-    1. Possible diagnostic analysis (2-3 possibilities, ranked by likelihood)
-    2. Recommended specialist type
-    3. Suggested next steps
-
-    Please respond in English with a professional but understandable tone.
-    """
+    # 獲取AI診斷
+    diagnosis_response = call_ai_api(diagnosis_prompt)
     
-    try:
-        print(f"[DEBUG] Starting diagnosis generation for age={age}, symptoms={symptoms}")
-        
-        # Get Chinese diagnosis
-        print("[DEBUG] Generating Traditional Chinese diagnosis...")
-        chinese_diagnosis = call_ai_api(chinese_prompt)
-        print(f"[DEBUG] Chinese diagnosis result: {chinese_diagnosis[:100]}...")
-        
-        diagnosis_results['zh-TW'] = {
-            'diagnosis': chinese_diagnosis,
-            'recommended_specialty': extract_specialty_from_diagnosis(chinese_diagnosis, 'zh-TW')
-        }
-        
-        # Get English diagnosis
-        print("[DEBUG] Generating English diagnosis...")
-        english_diagnosis = call_ai_api(english_prompt)
-        print(f"[DEBUG] English diagnosis result: {english_diagnosis[:100]}...")
-        
-        diagnosis_results['en'] = {
-            'diagnosis': english_diagnosis,
-            'recommended_specialty': extract_specialty_from_diagnosis(english_diagnosis, 'en')
-        }
-        
-        # Also generate simplified Chinese
-        simplified_chinese_prompt = f"""
-        作为一位专业的AI医疗助手，请根据以下病人资料进行初步分析：
-
-        年龄：{age}岁
-        主要症状：{symptoms}
-        {chr(10).join(health_details) if health_details else '无额外健康资料'}
-
-        请提供：
-        1. 可能的诊断分析（2-3个可能性，按可能性排序）
-        2. 推荐的专科医生类型
-        3. 建议的下一步行动
-
-        请用简体中文回答，语调专业但易懂。
-        """
-        
-        print("[DEBUG] Generating Simplified Chinese diagnosis...")
-        simplified_diagnosis = call_ai_api(simplified_chinese_prompt)
-        print(f"[DEBUG] Simplified Chinese diagnosis result: {simplified_diagnosis[:100]}...")
-        
-        diagnosis_results['zh-CN'] = {
-            'diagnosis': simplified_diagnosis,
-            'recommended_specialty': extract_specialty_from_diagnosis(simplified_diagnosis, 'zh-CN')
-        }
-        
-        print(f"[DEBUG] Successfully generated all diagnoses. Results keys: {list(diagnosis_results.keys())}")
-        
-    except Exception as e:
-        print(f"[ERROR] Exception in diagnosis generation: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        # Fallback if AI service fails
-        fallback_diagnosis = "AI診斷服務暫時不可用，建議直接諮詢醫療專業人士。"
-        fallback_diagnosis_en = "AI diagnosis service is temporarily unavailable. Please consult a medical professional directly."
-        fallback_diagnosis_cn = "AI诊断服务暂时不可用，建议直接咨询医疗专业人士。"
-        
-        diagnosis_results = {
-            'zh-TW': {
-                'diagnosis': fallback_diagnosis,
-                'recommended_specialty': '普通科'
-            },
-            'en': {
-                'diagnosis': fallback_diagnosis_en,
-                'recommended_specialty': 'General Practice'
-            },
-            'zh-CN': {
-                'diagnosis': fallback_diagnosis_cn,
-                'recommended_specialty': '普通科'
-            }
-        }
+    # 解析診斷結果
+    recommended_specialty = extract_specialty_from_diagnosis(diagnosis_response)
     
-    return diagnosis_results
-
-def extract_specialty_from_diagnosis(diagnosis_text: str, language: str = 'zh-TW') -> str:
-    """從診斷文本中提取推薦專科"""
-    print(f"[DEBUG] Extracting specialty from diagnosis (lang={language}): {diagnosis_text[:200]}...")
-    
-    # 專科關鍵詞映射
-    specialty_keywords = {
-        'zh-TW': {
-            '心臟科': ['心臟', '心血管', '胸痛', '心律不整', '心悸', '心跳', '血壓', '高血壓'],
-            '神經科': ['神經', '頭痛', '暈眩', '中風'],
-            '腸胃科': ['腸胃', '消化', '胃痛', '腹痛'],
-            '呼吸科': ['呼吸', '咳嗽', '氣喘', '肺部'],
-            '骨科': ['骨科', '關節', '骨頭', '扭傷'],
-            '皮膚科': ['皮膚', '濕疹', '過敏', '紅疹'],
-            '眼科': ['眼科', '視力', '眼睛'],
-            '耳鼻喉科': ['耳鼻喉', '喉嚨', '鼻塞', '耳朵'],
-            '婦產科': ['婦產科', '婦科', '月經', '懷孕'],
-            '兒科': ['兒科', '小兒', '嬰兒', '兒童'],
-            '精神科': ['精神', '憂鬱', '焦慮', '失眠'],
-            '泌尿科': ['泌尿', '腎臟', '膀胱'],
-            '急診科': ['急診', '緊急', '嚴重'],
-            '內科': ['內科', '一般內科', '家庭醫學', '普通科']
-        },
-        'en': {
-            'Cardiology': ['heart', 'cardiac', 'chest pain', 'cardiovascular', 'blood pressure', 'hypertension', 'palpitation'],
-            'Neurology': ['neuro', 'headache', 'dizziness', 'stroke'],
-            'Gastroenterology': ['gastro', 'stomach', 'abdominal', 'digestive'],
-            'Pulmonology': ['lung', 'respiratory', 'cough', 'breathing'],
-            'Orthopedics': ['bone', 'joint', 'fracture', 'orthopedic'],
-            'Dermatology': ['skin', 'rash', 'dermatology', 'allergy'],
-            'Ophthalmology': ['eye', 'vision', 'ophthalmology'],
-            'Otolaryngology (ENT)': ['throat', 'nose', 'ear', 'ent'],
-            'Obstetrics & Gynecology': ['gynecology', 'pregnancy', 'menstrual'],
-            'Pediatrics': ['pediatric', 'child', 'infant', 'baby'],
-            'Psychiatry': ['mental', 'depression', 'anxiety', 'psychiatric'],
-            'Urology': ['urology', 'kidney', 'bladder', 'urinary'],
-            'Emergency Medicine': ['emergency', 'urgent', 'severe'],
-            'Internal Medicine': ['internal', 'general', 'family', 'primary']
-        },
-        'zh-CN': {
-            '心脏科': ['心脏', '心血管', '胸痛', '心律不整', '心悸', '心跳', '血压', '高血压'],
-            '神经科': ['神经', '头痛', '晕眩', '中风'],
-            '肠胃科': ['肠胃', '消化', '胃痛', '腹痛'],
-            '呼吸科': ['呼吸', '咳嗽', '气喘', '肺部'],
-            '骨科': ['骨科', '关节', '骨头', '扭伤'],
-            '皮肤科': ['皮肤', '湿疹', '过敏', '红疹'],
-            '眼科': ['眼科', '视力', '眼睛'],
-            '耳鼻喉科': ['耳鼻喉', '喉咙', '鼻塞', '耳朵'],
-            '妇产科': ['妇产科', '妇科', '月经', '怀孕'],
-            '儿科': ['儿科', '小儿', '婴儿', '儿童'],
-            '精神科': ['精神', '忧郁', '焦虑', '失眠'],
-            '泌尿科': ['泌尿', '肾脏', '膀胱'],
-            '急诊科': ['急诊', '紧急', '严重'],
-            '内科': ['内科', '一般内科', '家庭医学', '普通科']
-        }
+    return {
+        'diagnosis': diagnosis_response,
+        'recommended_specialty': recommended_specialty
     }
-    
-    keywords = specialty_keywords.get(language, specialty_keywords['zh-TW'])
-    diagnosis_lower = diagnosis_text.lower()
-    
-    # Check each specialty in priority order (most specific first)
-    for specialty, terms in keywords.items():
-        for term in terms:
-            if term.lower() in diagnosis_lower:
-                print(f"[DEBUG] Found specialty match: '{term}' -> {specialty}")
-                return specialty
-    
-    print(f"[DEBUG] No specialty match found, using default")
-    # 默認返回內科/普通科
-    if language == 'en':
-        return 'Internal Medicine'
-    elif language == 'zh-CN':
-        return '内科'
-    else:
-        return '內科'
 
 def analyze_symptoms_and_match(age: int, symptoms: str, chronic_conditions: str, language: str, location: str, detailed_health_info: Dict = None, location_details: Dict = None) -> Dict[str, Any]:
     """使用AI分析症狀並配對醫生"""
+    
+    if detailed_health_info is None:
+        detailed_health_info = {}
+    
     # 生成用戶數據摘要
     user_summary = generate_user_summary(age, symptoms, chronic_conditions, detailed_health_info)
     
     # Get user's language from session or use the language parameter passed in
     user_language = session.get('language', language if language else 'zh-TW')
     
-    # 第一步：AI診斷 (pass user language) - returns multi-language results
+    # 第一步：AI診斷 (pass user language)
     diagnosis_result = diagnose_symptoms(age, symptoms, chronic_conditions, detailed_health_info, user_language)
-    
-    # Extract diagnosis and specialty for the current language
-    current_diagnosis = diagnosis_result.get(user_language, diagnosis_result.get('zh-TW', {}))
     
     # 第二步：根據診斷結果推薦醫生
     matched_doctors = filter_doctors(
-        current_diagnosis.get('recommended_specialty', '內科'), 
+        diagnosis_result['recommended_specialty'], 
         language, 
         location, 
         symptoms, 
-        current_diagnosis.get('diagnosis', ''),
+        diagnosis_result['diagnosis'],
         location_details
     )
     
     # 第三步：如果是12歲以下，添加兒科醫生
     if age <= 12:
-        pediatric_specialty = '兒科' if language in ['zh-TW', 'zh-CN'] else 'Pediatrics'
-        pediatric_doctors = filter_doctors(pediatric_specialty, language, location, symptoms, current_diagnosis.get('diagnosis', ''), location_details)
+        pediatric_doctors = filter_doctors('兒科', language, location, symptoms, diagnosis_result['diagnosis'], location_details)
         # 合併醫生清單，去除重複
         all_doctors = matched_doctors + pediatric_doctors
         seen_names = set()
@@ -979,11 +843,58 @@ def analyze_symptoms_and_match(age: int, symptoms: str, chronic_conditions: str,
     
     return {
         'user_summary': user_summary,
-        'diagnosis': diagnosis_result,  # Return full multi-language diagnosis
-        'recommended_specialty': current_diagnosis.get('recommended_specialty', '內科'),
+        'diagnosis': diagnosis_result['diagnosis'],
+        'recommended_specialty': diagnosis_result['recommended_specialty'],
         'doctors': matched_doctors
     }
 
+def extract_specialty_from_diagnosis(diagnosis_response: str) -> str:
+    """從診斷結果中提取推薦的專科"""
+    import re
+    
+    # 直接從AI回應中解析建議專科
+    # 尋找「建議專科：」後面的內容
+    specialty_pattern = r'建議專科：\s*([^一-鿿\n]*[一-鿿]+[^一-鿿\n]*?)(?=\n|嚴重程度|緊急程度|$)'
+    match = re.search(specialty_pattern, diagnosis_response)
+    
+    if match:
+        recommended_specialty = match.group(1).strip()
+        
+        # 清理提取的專科名稱，移除不必要的標點符號和空格
+        recommended_specialty = re.sub(r'[\[\]\(\)【】《》「」『』]', '', recommended_specialty)
+        recommended_specialty = recommended_specialty.strip()
+        
+        # 專科名稱正規化映射
+        specialty_mapping = {
+            '精神科': ['精神科', '心理科', '精神健康科', '精神醫學科'],
+            '神經科': ['神經科', '腦神經科', '神經內科'],
+            '心臟科': ['心臟科', '心臟內科', '心血管科'],
+            '急診科': ['急診科', '急症科'],
+            '外科': ['外科', '一般外科', '普通外科'],
+            '皮膚科': ['皮膚科', '皮膚及性病科'],
+            '眼科': ['眼科'],
+            '耳鼻喉科': ['耳鼻喉科', 'ENT'],
+            '婦產科': ['婦產科', '婦科', '產科'],
+            '兒科': ['兒科', '小兒科'],
+            '骨科': ['骨科', '骨外科'],
+            '泌尿科': ['泌尿科', '泌尿外科'],
+            '腸胃科': ['腸胃科', '消化內科', '胃腸科'],
+            '內分泌科': ['內分泌科', '糖尿病科'],
+            '內科': ['內科', '普通科', '家庭醫學科', '全科']
+        }
+        
+        # 尋找匹配的標準專科名稱
+        for standard_specialty, variations in specialty_mapping.items():
+            for variation in variations:
+                if variation in recommended_specialty:
+                    return standard_specialty
+        
+        # 如果找不到匹配，但有提取到專科名稱，直接返回
+        if recommended_specialty and len(recommended_specialty) > 0:
+            return recommended_specialty
+    
+    # 如果沒有找到明確的專科推薦，返回內科作為默認
+    return '內科'
 
 def extract_specialty_from_ai_response(ai_response: str) -> str:
     """從AI回應中提取推薦的專科（保留兼容性）"""
@@ -1160,7 +1071,6 @@ def index():
 
 @app.route('/find_doctor', methods=['POST'])
 def find_doctor():
-    print("[DEBUG] /find_doctor endpoint called")
     """處理醫生搜索請求"""
     try:
         data = request.get_json()
@@ -1181,15 +1091,7 @@ def find_doctor():
         session['language'] = ui_language
         
         # 使用AI分析症狀並配對醫生 (傳遞location_details)
-        print(f"[DEBUG] Calling analyze_symptoms_and_match with params: age={age}, symptoms={symptoms}, language={language}")
         result = analyze_symptoms_and_match(age, symptoms, chronic_conditions, language, location, detailed_health_info, location_details)
-        print(f"[DEBUG] analyze_symptoms_and_match result keys: {list(result.keys()) if result else 'None'}")
-        if result and 'diagnosis' in result:
-            print(f"[DEBUG] Diagnosis type: {type(result['diagnosis'])}")
-            if isinstance(result['diagnosis'], dict):
-                print(f"[DEBUG] Diagnosis languages: {list(result['diagnosis'].keys())}")
-            else:
-                print(f"[DEBUG] Diagnosis content preview: {str(result['diagnosis'])[:100]}...")
         
         # Log user query to database
         session_id = session.get('session_id', secrets.token_hex(16))
@@ -1198,16 +1100,13 @@ def find_doctor():
         try:
             conn = sqlite3.connect('admin_data.db')
             cursor = conn.cursor()
-            # Convert diagnosis dict to JSON string for database storage
-            diagnosis_for_db = json.dumps(result['diagnosis']) if isinstance(result['diagnosis'], dict) else result['diagnosis']
-            
             cursor.execute('''
                 INSERT INTO user_queries 
                 (age, symptoms, chronic_conditions, language, location, detailed_health_info, 
                  ai_diagnosis, recommended_specialty, matched_doctors_count, user_ip, session_id)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (age, symptoms, chronic_conditions, language, location, 
-                  json.dumps(detailed_health_info), diagnosis_for_db, 
+                  json.dumps(detailed_health_info), result['diagnosis'], 
                   result['recommended_specialty'], len(result['doctors']), 
                   get_real_ip(), session_id))
             query_id = cursor.lastrowid

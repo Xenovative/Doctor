@@ -232,8 +232,6 @@ document.addEventListener('DOMContentLoaded', function() {
         results.style.display = 'none';
 
         try {
-            console.log('[DEBUG] Sending request to /find_doctor with data:', formData);
-            
             // 發送請求到後端
             const response = await fetch('/find_doctor', {
                 method: 'POST',
@@ -243,16 +241,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 body: JSON.stringify(formData)
             });
 
-            console.log('[DEBUG] Response status:', response.status);
-
             if (!response.ok) {
-                const errorText = await response.text();
-                console.error('[DEBUG] Response error:', errorText);
                 throw new Error('網絡請求失敗');
             }
 
             const data = await response.json();
-            console.log('[DEBUG] Response data:', data);
             
             // 隱藏載入動畫
             loading.style.display = 'none';
@@ -300,43 +293,27 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 顯示AI診斷結果
         if (data.diagnosis) {
-            // Check if diagnosis is multi-language object or string
-            if (typeof data.diagnosis === 'object' && data.diagnosis !== null) {
-                // Multi-language diagnosis - store globally for language switching
-                window.currentDiagnosisData = data.diagnosis;
-                window.currentRecommendedSpecialty = data.recommended_specialty;
+            // Check if diagnosis contains error messages
+            if (data.diagnosis.includes('AI分析服務暫時不可用') || 
+                data.diagnosis.includes('AI服務配置不完整') ||
+                data.diagnosis.includes('請稍後再試')) {
                 
-                // Get current language diagnosis
-                const currentLang = window.languageManager ? window.languageManager.currentLang : 'zh-TW';
-                const currentDiagnosis = data.diagnosis[currentLang] || data.diagnosis['zh-TW'] || {};
-                
-                const diagnosisCard = createDiagnosisCard(currentDiagnosis.diagnosis || '', currentDiagnosis.recommended_specialty || data.recommended_specialty);
-                diagnosisCard.id = 'diagnosisCard'; // Add ID for dynamic updates
-                doctorList.appendChild(diagnosisCard);
+                const errorCard = document.createElement('div');
+                errorCard.className = 'alert alert-warning';
+                errorCard.style.cssText = 'text-align: center; padding: 20px; margin: 20px 0; border-radius: 10px; background-color: #fff3cd; border: 1px solid #ffeaa7;';
+                const aiUnavailableTitle = window.currentTranslations && window.currentTranslations['ai_diagnosis_unavailable'] 
+                    ? window.currentTranslations['ai_diagnosis_unavailable'] : 'AI診斷暫時不可用';
+                const aiUnavailableDesc = window.currentTranslations && window.currentTranslations['ai_diagnosis_unavailable_desc'] 
+                    ? window.currentTranslations['ai_diagnosis_unavailable_desc'] : '我們的AI診斷服務暫時無法使用，但您仍可以查看推薦的醫生。建議直接諮詢醫療專業人士。';
+                errorCard.innerHTML = `
+                    <i class="fas fa-exclamation-triangle" style="font-size: 2rem; color: #856404; margin-bottom: 10px;"></i>
+                    <h4 style="color: #856404; margin-bottom: 10px;">${aiUnavailableTitle}</h4>
+                    <p style="color: #856404; margin-bottom: 15px;">${aiUnavailableDesc}</p>
+                `;
+                doctorList.appendChild(errorCard);
             } else {
-                // Legacy string diagnosis - check for error messages
-                if (data.diagnosis.includes('AI分析服務暫時不可用') || 
-                    data.diagnosis.includes('AI服務配置不完整') ||
-                    data.diagnosis.includes('請稍後再試')) {
-                    
-                    const errorCard = document.createElement('div');
-                    errorCard.className = 'alert alert-warning';
-                    errorCard.style.cssText = 'text-align: center; padding: 20px; margin: 20px 0; border-radius: 10px; background-color: #fff3cd; border: 1px solid #ffeaa7;';
-                    const aiUnavailableTitle = window.currentTranslations && window.currentTranslations['ai_diagnosis_unavailable'] 
-                        ? window.currentTranslations['ai_diagnosis_unavailable'] : 'AI診斷暫時不可用';
-                    const aiUnavailableDesc = window.currentTranslations && window.currentTranslations['ai_diagnosis_unavailable_desc'] 
-                        ? window.currentTranslations['ai_diagnosis_unavailable_desc'] : '我們的AI診斷服務暫時無法使用，但您仍可以查看推薦的醫生。建議直接諮詢醫療專業人士。';
-                    errorCard.innerHTML = `
-                        <i class="fas fa-exclamation-triangle" style="font-size: 2rem; color: #856404; margin-bottom: 10px;"></i>
-                        <h4 style="color: #856404; margin-bottom: 10px;">${aiUnavailableTitle}</h4>
-                        <p style="color: #856404; margin-bottom: 15px;">${aiUnavailableDesc}</p>
-                    `;
-                    doctorList.appendChild(errorCard);
-                } else {
-                    const diagnosisCard = createDiagnosisCard(data.diagnosis, data.recommended_specialty);
-                    diagnosisCard.id = 'diagnosisCard'; // Add ID for dynamic updates
-                    doctorList.appendChild(diagnosisCard);
-                }
+                const diagnosisCard = createDiagnosisCard(data.diagnosis, data.recommended_specialty);
+                doctorList.appendChild(diagnosisCard);
             }
         }
         
@@ -468,7 +445,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
                 <div class="doctor-info">
                     <h3>${doctor.name || translateText('unknown_doctor')}</h3>
-                    <div class="doctor-specialty" data-original-specialty="${doctor.specialty || 'General Practice'}">${translateSpecialty(doctor.specialty || translateText('general_specialist'))}</div>
+                    <div class="doctor-specialty">${translateSpecialty(doctor.specialty || translateText('general_specialist'))}</div>
                 </div>
             </div>
             
