@@ -160,68 +160,58 @@ body::before {
     text-transform: uppercase;
 }
 
-.subtitle-row {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-top: 0.5rem;
-}
-
-.subtitle-row .subtitle {
+.subtitle {
+    font-size: 1.8rem;
+    font-weight: 400;
     margin: 0;
-    flex: 1;
-}
-
-.subtitle-row .language-toggle {
-    flex-shrink: 0;
-    margin-left: auto;
-}
-
-/* Language Toggle in Subtitle Row */
-.subtitle-row .language-toggle .language-btn {
-    padding: 0.4rem 0.8rem;
-    font-size: 0.85rem;
-}
-
-.subtitle-row .language-toggle .language-dropdown {
-    min-width: 160px;
-}
-
-/* Mobile Responsiveness for Subtitle Row */
-@media (max-width: 768px) {
-    .subtitle-row {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.8rem;
-    }
-    
-    .subtitle-row .language-toggle {
-        margin-left: 0;
-        align-self: flex-end;
-    }
-    
-    .subtitle-row .subtitle {
-        font-size: 1.1rem;
-    }
-}
-
-@media (max-width: 480px) {
-    .subtitle-row {
-        gap: 0.5rem;
-    }
-    
-    .subtitle-row .subtitle {
-        font-size: 1rem;
-    }
-    
-    .subtitle-row .language-toggle .language-btn {
-        padding: 0.3rem 0.6rem;
-        font-size: 0.8rem;
-    }
+    color: #666;
+    opacity: 0.9;
 }
 
 /* Responsive title scaling */
 @media (max-width: 768px) {
+    .main-title {
+        font-size: 0.7rem;
+        white-space: nowrap;
+        letter-spacing: 0.01em;
+    }
+    .header-content {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+        align-items: center;
+        padding: 0 0.2rem;
+    }
+    
+    .title-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        position: relative;
+    }
+    
+    .subtitle {
+        margin-bottom: 0.5rem;
+    }
+    
+    .language-toggle {
+        position: absolute;
+        top: 50%;
+        right: 0;
+        transform: translateY(-50%);
+        margin-top: 1rem;
+    }
+    
+    .language-btn {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.8rem;
+    }
+    
+    .header-button-container {
+        display: none;
+    }
+    
     .main-title {
         font-size: 0.7rem;
         white-space: nowrap;
@@ -234,23 +224,6 @@ body::before {
     
     .header {
         padding: 3rem 0;
-    }
-    
-    .header-content {
-        flex-direction: row;
-        text-align: left;
-        gap: 1rem;
-        align-items: center;
-        padding: 0 0.2rem;
-    }
-    
-    .header-button-container {
-        display: none;
-    }
-    
-    .title-container {
-        display: flex;
-        flex-direction: column;
     }
     
     .logo-circle {
