@@ -160,12 +160,64 @@ body::before {
     text-transform: uppercase;
 }
 
-.subtitle {
-    font-size: 1.8rem;
-    font-weight: 400;
+.subtitle-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.subtitle-row .subtitle {
     margin: 0;
-    color: #666;
-    opacity: 0.9;
+    flex: 1;
+}
+
+.subtitle-row .language-toggle {
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+/* Language Toggle in Subtitle Row */
+.subtitle-row .language-toggle .language-btn {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+}
+
+.subtitle-row .language-toggle .language-dropdown {
+    min-width: 160px;
+}
+
+/* Mobile Responsiveness for Subtitle Row */
+@media (max-width: 768px) {
+    .subtitle-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.8rem;
+    }
+    
+    .subtitle-row .language-toggle {
+        margin-left: 0;
+        align-self: flex-end;
+    }
+    
+    .subtitle-row .subtitle {
+        font-size: 1.1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .subtitle-row {
+        gap: 0.5rem;
+    }
+    
+    .subtitle-row .subtitle {
+        font-size: 1rem;
+    }
+    
+    .subtitle-row .language-toggle .language-btn {
+        padding: 0.3rem 0.6rem;
+        font-size: 0.8rem;
+    }
 }
 
 /* Responsive title scaling */
