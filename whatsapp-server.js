@@ -34,6 +34,7 @@ wa.create({
   useChrome: true,
   killProcessOnBrowserClose: true,
   throwErrorOnTosBlock: false,
+  executablePath: process.env.CHROME_PATH || '/usr/bin/google-chrome-stable',
   chromiumArgs: [
     '--no-sandbox',
     '--disable-setuid-sandbox',
