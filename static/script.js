@@ -429,7 +429,7 @@ document.addEventListener('DOMContentLoaded', function() {
             result = translated !== undefined ? translated : key;
         }
         
-        // Handle bilingual objects
+        // Handle bilingual objects immediately
         if (typeof result === 'object' && result !== null) {
             const currentLang = window.languageManager ? window.languageManager.getCurrentLanguage() : 'zh-TW';
             if (currentLang === 'en' && result.en) {
@@ -438,13 +438,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 return result['zh-TW'];
             } else if (result.zh) {
                 return result.zh;
+            } else if (result.en) {
+                return result.en;
             }
             // If object doesn't have expected language properties, return the key as fallback
             console.warn(`Translation object for key "${key}" missing expected language properties:`, result);
             return key;
         }
         
-        return result || key;
+        // Ensure we always return a string
+        return String(result || key);
     }
 
     // Helper function to get bilingual text based on current language
@@ -571,11 +574,17 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="card-actions">
                 <button class="more-info-btn" data-doctor-id="${doctor.id}" onclick="showDoctorDetailsById(event, ${doctor.id})">
                     <i class="fas fa-info-circle"></i>
-                    ${translateText('more_info')}
+                    ${(() => {
+                        const translation = translateText('more_info');
+                        return typeof translation === 'object' ? (translation['zh-TW'] || translation.zh || translation.en || 'More Info') : translation;
+                    })()}
                 </button>
                 <button class="contact-btn" onclick="contactDoctor(event, '${doctor.name}', '${doctor.specialty}')">
                     <i class="fab fa-whatsapp"></i>
-                    ${translateText('contact')}
+                    ${(() => {
+                        const translation = translateText('contact');
+                        return typeof translation === 'object' ? (translation['zh-TW'] || translation.zh || translation.en || 'Contact') : translation;
+                    })()}
                 </button>
             </div>
         `;
