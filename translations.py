@@ -156,17 +156,74 @@ TRANSLATIONS = {
         # Doctor Card Labels
         'recommendation_rank': '第',
         'recommendation_suffix': '推薦',
-        'click_to_contact': '點擊聯絡',
-        'language_label': '語言：',
-        'phone_label': '電話：',
-        'email_label': '電郵：',
-        'clinic_address_label': '診所地址：',
-        'qualifications_label': '專業資格：',
-        'not_provided': '未提供',
-        'unknown_doctor': '未知醫生',
-        'general_specialist': '全科醫生',
-        'emergency_care_needed': '🚨 建議緊急就醫',
-        'urgent_consultation': '需要緊急醫療諮詢',
+        'click_to_contact': {
+            'zh-TW': '點擊聯絡',
+            'en': 'Click to Contact'
+        },
+        'more_info': {
+            'zh-TW': '更多資訊',
+            'en': 'More Info'
+        },
+        'contact': {
+            'zh-TW': '聯絡',
+            'en': 'Contact'
+        },
+        'contact_info': {
+            'zh-TW': '聯絡資訊',
+            'en': 'Contact Information'
+        },
+        'contact_via_whatsapp': {
+            'zh-TW': '透過WhatsApp聯絡',
+            'en': 'Contact via WhatsApp'
+        },
+        'website': {
+            'zh-TW': '網站',
+            'en': 'Website'
+        },
+        'specialty_label': {
+            'zh-TW': '專科',
+            'en': 'Specialty'
+        },
+        'phone_label': {
+            'zh-TW': '電話：',
+            'en': 'Phone:'
+        },
+        'email_label': {
+            'zh-TW': '電郵：',
+            'en': 'Email:'
+        },
+        'clinic_address_label': {
+            'zh-TW': '診所地址：',
+            'en': 'Clinic Address:'
+        },
+        'qualifications_label': {
+            'zh-TW': '專業資格：',
+            'en': 'Qualifications:'
+        },
+        'language_label': {
+            'zh-TW': '語言：',
+            'en': 'Languages:'
+        },
+        'not_provided': {
+            'zh-TW': '未提供',
+            'en': 'Not provided'
+        },
+        'unknown_doctor': {
+            'zh-TW': '未知醫生',
+            'en': 'Unknown Doctor'
+        },
+        'general_specialist': {
+            'zh-TW': '全科醫生',
+            'en': 'General Practitioner'
+        },
+        'emergency_care_needed': {
+            'zh-TW': '🚨 建議緊急就醫',
+            'en': '🚨 Emergency Care Needed'
+        },
+        'urgent_consultation': {
+            'zh-TW': '需要緊急醫療諮詢',
+            'en': 'Urgent Medical Consultation Required'
+        },
         
         # Location translations - Districts
         '中西區': '中西區',

@@ -13,6 +13,7 @@ import pandas as pd
 import requests
 import json
 import os
+import re
 import sqlite3
 from datetime import datetime, timedelta
 from functools import wraps
@@ -143,6 +144,7 @@ def load_doctors_data():
         # 查詢所有醫生資料，優先使用中文資料，英文作為備用，按優先級和名稱排序
         cursor.execute('''
             SELECT 
+                id,
                 COALESCE(name_zh, name_en, name) as name,
                 COALESCE(specialty_zh, specialty_en, specialty) as specialty,
                 COALESCE(qualifications_zh, qualifications_en, qualifications) as qualifications,
@@ -857,6 +859,12 @@ def diagnose_symptoms(age: int, symptoms: str, chronic_conditions: str = '', det
     severity_level = extract_severity_from_diagnosis(diagnosis_response)
     emergency_needed = check_emergency_needed(diagnosis_response)
     
+    # Debug logging
+    print(f"DEBUG - AI Response: {diagnosis_response[:200]}...")
+    print(f"DEBUG - Extracted specialty: {recommended_specialty}")
+    print(f"DEBUG - Severity level: {severity_level}")
+    print(f"DEBUG - Emergency needed: {emergency_needed}")
+    
     return {
         'diagnosis': diagnosis_response,
         'recommended_specialty': recommended_specialty,
@@ -880,7 +888,10 @@ def analyze_symptoms_and_match(age: int, symptoms: str, chronic_conditions: str,
     diagnosis_result = diagnose_symptoms(age, symptoms, chronic_conditions, detailed_health_info, user_language)
     
     # 第二步：檢查是否需要緊急醫療處理
+    print(f"DEBUG - Emergency check: emergency_needed={diagnosis_result.get('emergency_needed', False)}, severity_level={diagnosis_result.get('severity_level')}")
+    
     if diagnosis_result.get('emergency_needed', False) or diagnosis_result.get('severity_level') == 'severe':
+        print("DEBUG - Emergency case detected, routing to emergency doctors")
         # 緊急情況：優先推薦急診科和醫院
         emergency_doctors = filter_doctors('急診科', language, location, symptoms, diagnosis_result['diagnosis'], location_details)
         # 如果沒有急診科醫生，推薦內科醫生但標記為緊急
@@ -894,6 +905,7 @@ def analyze_symptoms_and_match(age: int, symptoms: str, chronic_conditions: str,
         
         matched_doctors = emergency_doctors
     else:
+        print("DEBUG - Normal case, routing to specialty doctors")
         # 一般情況：根據診斷結果推薦醫生
         matched_doctors = filter_doctors(
             diagnosis_result['recommended_specialty'], 
@@ -903,6 +915,10 @@ def analyze_symptoms_and_match(age: int, symptoms: str, chronic_conditions: str,
             diagnosis_result['diagnosis'],
             location_details
         )
+        
+        # 確保非緊急情況下不設置緊急標記
+        for doctor in matched_doctors:
+            doctor['is_emergency'] = False
     
     # 第三步：如果是12歲以下，添加兒科醫生
     if age <= 12:
@@ -968,31 +984,40 @@ def extract_specialty_from_diagnosis(diagnosis_text: str) -> str:
         matches = re.findall(pattern, diagnosis_text, re.IGNORECASE)
         if matches:
             recommended_specialty = matches[0].strip()
+            print(f"DEBUG - Specialty pattern matched: '{pattern}' -> '{recommended_specialty}'")
             break
     
     if not recommended_specialty:
+        print("DEBUG - No specialty pattern matched, searching for keywords")
         # 如果沒有找到明確的專科推薦，嘗試從文本中提取科別關鍵字
         text_lower = diagnosis_text.lower()
         for standard_specialty, variations in specialty_mapping.items():
             for variation in variations:
                 if variation.lower() in text_lower:
+                    print(f"DEBUG - Keyword match found: '{variation}' -> '{standard_specialty}'")
                     return standard_specialty
+        print("DEBUG - No specialty keywords found, defaulting to Internal Medicine")
         return '內科'
     
     # 清理提取的專科名稱
+    original_specialty = recommended_specialty
     recommended_specialty = re.sub(r'\s*(or|或)\s*.*$', '', recommended_specialty, flags=re.IGNORECASE).strip()
+    print(f"DEBUG - Cleaned specialty: '{original_specialty}' -> '{recommended_specialty}'")
     
     # 尋找匹配的標準專科名稱
     for standard_specialty, variations in specialty_mapping.items():
         for variation in variations:
             if variation.lower() in recommended_specialty.lower():
+                print(f"DEBUG - Specialty mapping found: '{variation}' -> '{standard_specialty}'")
                 return standard_specialty
     
     # 如果找不到匹配，但有提取到專科名稱，返回清理後的名稱
     if recommended_specialty and len(recommended_specialty) > 0:
+        print(f"DEBUG - No mapping found, returning extracted specialty: '{recommended_specialty}'")
         return recommended_specialty
     
     # 如果沒有找到明確的專科推薦，返回內科作為默認
+    print("DEBUG - Final fallback to Internal Medicine")
     return '內科'
 
 def extract_specialty_from_ai_response(ai_response: str) -> str:
@@ -1006,46 +1031,139 @@ def extract_severity_from_diagnosis(diagnosis_text: str) -> str:
     
     text_lower = diagnosis_text.lower()
     
-    # 檢查緊急/嚴重關鍵字
+    # First check for explicit severity statements
+    explicit_severity_patterns = [
+        ('嚴重程度：輕微', 'mild'),
+        ('嚴重程度：中等', 'moderate'), 
+        ('嚴重程度：嚴重', 'severe'),
+        ('severity: mild', 'mild'),
+        ('severity: moderate', 'moderate'),
+        ('severity: severe', 'severe')
+    ]
+    
+    for pattern, severity in explicit_severity_patterns:
+        if pattern in text_lower:
+            print(f"DEBUG - Explicit severity found: '{pattern}' -> {severity}")
+            return severity
+    
+    # Check for non-emergency indicators that should override severity keywords
+    non_emergency_patterns = [
+        '不需要緊急就醫', '非緊急', '不緊急', 'not emergency', 'no emergency needed',
+        '不需要急診', '無需緊急', 'non-urgent', 'not urgent'
+    ]
+    
+    is_non_emergency = False
+    for pattern in non_emergency_patterns:
+        if pattern in text_lower:
+            is_non_emergency = True
+            print(f"DEBUG - Non-emergency pattern found in severity check: '{pattern}'")
+            break
+    
     emergency_keywords = [
         'emergency', '緊急', '急診', 'urgent', '嚴重', 'severe', 'critical', '危急',
         'life-threatening', '威脅生命', 'immediate', '立即', 'high risk', '高風險'
     ]
     
     moderate_keywords = [
-        'moderate', '中等', '中度', 'concerning', '需要關注', 'worrying', '令人擔憂',
-        'significant', '顯著', 'notable', '值得注意'
+        'moderate', '中等', '中度', 'medium', '適中', '一般嚴重'
     ]
     
+    found_emergency = []
     for keyword in emergency_keywords:
         if keyword in text_lower:
-            return 'severe'
+            found_emergency.append(keyword)
     
+    found_moderate = []
     for keyword in moderate_keywords:
         if keyword in text_lower:
-            return 'moderate'
+            found_moderate.append(keyword)
+    
+    print(f"DEBUG - Severity check - Emergency keywords found: {found_emergency}")
+    print(f"DEBUG - Severity check - Moderate keywords found: {found_moderate}")
+    
+    # If explicitly marked as non-emergency, don't return severe even if keywords found
+    if is_non_emergency and found_emergency:
+        print("DEBUG - Non-emergency override: downgrading from severe to moderate")
+        return 'moderate'
+    
+    if found_emergency:
+        return 'severe'
+    
+    if found_moderate:
+        return 'moderate'
     
     return 'mild'
 
 def check_emergency_needed(diagnosis_text: str) -> bool:
-    """檢查是否需要緊急醫療"""
+    """檢查是否需要緊急就醫"""
     if not diagnosis_text:
         return False
     
     text_lower = diagnosis_text.lower()
     
-    emergency_indicators = [
-        'call emergency', '撥打急救', 'go to emergency', '前往急診',
-        'seek immediate', '立即就醫', 'urgent care', '緊急護理',
-        'emergency room', '急診室', 'hospital immediately', '立即住院',
-        'life-threatening', '威脅生命', 'critical condition', '危急狀況',
-        '999', '911', '112', 'ambulance', '救護車'
+    # First check for explicit non-emergency statements
+    non_emergency_patterns = [
+        '不需要緊急就醫', '非緊急', '不緊急', 'not emergency', 'no emergency needed',
+        '不需要急診', '無需緊急', 'non-urgent', 'not urgent'
     ]
     
-    for indicator in emergency_indicators:
+    for pattern in non_emergency_patterns:
+        if pattern in text_lower:
+            print(f"DEBUG - Non-emergency pattern found: '{pattern}' - overriding emergency detection")
+            return False
+    
+    # Strong emergency indicators that should trigger emergency response
+    strong_emergency_indicators = [
+        'call emergency', '撥打急救', 'go to emergency', '前往急診',
+        'emergency room', '急診室', 'hospital immediately', '立即住院',
+        'life-threatening', '威脅生命', 'critical condition', '危急狀況',
+        '999', '911', '112', 'ambulance', '救護車', '緊急護理'
+    ]
+    
+    # Weaker indicators that need context checking
+    contextual_indicators = [
+        'seek immediate', '立即就醫', 'urgent care'
+    ]
+    
+    found_strong = []
+    found_contextual = []
+    
+    for indicator in strong_emergency_indicators:
         if indicator in text_lower:
+            found_strong.append(indicator)
+    
+    for indicator in contextual_indicators:
+        if indicator in text_lower:
+            found_contextual.append(indicator)
+    
+    # If we have strong indicators, it's definitely emergency
+    if found_strong:
+        print(f"DEBUG - Strong emergency indicators found: {found_strong}")
+        return True
+    
+    # For contextual indicators, check if they appear in conditional statements
+    if found_contextual:
+        # Check if the contextual indicator appears in a conditional context
+        conditional_patterns = [
+            '若.*惡化.*立即就醫', '如果.*嚴重.*立即就醫', 'if.*worse.*seek immediate',
+            '症狀持續.*立即就醫', '持續或惡化.*立即就醫'
+        ]
+        
+        is_conditional = False
+        for pattern in conditional_patterns:
+            if re.search(pattern, text_lower):
+                is_conditional = True
+                print(f"DEBUG - Contextual emergency indicator in conditional statement: '{pattern}'")
+                break
+        
+        if is_conditional:
+            print(f"DEBUG - Emergency indicator '{found_contextual}' is conditional, not immediate emergency")
+            return False
+        else:
+            print(f"DEBUG - Direct emergency indicators found: {found_contextual}")
             return True
     
+    print("DEBUG - No emergency indicators found")
     return False
 
 def safe_str_check(value, search_term):

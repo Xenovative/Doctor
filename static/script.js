@@ -285,6 +285,12 @@ document.addEventListener('DOMContentLoaded', function() {
         allDoctors = data.doctors || [];
         currentlyDisplayed = 0;
         
+        // Store all doctors globally for modal access
+        doctorsData = {};
+        allDoctors.forEach(doctor => {
+            doctorsData[doctor.id] = doctor;
+        });
+        
         // 顯示用戶數據摘要
         if (data.user_summary) {
             const summaryCard = createUserSummaryCard(data.user_summary);
@@ -358,7 +364,10 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Add doctors to display
         for (let i = startIndex; i < endIndex; i++) {
-            const doctorCard = createDoctorCard(allDoctors[i], i + 1);
+            const doctor = allDoctors[i];
+            // Store doctor data globally for modal access
+            doctorsData[doctor.id] = doctor;
+            const doctorCard = createDoctorCard(doctor, i + 1);
             doctorsContainer.appendChild(doctorCard);
         }
         
@@ -408,32 +417,58 @@ document.addEventListener('DOMContentLoaded', function() {
             return '';
         }
         
+        let result = key;
+        
         // Use language manager if available
         if (window.languageManager) {
-            return window.languageManager.getTranslation(key);
+            result = window.languageManager.getTranslation(key);
         }
-        
         // Fallback to window.currentTranslations
-        if (window.currentTranslations) {
+        else if (window.currentTranslations) {
             const translated = window.currentTranslations[key];
-            return translated !== undefined ? translated : key;
+            result = translated !== undefined ? translated : key;
         }
         
-        return key;
+        // Handle bilingual objects
+        if (typeof result === 'object' && result !== null) {
+            const currentLang = window.languageManager ? window.languageManager.getCurrentLanguage() : 'zh-TW';
+            if (currentLang === 'en' && result.en) {
+                return result.en;
+            } else if (result['zh-TW']) {
+                return result['zh-TW'];
+            } else if (result.zh) {
+                return result.zh;
+            }
+            // Fallback to string conversion
+            return String(result);
+        }
+        
+        return result || key;
     }
 
     // Helper function to get bilingual text based on current language
     function getBilingualText(doctor, field, currentLang) {
+        if (!doctor) return '';
+        
         const isEnglish = currentLang === 'en';
+        let result = '';
         
         // For English UI, prefer English then Chinese
         if (isEnglish) {
-            return doctor[field + '_en'] || doctor[field + '_zh'] || doctor[field] || '';
+            result = doctor[field + '_en'] || doctor[field + '_zh'] || doctor[field] || '';
         }
         // For Chinese UI, prefer Chinese then English
         else {
-            return doctor[field + '_zh'] || doctor[field + '_en'] || doctor[field] || '';
+            result = doctor[field + '_zh'] || doctor[field + '_en'] || doctor[field] || '';
         }
+        
+        // Ensure we return a string, not an object
+        if (typeof result === 'object') {
+            console.warn(`getBilingualText returned object for field ${field}:`, result);
+            return String(result) || '';
+        }
+        
+        return result || '';
     }
 
     // Make createDoctorCard globally accessible
@@ -531,23 +566,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             </div>
             
-            ${false ? `
-                <div class="ai-analysis">
-                    <h4><i class="fas fa-robot"></i> AI 分析</h4>
-                    <p>${doctor.ai_analysis}</p>
-                </div>
-            ` : ''}
-        `;
-        
-        // 添加WhatsApp鏈接功能
-        card.style.cursor = 'pointer';
-        card.addEventListener('click', function() {
-            // Track doctor click
-            trackDoctorClick(doctor.name, doctor.specialty);
             
-            const whatsappUrl = 'https://api.whatsapp.com/send/?phone=85294974070';
-            window.open(whatsappUrl, '_blank');
-        });
+            <div class="card-actions">
+                <button class="more-info-btn" data-doctor-id="${doctor.id}" onclick="showDoctorDetailsById(event, ${doctor.id})">
+                    <i class="fas fa-info-circle"></i>
+                    ${translateText('more_info')}
+                </button>
+                <button class="contact-btn" onclick="contactDoctor(event, '${doctor.name}', '${doctor.specialty}')">
+                    <i class="fab fa-whatsapp"></i>
+                    ${translateText('contact')}
+                </button>
+            </div>
+        `;
         
         // 添加hover效果
         card.addEventListener('mouseenter', function() {
@@ -561,6 +591,161 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         return card;
+    }
+
+    // Store doctors data globally for modal access
+    let doctorsData = {};
+
+    // Function to show doctor details by ID
+    window.showDoctorDetailsById = function(event, doctorId) {
+        event.stopPropagation();
+        
+        const doctor = doctorsData[doctorId];
+        if (!doctor) {
+            console.error('Doctor not found:', doctorId);
+            return;
+        }
+        
+        showDoctorDetails(event, doctor);
+    };
+
+    // Function to show doctor details in modal
+    window.showDoctorDetails = function(event, doctor) {
+        event.stopPropagation();
+        
+        const modal = document.getElementById('doctorModal') || createDoctorModal();
+        const modalContent = modal.querySelector('.modal-content');
+        
+        // Get current language
+        const currentLang = window.languageManager ? window.languageManager.getCurrentLanguage() : 'zh-TW';
+        const isEnglish = currentLang === 'en';
+        
+        // Extract doctor data directly to avoid [object Object] issues
+        const doctorName = isEnglish ? 
+            (doctor.name_en || doctor.name_zh || doctor.name || 'Unknown Doctor') :
+            (doctor.name_zh || doctor.name_en || doctor.name || '未知醫生');
+            
+        const doctorSpecialty = isEnglish ?
+            (doctor.specialty_en || doctor.specialty_zh || doctor.specialty || 'General Practice') :
+            (doctor.specialty_zh || doctor.specialty_en || doctor.specialty || '全科');
+            
+        const doctorQualifications = isEnglish ?
+            (doctor.qualifications_en || doctor.qualifications_zh || doctor.qualifications || 'Not provided') :
+            (doctor.qualifications_zh || doctor.qualifications_en || doctor.qualifications || '未提供');
+            
+        const doctorLanguages = isEnglish ?
+            (doctor.languages_en || doctor.languages_zh || doctor.languages || 'Not provided') :
+            (doctor.languages_zh || doctor.languages_en || doctor.languages || '未提供');
+        
+        const phones = doctor.phone ? doctor.phone.split(',').map(p => p.trim()) : [];
+        const phoneDisplay = phones.length > 0 ? phones.join(' / ') : (isEnglish ? 'Not provided' : '未提供');
+        const address = doctor.address || (isEnglish ? 'Not provided' : '未提供');
+        
+        const consultationFee = doctor.consultation_fee || (isEnglish ? 'Not specified' : '未指定');
+        const consultationHours = doctor.consultation_hours || (isEnglish ? 'Not specified' : '未指定');
+        
+        modalContent.innerHTML = `
+            <div class="modal-header">
+                <h2><i class="fas fa-user-md"></i> ${doctorName}</h2>
+                <span class="close" onclick="closeDoctorModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="doctor-detail-section">
+                    <h3><i class="fas fa-stethoscope"></i> ${isEnglish ? 'Specialty' : '專科'}</h3>
+                    <p>${doctorSpecialty}</p>
+                </div>
+                
+                <div class="doctor-detail-section">
+                    <h3><i class="fas fa-graduation-cap"></i> ${isEnglish ? 'Qualifications' : '專業資格'}</h3>
+                    <p>${doctorQualifications}</p>
+                </div>
+                
+                <div class="doctor-detail-section">
+                    <h3><i class="fas fa-language"></i> ${isEnglish ? 'Languages' : '語言'}</h3>
+                    <p>${doctorLanguages}</p>
+                </div>
+                
+                <div class="doctor-detail-section">
+                    <h3><i class="fas fa-phone"></i> ${isEnglish ? 'Contact Information' : '聯絡資訊'}</h3>
+                    <p><strong>${isEnglish ? 'Phone:' : '電話：'}</strong> ${phoneDisplay}</p>
+                    <p><strong>${isEnglish ? 'Email:' : '電郵：'}</strong> ${doctor.email || (isEnglish ? 'Not provided' : '未提供')}</p>
+                </div>
+                
+                <div class="doctor-detail-section">
+                    <h3><i class="fas fa-map-marker-alt"></i> ${isEnglish ? 'Clinic Address' : '診所地址'}</h3>
+                    <p>${address}</p>
+                </div>
+                
+                <div class="doctor-detail-section">
+                    <h3><i class="fas fa-dollar-sign"></i> ${isEnglish ? 'Consultation Fee' : '診金'}</h3>
+                    <p>${consultationFee}</p>
+                </div>
+                
+                <div class="doctor-detail-section">
+                    <h3><i class="fas fa-clock"></i> ${isEnglish ? 'Consultation Hours' : '應診時間'}</h3>
+                    <p>${consultationHours}</p>
+                </div>
+                
+                ${doctor.website ? `
+                <div class="doctor-detail-section">
+                    <h3><i class="fas fa-globe"></i> ${isEnglish ? 'Website' : '網站'}</h3>
+                    <p><a href="${doctor.website}" target="_blank">${doctor.website}</a></p>
+                </div>
+                ` : ''}
+            </div>
+            <div class="modal-footer">
+                <button class="contact-btn-modal" onclick="contactDoctor(event, '${doctorName}', '${doctorSpecialty}')">
+                    <i class="fab fa-whatsapp"></i>
+                    ${isEnglish ? 'Contact via WhatsApp' : '透過WhatsApp聯絡'}
+                </button>
+            </div>
+        `;
+        
+        modal.style.display = 'block';
+    }
+
+    // Function to create doctor modal if it doesn't exist
+    function createDoctorModal() {
+        const modal = document.createElement('div');
+        modal.id = 'doctorModal';
+        modal.className = 'modal';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <!-- Content will be populated by showDoctorDetails -->
+            </div>
+        `;
+        document.body.appendChild(modal);
+        
+        // Close modal when clicking outside
+        modal.addEventListener('click', function(event) {
+            if (event.target === modal) {
+                closeDoctorModal();
+            }
+        });
+        
+        return modal;
+    }
+
+    // Function to close doctor modal
+    window.closeDoctorModal = function() {
+        const modal = document.getElementById('doctorModal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    }
+
+    // Function to handle doctor contact
+    window.contactDoctor = function(event, doctorName, doctorSpecialty) {
+        event.stopPropagation();
+        
+        // Track doctor click
+        trackDoctorClick(doctorName, doctorSpecialty);
+        
+        const whatsappUrl = 'https://api.whatsapp.com/send/?phone=85294974070';
+        window.open(whatsappUrl, '_blank');
+        
+        // Close modal if it's open
+        closeDoctorModal();
     }
 
     function createUserSummaryCard(userSummary) {
