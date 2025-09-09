@@ -129,14 +129,12 @@ document.addEventListener('DOMContentLoaded', function() {
             if (isVisible) {
                 moreInfoSection.style.display = 'none';
                 this.classList.remove('expanded');
-                const moreText = window.currentTranslations && window.currentTranslations['more_info'] 
-                    ? window.currentTranslations['more_info'] : '更多資料';
+                const moreText = translateText('more_info');
                 this.innerHTML = `<i class="fas fa-plus-circle"></i> ${moreText}`;
             } else {
                 moreInfoSection.style.display = 'block';
                 this.classList.add('expanded');
-                const lessText = window.currentTranslations && window.currentTranslations['less_info'] 
-                    ? window.currentTranslations['less_info'] : '收起資料';
+                const lessText = translateText('less_info');
                 this.innerHTML = `<i class="fas fa-minus-circle"></i> ${lessText}`;
             }
         });
