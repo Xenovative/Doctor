@@ -164,7 +164,9 @@ TRANSLATIONS = {
         'qualifications_label': '專業資格：',
         'not_provided': '未提供',
         'unknown_doctor': '未知醫生',
-        'general_specialist': '專科醫生',
+        'general_specialist': '全科醫生',
+        'emergency_care_needed': '🚨 建議緊急就醫',
+        'urgent_consultation': '需要緊急醫療諮詢',
         
         # Location translations - Districts
         '中西區': '中西區',
@@ -621,6 +623,8 @@ TRANSLATIONS = {
         'not_provided': 'Not Provided',
         'unknown_doctor': 'Unknown Doctor',
         'general_specialist': 'General Practitioner',
+        'emergency_care_needed': '🚨 Emergency Care Recommended',
+        'urgent_consultation': 'Urgent Medical Consultation Required',
         
         # Location translations - Districts
         '中西區': 'Central and Western District',

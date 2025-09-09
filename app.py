@@ -854,10 +854,14 @@ def diagnose_symptoms(age: int, symptoms: str, chronic_conditions: str = '', det
     
     # 解析診斷結果
     recommended_specialty = extract_specialty_from_diagnosis(diagnosis_response)
+    severity_level = extract_severity_from_diagnosis(diagnosis_response)
+    emergency_needed = check_emergency_needed(diagnosis_response)
     
     return {
         'diagnosis': diagnosis_response,
-        'recommended_specialty': recommended_specialty
+        'recommended_specialty': recommended_specialty,
+        'severity_level': severity_level,
+        'emergency_needed': emergency_needed
     }
 
 def analyze_symptoms_and_match(age: int, symptoms: str, chronic_conditions: str, language: str, location: str, detailed_health_info: Dict = None, location_details: Dict = None) -> Dict[str, Any]:
@@ -875,15 +879,30 @@ def analyze_symptoms_and_match(age: int, symptoms: str, chronic_conditions: str,
     # 第一步：AI診斷 (pass user language)
     diagnosis_result = diagnose_symptoms(age, symptoms, chronic_conditions, detailed_health_info, user_language)
     
-    # 第二步：根據診斷結果推薦醫生
-    matched_doctors = filter_doctors(
-        diagnosis_result['recommended_specialty'], 
-        language, 
-        location, 
-        symptoms, 
-        diagnosis_result['diagnosis'],
-        location_details
-    )
+    # 第二步：檢查是否需要緊急醫療處理
+    if diagnosis_result.get('emergency_needed', False) or diagnosis_result.get('severity_level') == 'severe':
+        # 緊急情況：優先推薦急診科和醫院
+        emergency_doctors = filter_doctors('急診科', language, location, symptoms, diagnosis_result['diagnosis'], location_details)
+        # 如果沒有急診科醫生，推薦內科醫生但標記為緊急
+        if not emergency_doctors:
+            emergency_doctors = filter_doctors('內科', language, location, symptoms, diagnosis_result['diagnosis'], location_details)
+        
+        # 為緊急醫生添加緊急標記
+        for doctor in emergency_doctors:
+            doctor['is_emergency'] = True
+            doctor['emergency_message'] = get_translation('emergency_care_needed', user_language)
+        
+        matched_doctors = emergency_doctors
+    else:
+        # 一般情況：根據診斷結果推薦醫生
+        matched_doctors = filter_doctors(
+            diagnosis_result['recommended_specialty'], 
+            language, 
+            location, 
+            symptoms, 
+            diagnosis_result['diagnosis'],
+            location_details
+        )
     
     # 第三步：如果是12歲以下，添加兒科醫生
     if age <= 12:
@@ -902,53 +921,76 @@ def analyze_symptoms_and_match(age: int, symptoms: str, chronic_conditions: str,
         'user_summary': user_summary,
         'diagnosis': diagnosis_result['diagnosis'],
         'recommended_specialty': diagnosis_result['recommended_specialty'],
+        'severity_level': diagnosis_result.get('severity_level', 'mild'),
+        'emergency_needed': diagnosis_result.get('emergency_needed', False),
         'doctors': matched_doctors
     }
 
-def extract_specialty_from_diagnosis(diagnosis_response: str) -> str:
-    """從診斷結果中提取推薦的專科"""
-    import re
+def extract_specialty_from_diagnosis(diagnosis_text: str) -> str:
+    """從診斷文本中提取推薦的專科"""
+    if not diagnosis_text:
+        return '內科'
     
-    # 直接從AI回應中解析建議專科
-    # 尋找「建議專科：」後面的內容
-    specialty_pattern = r'建議專科：\s*([^一-鿿\n]*[一-鿿]+[^一-鿿\n]*?)(?=\n|嚴重程度|緊急程度|$)'
-    match = re.search(specialty_pattern, diagnosis_response)
+    # 專科名稱正規化映射
+    specialty_mapping = {
+        '精神科': ['精神科', '心理科', '精神健康科', '精神醫學科', 'Psychiatry', 'Mental Health'],
+        '神經科': ['神經科', '腦神經科', '神經內科', 'Neurology'],
+        '心臟科': ['心臟科', '心臟內科', '心血管科', 'Cardiology'],
+        '急診科': ['急診科', '急症科', 'Emergency', 'Emergency Medicine'],
+        '外科': ['外科', '一般外科', '普通外科', 'Surgery', 'General Surgery'],
+        '皮膚科': ['皮膚科', '皮膚及性病科', 'Dermatology'],
+        '眼科': ['眼科', 'Ophthalmology'],
+        '耳鼻喉科': ['耳鼻喉科', 'ENT', 'Otolaryngology'],
+        '婦產科': ['婦產科', '婦科', '產科', 'Gynecology', 'Obstetrics'],
+        '兒科': ['兒科', '小兒科', 'Pediatrics', 'Pediatric'],
+        '骨科': ['骨科', '骨外科', 'Orthopedics', 'Orthopedic'],
+        '泌尿科': ['泌尿科', '泌尿外科', 'Urology'],
+        '腸胃科': ['腸胃科', '消化內科', '胃腸科', 'Gastroenterology'],
+        '內分泌科': ['內分泌科', '糖尿病科', 'Endocrinology'],
+        '感染科': ['感染科', '傳染病科', 'Infectious Disease', 'Infectious Disease Specialist'],
+        '呼吸科': ['呼吸科', '胸肺科', '肺科', 'Pulmonology', 'Respiratory'],
+        '內科': ['內科', '普通科', '家庭醫學科', '全科', 'General Practitioner', 'General Practice', 'Internal Medicine']
+    }
     
-    if match:
-        recommended_specialty = match.group(1).strip()
-        
-        # 清理提取的專科名稱，移除不必要的標點符號和空格
-        recommended_specialty = re.sub(r'[\[\]\(\)【】《》「」『』]', '', recommended_specialty)
-        recommended_specialty = recommended_specialty.strip()
-        
-        # 專科名稱正規化映射
-        specialty_mapping = {
-            '精神科': ['精神科', '心理科', '精神健康科', '精神醫學科'],
-            '神經科': ['神經科', '腦神經科', '神經內科'],
-            '心臟科': ['心臟科', '心臟內科', '心血管科'],
-            '急診科': ['急診科', '急症科'],
-            '外科': ['外科', '一般外科', '普通外科'],
-            '皮膚科': ['皮膚科', '皮膚及性病科'],
-            '眼科': ['眼科'],
-            '耳鼻喉科': ['耳鼻喉科', 'ENT'],
-            '婦產科': ['婦產科', '婦科', '產科'],
-            '兒科': ['兒科', '小兒科'],
-            '骨科': ['骨科', '骨外科'],
-            '泌尿科': ['泌尿科', '泌尿外科'],
-            '腸胃科': ['腸胃科', '消化內科', '胃腸科'],
-            '內分泌科': ['內分泌科', '糖尿病科'],
-            '內科': ['內科', '普通科', '家庭醫學科', '全科']
-        }
-        
-        # 尋找匹配的標準專科名稱
+    # 使用正則表達式提取專科資訊 (支援中英文)
+    specialty_patterns = [
+        r'推薦專科[：:]\s*([^\n\r]+)',
+        r'建議專科[：:]\s*([^\n\r]+)', 
+        r'專科[：:]\s*([^\n\r]+)',
+        r'科別[：:]\s*([^\n\r]+)',
+        r'Recommended specialty[：:]?\s*([^\n\r]+)',
+        r'Specialty[：:]?\s*([^\n\r]+)',
+        r'([^。\n\r]*(?:科|Specialist|Medicine|Surgery|ology|ics))\s*(?:醫師|專科|doctor)?',
+    ]
+    
+    recommended_specialty = None
+    for pattern in specialty_patterns:
+        matches = re.findall(pattern, diagnosis_text, re.IGNORECASE)
+        if matches:
+            recommended_specialty = matches[0].strip()
+            break
+    
+    if not recommended_specialty:
+        # 如果沒有找到明確的專科推薦，嘗試從文本中提取科別關鍵字
+        text_lower = diagnosis_text.lower()
         for standard_specialty, variations in specialty_mapping.items():
             for variation in variations:
-                if variation in recommended_specialty:
+                if variation.lower() in text_lower:
                     return standard_specialty
-        
-        # 如果找不到匹配，但有提取到專科名稱，直接返回
-        if recommended_specialty and len(recommended_specialty) > 0:
-            return recommended_specialty
+        return '內科'
+    
+    # 清理提取的專科名稱
+    recommended_specialty = re.sub(r'\s*(or|或)\s*.*$', '', recommended_specialty, flags=re.IGNORECASE).strip()
+    
+    # 尋找匹配的標準專科名稱
+    for standard_specialty, variations in specialty_mapping.items():
+        for variation in variations:
+            if variation.lower() in recommended_specialty.lower():
+                return standard_specialty
+    
+    # 如果找不到匹配，但有提取到專科名稱，返回清理後的名稱
+    if recommended_specialty and len(recommended_specialty) > 0:
+        return recommended_specialty
     
     # 如果沒有找到明確的專科推薦，返回內科作為默認
     return '內科'
@@ -956,6 +998,55 @@ def extract_specialty_from_diagnosis(diagnosis_response: str) -> str:
 def extract_specialty_from_ai_response(ai_response: str) -> str:
     """從AI回應中提取推薦的專科（保留兼容性）"""
     return extract_specialty_from_diagnosis(ai_response)
+
+def extract_severity_from_diagnosis(diagnosis_text: str) -> str:
+    """從診斷文本中提取嚴重程度"""
+    if not diagnosis_text:
+        return 'mild'
+    
+    text_lower = diagnosis_text.lower()
+    
+    # 檢查緊急/嚴重關鍵字
+    emergency_keywords = [
+        'emergency', '緊急', '急診', 'urgent', '嚴重', 'severe', 'critical', '危急',
+        'life-threatening', '威脅生命', 'immediate', '立即', 'high risk', '高風險'
+    ]
+    
+    moderate_keywords = [
+        'moderate', '中等', '中度', 'concerning', '需要關注', 'worrying', '令人擔憂',
+        'significant', '顯著', 'notable', '值得注意'
+    ]
+    
+    for keyword in emergency_keywords:
+        if keyword in text_lower:
+            return 'severe'
+    
+    for keyword in moderate_keywords:
+        if keyword in text_lower:
+            return 'moderate'
+    
+    return 'mild'
+
+def check_emergency_needed(diagnosis_text: str) -> bool:
+    """檢查是否需要緊急醫療"""
+    if not diagnosis_text:
+        return False
+    
+    text_lower = diagnosis_text.lower()
+    
+    emergency_indicators = [
+        'call emergency', '撥打急救', 'go to emergency', '前往急診',
+        'seek immediate', '立即就醫', 'urgent care', '緊急護理',
+        'emergency room', '急診室', 'hospital immediately', '立即住院',
+        'life-threatening', '威脅生命', 'critical condition', '危急狀況',
+        '999', '911', '112', 'ambulance', '救護車'
+    ]
+    
+    for indicator in emergency_indicators:
+        if indicator in text_lower:
+            return True
+    
+    return False
 
 def safe_str_check(value, search_term):
     """安全的字符串檢查，處理NaN值"""

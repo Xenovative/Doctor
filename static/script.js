@@ -461,6 +461,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const address = doctor.clinic_addresses || translateText('not_provided');
         
         card.innerHTML = `
+            ${doctor.is_emergency ? `
+            <div class="emergency-alert">
+                <i class="fas fa-exclamation-triangle"></i>
+                ${doctor.emergency_message || translateText('emergency_care_needed')}
+            </div>
+            ` : ''}
             <div class="match-score">
                 <i class="fas fa-star"></i>
                 ${translateText('recommendation_rank')} ${rank}${(() => {
@@ -483,7 +489,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             </div>
             
-            <div class="doctor-details">
+            <div class="doctor-details-basic">
                 <div class="detail-item">
                     <i class="fas fa-language"></i>
                     <div>
@@ -499,7 +505,16 @@ document.addEventListener('DOMContentLoaded', function() {
                         ${phoneDisplay}
                     </div>
                 </div>
-                
+            </div>
+            
+            <div class="more-info-toggle">
+                <button class="more-info-btn" onclick="toggleMoreInfo(this)">
+                    <i class="fas fa-chevron-down"></i>
+                    <span>${translateText('more_info')}</span>
+                </button>
+            </div>
+            
+            <div class="doctor-details-extended" style="display: none;">
                 <div class="detail-item">
                     <i class="fas fa-envelope"></i>
                     <div>
@@ -515,13 +530,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         ${address}
                     </div>
                 </div>
-            </div>
-            
-            <div class="detail-item" style="margin-top: 15px;">
-                <i class="fas fa-graduation-cap"></i>
-                <div>
-                    <strong>${translateText('qualifications_label')}</strong>
-                    ${doctorQualifications || translateText('not_provided')}
+                
+                <div class="detail-item">
+                    <i class="fas fa-graduation-cap"></i>
+                    <div>
+                        <strong>${translateText('qualifications_label')}</strong>
+                        ${doctorQualifications || translateText('not_provided')}
+                    </div>
                 </div>
             </div>
             
@@ -535,7 +550,11 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 添加WhatsApp鏈接功能
         card.style.cursor = 'pointer';
-        card.addEventListener('click', function() {
+        card.addEventListener('click', function(e) {
+            // Don't trigger WhatsApp if clicking on more info button
+            if (e.target.closest('.more-info-btn')) {
+                return;
+            }
             // Track doctor click
             trackDoctorClick(doctor.name, doctor.specialty);
             
@@ -676,4 +695,36 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Click tracking failed:', error);
         });
     }
+
+    // Toggle more info functionality
+    window.toggleMoreInfo = function(button) {
+        const card = button.closest('.doctor-card');
+        const extendedDetails = card.querySelector('.doctor-details-extended');
+        const icon = button.querySelector('i');
+        const span = button.querySelector('span');
+        
+        if (extendedDetails.style.display === 'none') {
+            extendedDetails.style.display = 'block';
+            icon.className = 'fas fa-chevron-up';
+            span.textContent = translateText('less_info');
+            
+            // Smooth animation
+            extendedDetails.style.maxHeight = '0px';
+            extendedDetails.style.overflow = 'hidden';
+            extendedDetails.style.transition = 'max-height 0.3s ease-out';
+            
+            setTimeout(() => {
+                extendedDetails.style.maxHeight = extendedDetails.scrollHeight + 'px';
+            }, 10);
+        } else {
+            extendedDetails.style.maxHeight = '0px';
+            icon.className = 'fas fa-chevron-down';
+            span.textContent = translateText('more_info');
+            
+            setTimeout(() => {
+                extendedDetails.style.display = 'none';
+                extendedDetails.style.maxHeight = '';
+            }, 300);
+        }
+    };
 });
