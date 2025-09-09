@@ -439,8 +439,9 @@ document.addEventListener('DOMContentLoaded', function() {
             } else if (result.zh) {
                 return result.zh;
             }
-            // Fallback to string conversion
-            return String(result);
+            // If object doesn't have expected language properties, return the key as fallback
+            console.warn(`Translation object for key "${key}" missing expected language properties:`, result);
+            return key;
         }
         
         return result || key;
