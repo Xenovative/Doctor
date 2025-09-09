@@ -751,51 +751,6 @@ body::before {
     75% { transform: translateX(2px); }
 }
 
-.more-info-toggle {
-    text-align: center;
-    margin: 15px 0;
-}
-
-.more-info-btn {
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-}
-
-.more-info-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-    background: linear-gradient(135deg, #5a6fd8, #6a42a0);
-}
-
-.more-info-btn:active {
-    transform: translateY(0);
-}
-
-.more-info-btn i {
-    transition: transform 0.3s ease;
-}
-
-.doctor-details-extended {
-    overflow: hidden;
-    transition: max-height 0.3s ease-out;
-}
-
-.doctor-details-basic,
-.doctor-details-extended {
-    margin-top: 15px;
-}
-
 .doctor-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 25px rgba(0,0,0,0.15);
