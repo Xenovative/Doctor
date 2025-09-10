@@ -153,7 +153,23 @@ class LanguageManager {
             document.querySelectorAll('[data-translate]').forEach(element => {
                 const key = element.getAttribute('data-translate');
                 if (translations[key]) {
-                    element.textContent = translations[key];
+                    let translatedText = translations[key];
+                    // Handle bilingual objects
+                    if (typeof translatedText === 'object' && translatedText !== null) {
+                        const currentLang = window.languageManager ? window.languageManager.getCurrentLanguage() : 'zh-TW';
+                        if (currentLang === 'en' && translatedText.en) {
+                            translatedText = translatedText.en;
+                        } else if (translatedText['zh-TW']) {
+                            translatedText = translatedText['zh-TW'];
+                        } else if (translatedText.zh) {
+                            translatedText = translatedText.zh;
+                        } else if (translatedText.en) {
+                            translatedText = translatedText.en;
+                        } else {
+                            translatedText = key; // fallback to key
+                        }
+                    }
+                    element.textContent = translatedText;
                 }
             });
 
@@ -161,7 +177,23 @@ class LanguageManager {
             document.querySelectorAll('[data-translate-placeholder]').forEach(element => {
                 const key = element.getAttribute('data-translate-placeholder');
                 if (translations[key]) {
-                    element.placeholder = translations[key];
+                    let translatedText = translations[key];
+                    // Handle bilingual objects
+                    if (typeof translatedText === 'object' && translatedText !== null) {
+                        const currentLang = window.languageManager ? window.languageManager.getCurrentLanguage() : 'zh-TW';
+                        if (currentLang === 'en' && translatedText.en) {
+                            translatedText = translatedText.en;
+                        } else if (translatedText['zh-TW']) {
+                            translatedText = translatedText['zh-TW'];
+                        } else if (translatedText.zh) {
+                            translatedText = translatedText.zh;
+                        } else if (translatedText.en) {
+                            translatedText = translatedText.en;
+                        } else {
+                            translatedText = key; // fallback to key
+                        }
+                    }
+                    element.placeholder = translatedText;
                 }
             });
 
@@ -249,6 +281,9 @@ class LanguageManager {
         
         // Update detailed health info labels
         this.updateDetailedHealthLabels();
+        
+        // Update more info button text
+        this.updateMoreInfoButton();
     }
 
     getLanguageTranslationKey(value) {
@@ -343,6 +378,34 @@ class LanguageManager {
                 }
             }
         });
+    }
+
+    updateMoreInfoButton() {
+        const moreInfoBtn = document.getElementById('more-info-btn');
+        if (moreInfoBtn) {
+            const isExpanded = moreInfoBtn.classList.contains('expanded');
+            const iconClass = isExpanded ? 'fas fa-minus-circle' : 'fas fa-plus-circle';
+            const textKey = isExpanded ? 'less_info' : 'more_info';
+            
+            let translatedText = this.translations[textKey];
+            // Handle bilingual objects
+            if (typeof translatedText === 'object' && translatedText !== null) {
+                const currentLang = this.getCurrentLanguage();
+                if (currentLang === 'en' && translatedText.en) {
+                    translatedText = translatedText.en;
+                } else if (translatedText['zh-TW']) {
+                    translatedText = translatedText['zh-TW'];
+                } else if (translatedText.zh) {
+                    translatedText = translatedText.zh;
+                } else if (translatedText.en) {
+                    translatedText = translatedText.en;
+                } else {
+                    translatedText = isExpanded ? '收起資料' : '更多資料'; // fallback
+                }
+            }
+            
+            moreInfoBtn.innerHTML = `<i class="${iconClass}"></i> ${translatedText}`;
+        }
     }
 
     // Public method to get current language
