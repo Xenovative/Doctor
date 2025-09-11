@@ -407,108 +407,197 @@
                     <form id="editDoctorForm">
                         <input type="hidden" id="editDoctorId" name="doctor_id">
                         
-                        <div class="row">
-                            <div class="col-md-6">
-                                <h6 class="text-primary mb-3">基本資訊</h6>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">中文姓名</label>
-                                    <input type="text" class="form-control" id="editNameZh" name="name_zh">
+                        <!-- Tab Navigation -->
+                        <ul class="nav nav-tabs mb-4" id="doctorFormTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="basic-tab" data-bs-toggle="tab" data-bs-target="#basic" type="button" role="tab">
+                                    <i class="fas fa-user me-2"></i>基本資訊
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="contact-tab" data-bs-toggle="tab" data-bs-target="#contact" type="button" role="tab">
+                                    <i class="fas fa-phone me-2"></i>聯絡資訊
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="professional-tab" data-bs-toggle="tab" data-bs-target="#professional" type="button" role="tab">
+                                    <i class="fas fa-certificate me-2"></i>專業資訊
+                                </button>
+                            </li>
+                        </ul>
+
+                        <!-- Tab Content -->
+                        <div class="tab-content" id="doctorFormTabContent">
+                            <!-- Basic Info Tab -->
+                            <div class="tab-pane fade show active" id="basic" role="tabpanel">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">醫生姓名 <span class="text-danger">*</span></label>
+                                            <input type="text" class="form-control" id="editNameZh" name="name_zh" placeholder="請輸入醫生中文姓名" required>
+                                            <div class="form-text">主要顯示名稱</div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">English Name</label>
+                                            <input type="text" class="form-control" id="editNameEn" name="name_en" placeholder="Doctor's English name">
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">專科 <span class="text-danger">*</span></label>
+                                            <select class="form-select" id="editSpecialtyZh" name="specialty_zh" required>
+                                                <option value="">請選擇專科</option>
+                                                <option value="內科">內科</option>
+                                                <option value="外科">外科</option>
+                                                <option value="小兒科">小兒科</option>
+                                                <option value="婦產科">婦產科</option>
+                                                <option value="骨科">骨科</option>
+                                                <option value="皮膚科">皮膚科</option>
+                                                <option value="眼科">眼科</option>
+                                                <option value="耳鼻喉科">耳鼻喉科</option>
+                                                <option value="精神科">精神科</option>
+                                                <option value="神經科">神經科</option>
+                                                <option value="心臟科">心臟科</option>
+                                                <option value="急診科">急診科</option>
+                                                <option value="感染及傳染病科">感染及傳染病科</option>
+                                                <option value="腎臟科">腎臟科</option>
+                                                <option value="胃腸科">胃腸科</option>
+                                                <option value="呼吸科">呼吸科</option>
+                                                <option value="血液科">血液科</option>
+                                                <option value="腫瘤科">腫瘤科</option>
+                                                <option value="風濕科">風濕科</option>
+                                                <option value="內分泌科">內分泌科</option>
+                                                <option value="泌尿科">泌尿科</option>
+                                                <option value="放射科">放射科</option>
+                                                <option value="病理科">病理科</option>
+                                                <option value="麻醉科">麻醉科</option>
+                                                <option value="復健科">復健科</option>
+                                                <option value="核醫科">核醫科</option>
+                                                <option value="整形外科">整形外科</option>
+                                                <option value="神經外科">神經外科</option>
+                                                <option value="胸腔外科">胸腔外科</option>
+                                                <option value="心臟外科">心臟外科</option>
+                                                <option value="血管外科">血管外科</option>
+                                                <option value="大腸直腸外科">大腸直腸外科</option>
+                                                <option value="全科醫生">全科醫生</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">Specialty (English)</label>
+                                            <input type="text" class="form-control" id="editSpecialtyEn" name="specialty_en" placeholder="English specialty">
+                                        </div>
+                                    </div>
                                 </div>
                                 
-                                <div class="mb-3">
-                                    <label class="form-label">英文姓名</label>
-                                    <input type="text" class="form-control" id="editNameEn" name="name_en">
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">中文專科</label>
-                                    <input type="text" class="form-control" id="editSpecialtyZh" name="specialty_zh">
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">英文專科</label>
-                                    <input type="text" class="form-control" id="editSpecialtyEn" name="specialty_en">
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">中文語言</label>
-                                    <input type="text" class="form-control" id="editLanguagesZh" name="languages_zh">
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">英文語言</label>
-                                    <input type="text" class="form-control" id="editLanguagesEn" name="languages_en">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">語言能力</label>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="langChinese" value="中文">
+                                                <label class="form-check-label" for="langChinese">中文</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="langEnglish" value="English">
+                                                <label class="form-check-label" for="langEnglish">English</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="langCantonese" value="廣東話">
+                                                <label class="form-check-label" for="langCantonese">廣東話</label>
+                                            </div>
+                                            <input type="hidden" id="editLanguagesZh" name="languages_zh">
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Languages (English)</label>
+                                            <input type="text" class="form-control" id="editLanguagesEn" name="languages_en" placeholder="English, Mandarin, Cantonese">
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             
-                            <div class="col-md-6">
-                                <h6 class="text-primary mb-3">聯絡資訊</h6>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">聯絡電話</label>
-                                    <input type="text" class="form-control" id="editContactNumbers" name="contact_numbers">
+                            <!-- Contact Info Tab -->
+                            <div class="tab-pane fade" id="contact" role="tabpanel">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">聯絡電話 <span class="text-danger">*</span></label>
+                                            <input type="tel" class="form-control" id="editContactNumbers" name="contact_numbers" placeholder="例如: +852 1234 5678" required>
+                                            <div class="form-text">可輸入多個電話號碼，用逗號分隔</div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">電子郵件</label>
+                                            <input type="email" class="form-control" id="editEmail" name="email" placeholder="doctor@example.com">
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">個人檔案網址</label>
+                                            <input type="url" class="form-control" id="editProfileUrl" name="profile_url" placeholder="https://">
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">診所地址 <span class="text-danger">*</span></label>
+                                            <textarea class="form-control" id="editClinicAddresses" name="clinic_addresses" rows="3" placeholder="請輸入完整診所地址" required></textarea>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">應診時間</label>
+                                            <textarea class="form-control" id="editConsultationHours" name="consultation_hours" rows="3" placeholder="例如: 週一至五 9:00-17:00&#10;週六 9:00-13:00"></textarea>
+                                        </div>
+                                    </div>
                                 </div>
                                 
-                                <div class="mb-3">
-                                    <label class="form-label">電子郵件</label>
-                                    <input type="email" class="form-control" id="editEmail" name="email">
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">診所地址</label>
-                                    <textarea class="form-control" id="editClinicAddresses" name="clinic_addresses" rows="2"></textarea>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">應診時間</label>
-                                    <textarea class="form-control" id="editConsultationHours" name="consultation_hours" rows="2"></textarea>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">診金</label>
-                                    <input type="text" class="form-control" id="editConsultationFee" name="consultation_fee">
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="row">
-                            <div class="col-md-6">
-                                <h6 class="text-primary mb-3">專業資訊</h6>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">資格認證 (中文)</label>
-                                    <textarea class="form-control" id="editQualificationsZh" name="qualifications_zh" rows="2"></textarea>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">資格認證 (English)</label>
-                                    <textarea class="form-control" id="editQualificationsEn" name="qualifications_en" rows="2"></textarea>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">註冊號碼</label>
-                                    <input type="text" class="form-control" id="editRegistrationNumber" name="registration_number">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label class="form-label">診金</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">HK$</span>
+                                                <input type="number" class="form-control" id="editConsultationFee" name="consultation_fee" placeholder="500">
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             
-                            <div class="col-md-6">
-                                <h6 class="text-primary mb-3">其他設定</h6>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">優先級別</label>
-                                    <select class="form-control" id="editPriorityFlag" name="priority_flag">
-                                        <option value="0">一般 (0)</option>
-                                        <option value="1">優先 (1)</option>
-                                        <option value="2">高優先 (2)</option>
-                                        <option value="3">最高優先 (3)</option>
-                                    </select>
-                                    <small class="form-text text-muted">優先級別越高，在相同地區內排序越前</small>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">個人檔案連結</label>
-                                    <input type="url" class="form-control" id="editProfileUrl" name="profile_url">
+                            <!-- Professional Info Tab -->
+                            <div class="tab-pane fade" id="professional" role="tabpanel">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">資格認證 (中文)</label>
+                                            <textarea class="form-control" id="editQualificationsZh" name="qualifications_zh" rows="4" placeholder="例如: 香港大學內外全科醫學士&#10;英國皇家內科醫學院院士"></textarea>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">註冊號碼</label>
+                                            <input type="text" class="form-control" id="editRegistrationNumber" name="registration_number" placeholder="例如: 12345">
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Qualifications (English)</label>
+                                            <textarea class="form-control" id="editQualificationsEn" name="qualifications_en" rows="4" placeholder="e.g. MBBS (HKU)&#10;MRCP (UK)"></textarea>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">優先級</label>
+                                            <select class="form-select" id="editPriorityFlag" name="priority_flag">
+                                                <option value="0">一般</option>
+                                                <option value="1">高優先級</option>
+                                            </select>
+                                            <div class="form-text">高優先級醫生會優先顯示</div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -680,6 +769,9 @@
                     document.getElementById('editRegistrationNumber').value = data.registration_number || '';
                     document.getElementById('editPriorityFlag').value = data.priority_flag || '0';
                     
+                    // Update language checkboxes
+                    updateLanguageCheckboxes(data.languages_zh || '');
+                    
                     // Update modal title
                     document.querySelector('#editDoctorModal .modal-title').textContent = '編輯醫生資料';
                     
@@ -772,7 +864,12 @@
                 },
                 body: JSON.stringify(data)
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(result => {
                 if (result.success) {
                     alert('醫生資料已成功更新！');
@@ -790,6 +887,131 @@
                 alert('儲存醫生資料時發生錯誤');
             });
         }
+
+        // Language checkbox handling
+        function updateLanguageCheckboxes(languagesText) {
+            // Clear all checkboxes first
+            document.getElementById('langChinese').checked = false;
+            document.getElementById('langEnglish').checked = false;
+            document.getElementById('langCantonese').checked = false;
+            
+            if (languagesText) {
+                const languages = languagesText.toLowerCase();
+                if (languages.includes('中文') || languages.includes('mandarin')) {
+                    document.getElementById('langChinese').checked = true;
+                }
+                if (languages.includes('english') || languages.includes('英文')) {
+                    document.getElementById('langEnglish').checked = true;
+                }
+                if (languages.includes('廣東話') || languages.includes('cantonese')) {
+                    document.getElementById('langCantonese').checked = true;
+                }
+            }
+        }
+
+        function updateLanguageField() {
+            const checkboxes = ['langChinese', 'langEnglish', 'langCantonese'];
+            const selectedLanguages = [];
+            
+            checkboxes.forEach(id => {
+                const checkbox = document.getElementById(id);
+                if (checkbox.checked) {
+                    selectedLanguages.push(checkbox.value);
+                }
+            });
+            
+            document.getElementById('editLanguagesZh').value = selectedLanguages.join(', ');
+        }
+
+        // Add event listeners for language checkboxes
+        document.addEventListener('DOMContentLoaded', function() {
+            ['langChinese', 'langEnglish', 'langCantonese'].forEach(id => {
+                document.getElementById(id).addEventListener('change', updateLanguageField);
+            });
+
+            // Form validation
+            const form = document.getElementById('editDoctorForm');
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Basic validation
+                const requiredFields = ['editNameZh', 'editSpecialtyZh', 'editContactNumbers', 'editClinicAddresses'];
+                let isValid = true;
+                
+                requiredFields.forEach(fieldId => {
+                    const field = document.getElementById(fieldId);
+                    if (!field.value.trim()) {
+                        field.classList.add('is-invalid');
+                        isValid = false;
+                    } else {
+                        field.classList.remove('is-invalid');
+                    }
+                });
+                
+                if (isValid) {
+                    saveDoctorChanges();
+                } else {
+                    // Switch to the first tab with errors
+                    const basicTab = document.getElementById('basic-tab');
+                    const contactTab = document.getElementById('contact-tab');
+                    
+                    if (!document.getElementById('editNameZh').value.trim() || 
+                        !document.getElementById('editSpecialtyZh').value.trim()) {
+                        basicTab.click();
+                    } else if (!document.getElementById('editContactNumbers').value.trim() || 
+                               !document.getElementById('editClinicAddresses').value.trim()) {
+                        contactTab.click();
+                    }
+                    
+                    alert('請填寫所有必填欄位（標有 * 的欄位）');
+                }
+            });
+
+            // Auto-update English specialty based on Chinese selection
+            document.getElementById('editSpecialtyZh').addEventListener('change', function() {
+                const specialtyMap = {
+                    '內科': 'Internal Medicine',
+                    '外科': 'Surgery',
+                    '小兒科': 'Pediatrics',
+                    '婦產科': 'Obstetrics and Gynecology',
+                    '骨科': 'Orthopedics',
+                    '皮膚科': 'Dermatology',
+                    '眼科': 'Ophthalmology',
+                    '耳鼻喉科': 'Otolaryngology',
+                    '精神科': 'Psychiatry',
+                    '神經科': 'Neurology',
+                    '心臟科': 'Cardiology',
+                    '急診科': 'Emergency Medicine',
+                    '感染及傳染病科': 'Infectious Diseases',
+                    '腎臟科': 'Nephrology',
+                    '胃腸科': 'Gastroenterology',
+                    '呼吸科': 'Pulmonology',
+                    '血液科': 'Hematology',
+                    '腫瘤科': 'Oncology',
+                    '風濕科': 'Rheumatology',
+                    '內分泌科': 'Endocrinology',
+                    '泌尿科': 'Urology',
+                    '放射科': 'Radiology',
+                    '病理科': 'Pathology',
+                    '麻醉科': 'Anesthesiology',
+                    '復健科': 'Rehabilitation Medicine',
+                    '核醫科': 'Nuclear Medicine',
+                    '整形外科': 'Plastic Surgery',
+                    '神經外科': 'Neurosurgery',
+                    '胸腔外科': 'Thoracic Surgery',
+                    '心臟外科': 'Cardiac Surgery',
+                    '血管外科': 'Vascular Surgery',
+                    '大腸直腸外科': 'Colorectal Surgery',
+                    '全科醫生': 'General Practitioner'
+                };
+                
+                const selectedSpecialty = this.value;
+                const englishField = document.getElementById('editSpecialtyEn');
+                if (specialtyMap[selectedSpecialty] && !englishField.value.trim()) {
+                    englishField.value = specialtyMap[selectedSpecialty];
+                }
+            });
+        });
     </script>
 </body>
 </html>
