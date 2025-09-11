@@ -817,9 +817,24 @@ def get_available_specialties() -> List[str]:
     try:
         conn = sqlite3.connect('doctors.db')
         cursor = conn.cursor()
-        cursor.execute("SELECT DISTINCT COALESCE(specialty_zh, specialty_en, specialty) as specialty FROM doctors WHERE specialty IS NOT NULL ORDER BY specialty")
-        specialties = [row[0] for row in cursor.fetchall() if row[0] and row[0].strip()]
+        # Try different specialty columns with encoding handling
+        cursor.execute("SELECT DISTINCT specialty FROM doctors WHERE specialty IS NOT NULL AND specialty != '' AND LENGTH(specialty) > 0")
+        specialties = []
+        for row in cursor.fetchall():
+            try:
+                if row[0] and isinstance(row[0], str) and len(row[0].strip()) > 0:
+                    specialties.append(row[0].strip())
+            except (UnicodeDecodeError, AttributeError):
+                continue
         conn.close()
+        
+        # Remove duplicates and sort
+        specialties = sorted(list(set(specialties)))
+        
+        if not specialties:
+            # Fallback list
+            specialties = ['內科', '外科', '小兒科', '婦產科', '骨科', '皮膚科', '眼科', '耳鼻喉科', '精神科', '神經科', '心臟科', '急診科']
+        
         return specialties
     except Exception as e:
         print(f"Error fetching specialties: {e}")
@@ -1053,81 +1068,86 @@ def analyze_symptoms_and_match(age: int, gender: str, symptoms: str, chronic_con
     }
 
 def extract_specialties_from_diagnosis(diagnosis_text: str) -> List[str]:
-    """從診斷文本中提取推薦的專科（支援多個專科）"""
+    """從診斷文本中提取推薦的專科"""
     if not diagnosis_text:
         return ['內科']
     
-    # 專科名稱正規化映射和相關專科
-    specialty_mapping = {
-        '精神科': {
-            'variations': ['精神科', '心理科', '精神健康科', '精神醫學科', 'Psychiatry', 'Mental Health'],
-            'related': ['神經科', '內科']
-        },
-        '神經科': {
-            'variations': ['神經科', '腦神經科', '神經內科', 'Neurology'],
-            'related': ['精神科', '內科', '急診科']
-        },
-        '心臟科': {
-            'variations': ['心臟科', '心臟內科', '心血管科', 'Cardiology'],
-            'related': ['內科', '急診科', '外科']
-        },
-        '急診科': {
-            'variations': ['急診科', '急症科', 'Emergency', 'Emergency Medicine'],
-            'related': ['內科', '外科']
-        },
-        '外科': {
-            'variations': ['外科', '一般外科', '普通外科', 'Surgery', 'General Surgery'],
-            'related': ['急診科', '骨科', '泌尿科']
-        },
-        '皮膚科': {
-            'variations': ['皮膚科', '皮膚及性病科', 'Dermatology'],
-            'related': ['內科', '感染科']
-        },
-        '眼科': {
-            'variations': ['眼科', 'Ophthalmology'],
-            'related': ['神經科', '內科']
-        },
-        '耳鼻喉科': {
-            'variations': ['耳鼻喉科', 'ENT', 'Otolaryngology'],
-            'related': ['感染科', '內科', '外科']
-        },
-        '婦產科': {
-            'variations': ['婦產科', '婦科', '產科', 'Gynecology', 'Obstetrics'],
-            'related': ['內科', '外科', '泌尿科']
-        },
-        '兒科': {
-            'variations': ['兒科', '小兒科', 'Pediatrics', 'Pediatric'],
-            'related': ['內科', '感染科', '呼吸科']
-        },
-        '骨科': {
-            'variations': ['骨科', '骨外科', 'Orthopedics', 'Orthopedic'],
-            'related': ['外科', '神經科', '內科']
-        },
-        '泌尿科': {
-            'variations': ['泌尿科', '泌尿外科', 'Urology'],
-            'related': ['外科', '內科', '腎科']
-        },
-        '腸胃科': {
-            'variations': ['腸胃科', '消化內科', '胃腸科', 'Gastroenterology'],
-            'related': ['內科', '外科', '感染科']
-        },
-        '內分泌科': {
-            'variations': ['內分泌科', '糖尿病科', 'Endocrinology'],
-            'related': ['內科', '心臟科', '腎科']
-        },
-        '感染科': {
-            'variations': ['感染科', '傳染病科', 'Infectious Disease', 'Infectious Disease Specialist'],
-            'related': ['內科', '呼吸科', '急診科']
-        },
-        '呼吸科': {
-            'variations': ['呼吸科', '胸肺科', '肺科', 'Pulmonology', 'Respiratory'],
-            'related': ['內科', '感染科', '心臟科']
-        },
-        '內科': {
-            'variations': ['內科', '普通科', '家庭醫學科', '全科', 'General Practitioner', 'General Practice', 'Internal Medicine'],
-            'related': ['心臟科', '腸胃科', '呼吸科', '內分泌科']
-        }
-    }
+    # Get available specialties from database
+    available_specialties = get_available_specialties()
+    
+    # Create dynamic mapping based on database specialties
+    specialty_mapping = {}
+    for specialty in available_specialties:
+        # Create variations for each specialty
+        variations = [specialty]
+        
+        # Add common English translations and variations
+        if '內科' in specialty:
+            variations.extend(['internal medicine', 'general medicine', 'family medicine'])
+        elif '外科' in specialty:
+            variations.extend(['surgery', 'general surgery'])
+        elif '小兒科' in specialty or '兒科' in specialty:
+            variations.extend(['pediatrics', 'pediatric'])
+        elif '婦產科' in specialty:
+            variations.extend(['obstetrics', 'gynecology', 'ob/gyn', 'obgyn'])
+        elif '骨科' in specialty:
+            variations.extend(['orthopedics', 'orthopedic'])
+        elif '皮膚科' in specialty:
+            variations.extend(['dermatology', 'dermatologic'])
+        elif '眼科' in specialty:
+            variations.extend(['ophthalmology', 'eye'])
+        elif '耳鼻喉' in specialty:
+            variations.extend(['ent', 'otolaryngology'])
+        elif '精神科' in specialty:
+            variations.extend(['psychiatry', 'psychiatric', 'mental health'])
+        elif '神經科' in specialty:
+            variations.extend(['neurology', 'neurologic'])
+        elif '心臟科' in specialty or '心血管' in specialty:
+            variations.extend(['cardiology', 'cardiac'])
+        elif '急診' in specialty:
+            variations.extend(['emergency', 'emergency medicine', 'er'])
+        elif '感染' in specialty:
+            variations.extend(['infectious disease', 'infection'])
+        elif '腎臟科' in specialty:
+            variations.extend(['nephrology', 'kidney'])
+        elif '胃腸科' in specialty or '消化科' in specialty:
+            variations.extend(['gastroenterology', 'digestive'])
+        elif '呼吸科' in specialty:
+            variations.extend(['pulmonology', 'respiratory'])
+        elif '血液科' in specialty:
+            variations.extend(['hematology', 'blood'])
+        elif '腫瘤科' in specialty:
+            variations.extend(['oncology', 'cancer'])
+        elif '風濕科' in specialty:
+            variations.extend(['rheumatology', 'rheumatic'])
+        elif '內分泌' in specialty:
+            variations.extend(['endocrinology', 'hormone'])
+        elif '泌尿科' in specialty:
+            variations.extend(['urology', 'urologic'])
+        elif '放射科' in specialty:
+            variations.extend(['radiology', 'imaging'])
+        elif '病理科' in specialty:
+            variations.extend(['pathology'])
+        elif '麻醉科' in specialty:
+            variations.extend(['anesthesiology'])
+        elif '復健科' in specialty:
+            variations.extend(['rehabilitation', 'physical medicine'])
+        elif '核醫科' in specialty:
+            variations.extend(['nuclear medicine'])
+        elif '整形外科' in specialty:
+            variations.extend(['plastic surgery'])
+        elif '神經外科' in specialty:
+            variations.extend(['neurosurgery'])
+        elif '胸腔外科' in specialty:
+            variations.extend(['thoracic surgery'])
+        elif '心臟外科' in specialty:
+            variations.extend(['cardiac surgery'])
+        elif '血管外科' in specialty:
+            variations.extend(['vascular surgery'])
+        elif '大腸直腸外科' in specialty:
+            variations.extend(['colorectal surgery'])
+        
+        specialty_mapping[specialty] = {'variations': variations}
     
     # 使用正則表達式提取專科資訊 (支援中英文)
     specialty_patterns = [
@@ -1282,7 +1302,8 @@ def check_emergency_needed(diagnosis_text: str) -> bool:
     # First check for explicit non-emergency statements
     non_emergency_patterns = [
         '不需要緊急就醫', '非緊急', '不緊急', 'not emergency', 'no emergency needed',
-        '不需要急診', '無需緊急', 'non-urgent', 'not urgent'
+        '不需要急診', '無需緊急', 'non-urgent', 'not urgent',
+        '緊急程度：否', '緊急程度: 否', 'emergency: no', 'emergency:no'
     ]
     
     for pattern in non_emergency_patterns:
@@ -1300,7 +1321,7 @@ def check_emergency_needed(diagnosis_text: str) -> bool:
     
     # Weaker indicators that need context checking
     contextual_indicators = [
-        'seek immediate', '立即就醫', 'urgent care'
+        'seek immediate', 'urgent care'
     ]
     
     found_strong = []
@@ -1321,10 +1342,11 @@ def check_emergency_needed(diagnosis_text: str) -> bool:
     
     # For contextual indicators, check if they appear in conditional statements
     if found_contextual:
-        # Check if the contextual indicator appears in a conditional context
+        # Check if the contextual indicator appears in conditional context
         conditional_patterns = [
             '若.*惡化.*立即就醫', '如果.*嚴重.*立即就醫', 'if.*worse.*seek immediate',
-            '症狀持續.*立即就醫', '持續或惡化.*立即就醫'
+            '症狀持續.*立即就醫', '持續或惡化.*立即就醫', '建議.*多休息.*並.*立即就醫',
+            '保持.*水分.*立即就醫', '避免.*刺激.*立即就醫'
         ]
         
         is_conditional = False
