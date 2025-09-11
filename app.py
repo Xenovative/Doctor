@@ -473,11 +473,16 @@ def format_diagnosis_report(user_query_data: dict, doctor_data: dict) -> str:
     """格式化診斷報告為WhatsApp消息"""
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     
+    # Format gender display
+    gender = user_query_data.get('gender', '')
+    gender_display = f"生理性別: {gender}" if gender else "生理性別: 未提供"
+    
     message = f"""🏥 *AI醫療診斷報告*
 📅 時間: {timestamp}
 
 👤 *患者信息*
 年齡: {user_query_data.get('age', 'N/A')}歲
+{gender_display}
 症狀: {user_query_data.get('symptoms', 'N/A')}
 語言: {user_query_data.get('language', 'N/A')}
 地區: {user_query_data.get('location', 'N/A')}
@@ -605,12 +610,14 @@ def require_permission(permission):
         return decorated_function
     return decorator
 
-def generate_user_summary(age: int, symptoms: str, chronic_conditions: str, detailed_health_info: Dict) -> str:
+def generate_user_summary(age: int, gender: str, symptoms: str, chronic_conditions: str, detailed_health_info: Dict) -> str:
     """生成用戶輸入數據摘要"""
     summary_parts = []
     
     # 基本信息
     summary_parts.append(f"年齡：{age}歲")
+    if gender:
+        summary_parts.append(f"性別：{gender}")
     summary_parts.append(f"主要症狀：{symptoms}")
     
     # 長期病史
@@ -803,7 +810,7 @@ def call_ai_api(prompt: str) -> str:
     else:
         return f"不支援的AI提供商: {provider}"
 
-def diagnose_symptoms(age: int, symptoms: str, chronic_conditions: str = '', detailed_health_info: Dict = None, user_language: str = 'zh-TW') -> Dict[str, str]:
+def diagnose_symptoms(age: int, gender: str, symptoms: str, chronic_conditions: str = '', detailed_health_info: Dict = None, user_language: str = 'zh-TW') -> Dict[str, str]:
     """使用AI診斷症狀"""
     
     if detailed_health_info is None:
@@ -811,6 +818,8 @@ def diagnose_symptoms(age: int, symptoms: str, chronic_conditions: str = '', det
     
     # 構建詳細健康信息
     health_details = []
+    if gender:
+        health_details.append(f"性別：{gender}")
     if chronic_conditions.strip():
         health_details.append(f"長期病史：{chronic_conditions}")
     
@@ -913,20 +922,20 @@ def diagnose_symptoms(age: int, symptoms: str, chronic_conditions: str = '', det
         'emergency_needed': emergency_needed
     }
 
-def analyze_symptoms_and_match(age: int, symptoms: str, chronic_conditions: str, language: str, location: str, detailed_health_info: Dict = None, location_details: Dict = None) -> Dict[str, Any]:
+def analyze_symptoms_and_match(age: int, gender: str, symptoms: str, chronic_conditions: str, language: str, location: str, detailed_health_info: Dict = None, location_details: Dict = None) -> Dict[str, Any]:
     """使用AI分析症狀並配對醫生"""
     
     if detailed_health_info is None:
         detailed_health_info = {}
     
     # 生成用戶數據摘要
-    user_summary = generate_user_summary(age, symptoms, chronic_conditions, detailed_health_info)
+    user_summary = generate_user_summary(age, gender, symptoms, chronic_conditions, detailed_health_info)
     
     # Get user's language from session or use the language parameter passed in
     user_language = session.get('language', language if language else 'zh-TW')
     
     # 第一步：AI診斷 (pass user language)
-    diagnosis_result = diagnose_symptoms(age, symptoms, chronic_conditions, detailed_health_info, user_language)
+    diagnosis_result = diagnose_symptoms(age, gender, symptoms, chronic_conditions, detailed_health_info, user_language)
     
     # 第二步：檢查是否需要緊急醫療處理
     print(f"DEBUG - Emergency check: emergency_needed={diagnosis_result.get('emergency_needed', False)}, severity_level={diagnosis_result.get('severity_level')}")
@@ -1490,6 +1499,7 @@ def find_doctor():
     try:
         data = request.get_json()
         age = int(data.get('age', 0))
+        gender = data.get('gender', '')
         symptoms = data.get('symptoms', '')
         chronic_conditions = data.get('chronicConditions', '')
         language = data.get('language', '')
@@ -1498,7 +1508,7 @@ def find_doctor():
         detailed_health_info = data.get('detailedHealthInfo', {})
         ui_language = data.get('uiLanguage', 'zh-TW')  # Get UI language for diagnosis
         
-        # 驗證輸入
+        # 驗證輸入 - gender is optional for backward compatibility
         if not all([age, symptoms, language, location]):
             return jsonify({'error': '請填寫所有必要資料'}), 400
         
@@ -1506,7 +1516,9 @@ def find_doctor():
         session['language'] = ui_language
         
         # 使用AI分析症狀並配對醫生 (傳遞location_details)
-        result = analyze_symptoms_and_match(age, symptoms, chronic_conditions, language, location, detailed_health_info, location_details)
+        # Handle backward compatibility - pass empty string if gender is None
+        gender_safe = gender or ''
+        result = analyze_symptoms_and_match(age, gender_safe, symptoms, chronic_conditions, language, location, detailed_health_info, location_details)
         
         # Log user query to database
         session_id = session.get('session_id', secrets.token_hex(16))
@@ -1517,13 +1529,13 @@ def find_doctor():
             cursor = conn.cursor()
             cursor.execute('''
                 INSERT INTO user_queries 
-                (age, symptoms, chronic_conditions, language, location, detailed_health_info, 
-                 ai_diagnosis, recommended_specialty, matched_doctors_count, user_ip, session_id)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (age, symptoms, chronic_conditions, language, location, 
+                (age, gender, symptoms, chronic_conditions, language, location, detailed_health_info, 
+                 ai_diagnosis, recommended_specialty, matched_doctors_count, user_ip, session_id, diagnosis_report)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (age, gender_safe, symptoms, chronic_conditions, language, location, 
                   json.dumps(detailed_health_info), result['diagnosis'], 
                   result['recommended_specialty'], len(result['doctors']), 
-                  get_real_ip(), session_id))
+                  get_real_ip(), session_id, result['diagnosis']))
             query_id = cursor.lastrowid
             session['last_query_id'] = query_id
             conn.commit()
@@ -2903,6 +2915,50 @@ def get_user_details(user_ip):
         print(f"User details error: {e}")
         return jsonify({'error': 'Failed to fetch user details'}), 500
 
+@app.route('/admin/api/user-reports/<user_ip>')
+@require_admin
+def get_user_reports(user_ip):
+    """API endpoint to get user diagnosis reports"""
+    try:
+        conn = sqlite3.connect('admin_data.db')
+        cursor = conn.cursor()
+        
+        # Get all user queries with diagnosis reports
+        cursor.execute('''
+            SELECT id, timestamp, age, gender, symptoms, chronic_conditions, 
+                   recommended_specialty, emergency_level, language, location, 
+                   diagnosis_report
+            FROM user_queries 
+            WHERE user_ip = ?
+            ORDER BY timestamp DESC
+        ''', (user_ip,))
+        queries = cursor.fetchall()
+        
+        conn.close()
+        
+        reports = []
+        for query in queries:
+            reports.append({
+                'id': query[0],
+                'timestamp': query[1],
+                'age': query[2],
+                'gender': query[3],
+                'symptoms': query[4],
+                'chronic_conditions': query[5],
+                'specialty': query[6],
+                'emergency_level': query[7],
+                'language': query[8],
+                'location': query[9],
+                'diagnosis_report': query[10]
+            })
+        
+        return jsonify({
+            'reports': reports
+        })
+    except Exception as e:
+        print(f"User reports error: {e}")
+        return jsonify({'error': 'Failed to fetch user reports'}), 500
+
 @app.route('/track_click', methods=['POST'])
 def track_click():
     """Track doctor link clicks and send WhatsApp notification"""
@@ -2925,7 +2981,7 @@ def track_click():
         # Get user query data for WhatsApp notification
         if query_id:
             cursor.execute('''
-                SELECT age, symptoms, chronic_conditions, language, location, 
+                SELECT age, gender, symptoms, chronic_conditions, language, location, 
                        detailed_health_info, ai_diagnosis, recommended_specialty
                 FROM user_queries WHERE id = ?
             ''', (query_id,))
@@ -2934,13 +2990,14 @@ def track_click():
             if user_query_row:
                 user_query_data = {
                     'age': user_query_row[0],
-                    'symptoms': user_query_row[1],
-                    'chronic_conditions': user_query_row[2],
-                    'language': user_query_row[3],
-                    'location': user_query_row[4],
-                    'detailed_health_info': user_query_row[5],
-                    'ai_diagnosis': user_query_row[6],
-                    'recommended_specialty': user_query_row[7]
+                    'gender': user_query_row[1],
+                    'symptoms': user_query_row[2],
+                    'chronic_conditions': user_query_row[3],
+                    'language': user_query_row[4],
+                    'location': user_query_row[5],
+                    'detailed_health_info': user_query_row[6],
+                    'ai_diagnosis': user_query_row[7],
+                    'recommended_specialty': user_query_row[8]
                 }
                 
                 doctor_data = {

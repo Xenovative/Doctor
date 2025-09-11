@@ -533,6 +533,7 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         
         const age = document.getElementById('age').value;
+        const gender = document.getElementById('gender').value;
         const symptoms = document.getElementById('symptoms').value;
         const language = document.getElementById('language').value;
         
@@ -601,6 +602,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // 收集表單數據
         const formData = {
             age: age,
+            gender: gender,
             symptoms: symptoms,
             chronicConditions: chronicConditions,
             language: language,

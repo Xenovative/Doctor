@@ -24,6 +24,9 @@ TRANSLATIONS = {
         'optional': '(可選)',
         'chronic_hint': '可選擇多項，如無長期病史可不選',
         'preferred_language': '偏好語言',
+        'gender': '生理性別',
+        'male': '男性',
+        'female': '女性',
         'location': '所在地區',
         'select_region': '請選擇大區',
         'select_district': '請選擇地區',
@@ -217,14 +220,8 @@ TRANSLATIONS = {
             'zh-TW': '全科醫生',
             'en': 'General Practitioner'
         },
-        'emergency_care_needed': {
-            'zh-TW': '🚨 建議緊急就醫',
-            'en': '🚨 Emergency Care Needed'
-        },
-        'urgent_consultation': {
-            'zh-TW': '需要緊急醫療諮詢',
-            'en': 'Urgent Medical Consultation Required'
-        },
+        'emergency_care_needed': '🚨 建議緊急就醫',
+        'urgent_consultation': '需要緊急醫療諮詢',
         
         # Location translations - Districts
         '中西區': '中西區',
@@ -319,6 +316,9 @@ TRANSLATIONS = {
         'optional': '(可选)',
         'chronic_hint': '可选择多项，如无长期病史可不选',
         'preferred_language': '偏好语言',
+        'gender': '生理性别',
+        'male': '男性',
+        'female': '女性',
         'location': '所在地区',
         'select_region': '请选择大区',
         'select_district': '请选择地区',
@@ -461,6 +461,8 @@ TRANSLATIONS = {
         'not_provided': '未提供',
         'unknown_doctor': '未知医生',
         'general_specialist': '专科医生',
+        'emergency_care_needed': '🚨 建议紧急就医',
+        'urgent_consultation': '需要紧急医疗咨询',
         
         # Location translations - Districts
         '中西區': '中西区',
@@ -555,6 +557,9 @@ TRANSLATIONS = {
         'optional': '(Optional)',
         'chronic_hint': 'Multiple selections allowed, leave blank if no medical history',
         'preferred_language': 'Preferred Language',
+        'gender': 'Biological Sex',
+        'male': 'Male',
+        'female': 'Female',
         'location': 'Location',
         'select_region': 'Please select region',
         'select_district': 'Please select district',
