@@ -2808,8 +2808,7 @@ def update_doctor(doctor_id):
                 consultation_hours = ?, consultation_fee = ?, profile_url = ?,
                 registration_number = ?, priority_flag = ?,
                 name = ?, specialty = ?, qualifications = ?, languages = ?,
-                phone = ?, address = ?,
-                updated_at = CURRENT_TIMESTAMP
+                phone = ?, address = ?
             WHERE id = ?
         ''', (
             data.get('name_zh'), data.get('specialty_zh'), data.get('qualifications_zh'), data.get('languages_zh'),
