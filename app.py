@@ -2724,6 +2724,71 @@ def get_doctor_details(doctor_id):
         print(f"Error getting doctor details: {e}")
         return jsonify({'error': 'Database error'}), 500
 
+@app.route('/admin/specialties')
+@require_permission('config')
+def get_specialties():
+    """Get all unique specialties from database"""
+    try:
+        conn = sqlite3.connect('doctors.db')
+        cursor = conn.cursor()
+        
+        # Get unique Chinese specialties
+        cursor.execute('''
+            SELECT DISTINCT specialty_zh 
+            FROM doctors 
+            WHERE specialty_zh IS NOT NULL AND specialty_zh != ''
+            ORDER BY specialty_zh
+        ''')
+        chinese_specialties = [row[0] for row in cursor.fetchall()]
+        
+        # Get unique English specialties
+        cursor.execute('''
+            SELECT DISTINCT specialty_en 
+            FROM doctors 
+            WHERE specialty_en IS NOT NULL AND specialty_en != ''
+            ORDER BY specialty_en
+        ''')
+        english_specialties = [row[0] for row in cursor.fetchall()]
+        
+        conn.close()
+        
+        return jsonify({
+            'chinese': chinese_specialties,
+            'english': english_specialties
+        })
+    except Exception as e:
+        print(f"Error fetching specialties: {e}")
+        return jsonify({'error': 'Failed to fetch specialties'}), 500
+
+@app.route('/admin/doctors/data')
+@require_permission('config')
+def get_doctors_data():
+    """Get all doctors data for specialty mapping"""
+    try:
+        conn = sqlite3.connect('doctors.db')
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT specialty_zh, specialty_en 
+            FROM doctors 
+            WHERE specialty_zh IS NOT NULL AND specialty_en IS NOT NULL 
+            AND specialty_zh != '' AND specialty_en != ''
+        ''')
+        
+        doctors = []
+        for row in cursor.fetchall():
+            doctors.append({
+                'specialty_zh': row[0],
+                'specialty_en': row[1]
+            })
+        
+        conn.close()
+        return jsonify(doctors)
+        
+    except Exception as e:
+        print(f"Error fetching doctors data: {e}")
+        return jsonify({'error': 'Failed to fetch doctors data'}), 500
+
 @app.route('/admin/doctors/<int:doctor_id>/update', methods=['POST'])
 @require_permission('config')
 def update_doctor(doctor_id):

@@ -449,45 +449,16 @@
                                             <label class="form-label">專科 <span class="text-danger">*</span></label>
                                             <select class="form-select" id="editSpecialtyZh" name="specialty_zh" required>
                                                 <option value="">請選擇專科</option>
-                                                <option value="內科">內科</option>
-                                                <option value="外科">外科</option>
-                                                <option value="小兒科">小兒科</option>
-                                                <option value="婦產科">婦產科</option>
-                                                <option value="骨科">骨科</option>
-                                                <option value="皮膚科">皮膚科</option>
-                                                <option value="眼科">眼科</option>
-                                                <option value="耳鼻喉科">耳鼻喉科</option>
-                                                <option value="精神科">精神科</option>
-                                                <option value="神經科">神經科</option>
-                                                <option value="心臟科">心臟科</option>
-                                                <option value="急診科">急診科</option>
-                                                <option value="感染及傳染病科">感染及傳染病科</option>
-                                                <option value="腎臟科">腎臟科</option>
-                                                <option value="胃腸科">胃腸科</option>
-                                                <option value="呼吸科">呼吸科</option>
-                                                <option value="血液科">血液科</option>
-                                                <option value="腫瘤科">腫瘤科</option>
-                                                <option value="風濕科">風濕科</option>
-                                                <option value="內分泌科">內分泌科</option>
-                                                <option value="泌尿科">泌尿科</option>
-                                                <option value="放射科">放射科</option>
-                                                <option value="病理科">病理科</option>
-                                                <option value="麻醉科">麻醉科</option>
-                                                <option value="復健科">復健科</option>
-                                                <option value="核醫科">核醫科</option>
-                                                <option value="整形外科">整形外科</option>
-                                                <option value="神經外科">神經外科</option>
-                                                <option value="胸腔外科">胸腔外科</option>
-                                                <option value="心臟外科">心臟外科</option>
-                                                <option value="血管外科">血管外科</option>
-                                                <option value="大腸直腸外科">大腸直腸外科</option>
-                                                <option value="全科醫生">全科醫生</option>
+                                                <!-- Options will be populated dynamically -->
                                             </select>
                                         </div>
                                         
                                         <div class="mb-3">
                                             <label class="form-label">Specialty (English)</label>
-                                            <input type="text" class="form-control" id="editSpecialtyEn" name="specialty_en" placeholder="English specialty">
+                                            <select class="form-select" id="editSpecialtyEn" name="specialty_en">
+                                                <option value="">Select English specialty</option>
+                                                <!-- Options will be populated dynamically -->
+                                            </select>
                                         </div>
                                     </div>
                                 </div>
@@ -923,8 +894,96 @@
             document.getElementById('editLanguagesZh').value = selectedLanguages.join(', ');
         }
 
+        // Global variables for specialty mapping
+        let specialtyMap = {};
+        let reverseSpecialtyMap = {};
+
+        // Load specialties from database
+        async function loadSpecialties() {
+            try {
+                const response = await fetch('/admin/specialties');
+                const data = await response.json();
+                
+                if (data.chinese && data.english) {
+                    // Populate Chinese specialty dropdown
+                    const chineseSelect = document.getElementById('editSpecialtyZh');
+                    chineseSelect.innerHTML = '<option value="">請選擇專科</option>';
+                    data.chinese.forEach(specialty => {
+                        const option = document.createElement('option');
+                        option.value = specialty;
+                        option.textContent = specialty;
+                        chineseSelect.appendChild(option);
+                    });
+
+                    // Populate English specialty dropdown
+                    const englishSelect = document.getElementById('editSpecialtyEn');
+                    englishSelect.innerHTML = '<option value="">Select English specialty</option>';
+                    data.english.forEach(specialty => {
+                        const option = document.createElement('option');
+                        option.value = specialty;
+                        option.textContent = specialty;
+                        englishSelect.appendChild(option);
+                    });
+
+                    // Create mapping by matching existing doctor records
+                    await createSpecialtyMapping();
+                }
+            } catch (error) {
+                console.error('Error loading specialties:', error);
+            }
+        }
+
+        // Create specialty mapping by analyzing existing doctor records
+        async function createSpecialtyMapping() {
+            try {
+                const response = await fetch('/admin/doctors/data');
+                if (response.ok) {
+                    const doctors = await response.json();
+                    
+                    // Build mapping from existing doctor data
+                    doctors.forEach(doctor => {
+                        if (doctor.specialty_zh && doctor.specialty_en) {
+                            specialtyMap[doctor.specialty_zh] = doctor.specialty_en;
+                            reverseSpecialtyMap[doctor.specialty_en] = doctor.specialty_zh;
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error creating specialty mapping:', error);
+                // Fallback to basic mapping if needed
+                createFallbackMapping();
+            }
+        }
+
+        // Fallback mapping for common specialties
+        function createFallbackMapping() {
+            const basicMap = {
+                '內科': 'Internal Medicine',
+                '外科': 'Surgery', 
+                '小兒科': 'Pediatrics',
+                '婦產科': 'Obstetrics and Gynecology',
+                '骨科': 'Orthopedics',
+                '皮膚科': 'Dermatology',
+                '眼科': 'Ophthalmology',
+                '耳鼻喉科': 'Otolaryngology',
+                '精神科': 'Psychiatry',
+                '神經科': 'Neurology',
+                '心臟科': 'Cardiology',
+                '急診科': 'Emergency Medicine',
+                '全科醫生': 'General Practitioner'
+            };
+            
+            Object.assign(specialtyMap, basicMap);
+            Object.keys(basicMap).forEach(chinese => {
+                reverseSpecialtyMap[basicMap[chinese]] = chinese;
+            });
+        }
+
         // Add event listeners for language checkboxes
         document.addEventListener('DOMContentLoaded', function() {
+            // Load specialties on page load
+            loadSpecialties();
+            
             ['langChinese', 'langEnglish', 'langCantonese'].forEach(id => {
                 document.getElementById(id).addEventListener('change', updateLanguageField);
             });
@@ -967,48 +1026,21 @@
                 }
             });
 
-            // Auto-update English specialty based on Chinese selection
+            // Auto-update English specialty when Chinese is selected
             document.getElementById('editSpecialtyZh').addEventListener('change', function() {
-                const specialtyMap = {
-                    '內科': 'Internal Medicine',
-                    '外科': 'Surgery',
-                    '小兒科': 'Pediatrics',
-                    '婦產科': 'Obstetrics and Gynecology',
-                    '骨科': 'Orthopedics',
-                    '皮膚科': 'Dermatology',
-                    '眼科': 'Ophthalmology',
-                    '耳鼻喉科': 'Otolaryngology',
-                    '精神科': 'Psychiatry',
-                    '神經科': 'Neurology',
-                    '心臟科': 'Cardiology',
-                    '急診科': 'Emergency Medicine',
-                    '感染及傳染病科': 'Infectious Diseases',
-                    '腎臟科': 'Nephrology',
-                    '胃腸科': 'Gastroenterology',
-                    '呼吸科': 'Pulmonology',
-                    '血液科': 'Hematology',
-                    '腫瘤科': 'Oncology',
-                    '風濕科': 'Rheumatology',
-                    '內分泌科': 'Endocrinology',
-                    '泌尿科': 'Urology',
-                    '放射科': 'Radiology',
-                    '病理科': 'Pathology',
-                    '麻醉科': 'Anesthesiology',
-                    '復健科': 'Rehabilitation Medicine',
-                    '核醫科': 'Nuclear Medicine',
-                    '整形外科': 'Plastic Surgery',
-                    '神經外科': 'Neurosurgery',
-                    '胸腔外科': 'Thoracic Surgery',
-                    '心臟外科': 'Cardiac Surgery',
-                    '血管外科': 'Vascular Surgery',
-                    '大腸直腸外科': 'Colorectal Surgery',
-                    '全科醫生': 'General Practitioner'
-                };
-                
                 const selectedSpecialty = this.value;
                 const englishField = document.getElementById('editSpecialtyEn');
-                if (specialtyMap[selectedSpecialty] && !englishField.value.trim()) {
+                if (specialtyMap[selectedSpecialty]) {
                     englishField.value = specialtyMap[selectedSpecialty];
+                }
+            });
+
+            // Auto-update Chinese specialty when English is selected
+            document.getElementById('editSpecialtyEn').addEventListener('change', function() {
+                const selectedSpecialty = this.value;
+                const chineseField = document.getElementById('editSpecialtyZh');
+                if (reverseSpecialtyMap[selectedSpecialty]) {
+                    chineseField.value = reverseSpecialtyMap[selectedSpecialty];
                 }
             });
         });
