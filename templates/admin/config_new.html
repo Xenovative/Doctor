@@ -85,11 +85,6 @@
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('admin_doctors') }}">
-                                <i class="fas fa-user-md me-2"></i>醫生資料庫
-                            </a>
-                        </li>
-                        <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('admin_users') }}">
                                 <i class="fas fa-users me-2"></i>用戶管理
                             </a>
@@ -112,6 +107,13 @@
             <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
                 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                     <h1 class="h2">系統配置</h1>
+                    <div class="btn-toolbar mb-2 mb-md-0">
+                        <div class="btn-group me-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="location.reload()">
+                                <i class="fas fa-sync-alt me-1"></i>刷新
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 {% with messages = get_flashed_messages(with_categories=true) %}
@@ -356,167 +358,6 @@
                     </div>
                 </div>
 
-                <!-- User Settings -->
-                <div class="config-card">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="mb-0">
-                                <i class="fas fa-user-cog me-2"></i>用戶設置
-                            </h5>
-                        </div>
-                        <div class="card-body">
-                            <form method="POST" action="{{ url_for('admin_config') }}">
-                                <input type="hidden" name="action" value="update_profile">
-                                <div class="row mb-4">
-                                    <div class="col-md-6">
-                                        <label class="form-label">用戶名</label>
-                                        <input type="text" class="form-control" name="username" 
-                                               value="{{ current_user.username if current_user else 'admin' }}" 
-                                               placeholder="輸入用戶名">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">電子郵件</label>
-                                        <input type="email" class="form-control" name="email" 
-                                               value="{{ current_user.email if current_user else '' }}" 
-                                               placeholder="輸入電子郵件">
-                                    </div>
-                                </div>
-                                
-                                <div class="row mb-4">
-                                    <div class="col-md-6">
-                                        <label class="form-label">顯示名稱</label>
-                                        <input type="text" class="form-control" name="display_name" 
-                                               value="{{ current_user.display_name if current_user else '' }}" 
-                                               placeholder="輸入顯示名稱">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">角色</label>
-                                        <input type="text" class="form-control" 
-                                               value="{{ current_user.role if current_user else 'admin' }}" 
-                                               readonly>
-                                        <small class="form-text text-muted">角色由系統管理員設定</small>
-                                    </div>
-                                </div>
-
-                                <div class="d-flex justify-content-end">
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="fas fa-save me-2"></i>更新個人資料
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Password Change -->
-                <div class="config-card">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="mb-0">
-                                <i class="fas fa-key me-2"></i>密碼變更
-                            </h5>
-                        </div>
-                        <div class="card-body">
-                            <form method="POST" action="{{ url_for('change_admin_password') }}" id="passwordForm">
-                                <div class="row mb-3">
-                                    <div class="col-md-12">
-                                        <label class="form-label">當前密碼</label>
-                                        <input type="password" class="form-control" name="current_password" 
-                                               placeholder="輸入當前密碼" required>
-                                    </div>
-                                </div>
-                                
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label class="form-label">新密碼</label>
-                                        <input type="password" class="form-control" name="new_password" 
-                                               id="newPassword" placeholder="輸入新密碼" required>
-                                        <div class="form-text">密碼至少8個字符，包含字母和數字</div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">確認新密碼</label>
-                                        <input type="password" class="form-control" name="confirm_password" 
-                                               id="confirmPassword" placeholder="再次輸入新密碼" required>
-                                        <div id="passwordMatch" class="form-text"></div>
-                                    </div>
-                                </div>
-
-                                <div class="alert alert-info">
-                                    <i class="fas fa-info-circle me-2"></i>
-                                    <strong>密碼安全提示：</strong>
-                                    <ul class="mb-0 mt-2">
-                                        <li>使用至少8個字符的強密碼</li>
-                                        <li>包含大小寫字母、數字和特殊字符</li>
-                                        <li>避免使用常見詞彙或個人信息</li>
-                                        <li>定期更換密碼以確保安全</li>
-                                    </ul>
-                                </div>
-
-                                <div class="d-flex justify-content-end">
-                                    <button type="submit" class="btn btn-warning">
-                                        <i class="fas fa-key me-2"></i>更改密碼
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Admin User Management -->
-                <div class="config-card">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="mb-0">
-                                <i class="fas fa-users-cog me-2"></i>管理員用戶管理
-                            </h5>
-                        </div>
-                        <div class="card-body">
-                            <!-- Create New Admin User -->
-                            <div class="mb-4">
-                                <h6 class="fw-bold mb-3">新增管理員用戶</h6>
-                                <form method="POST" action="{{ url_for('create_admin_user') }}" class="row g-3">
-                                    <div class="col-md-3">
-                                        <label class="form-label">用戶名</label>
-                                        <input type="text" class="form-control" name="username" placeholder="輸入用戶名" required>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <label class="form-label">密碼</label>
-                                        <input type="password" class="form-control" name="password" placeholder="輸入密碼" required>
-                                    </div>
-                                    <div class="col-md-2">
-                                        <label class="form-label">角色</label>
-                                        <select class="form-select" name="role">
-                                            <option value="admin">管理員</option>
-                                            <option value="editor">編輯者</option>
-                                            <option value="viewer">查看者</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-2">
-                                        <label class="form-label">&nbsp;</label>
-                                        <button type="submit" class="btn btn-success d-block">
-                                            <i class="fas fa-plus me-2"></i>新增用戶
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-
-                            <hr>
-
-                            <!-- Admin Users List -->
-                            <div class="mb-4">
-                                <h6 class="fw-bold mb-3">現有管理員用戶</h6>
-                                <div id="adminUsersList">
-                                    <div class="text-center">
-                                        <div class="spinner-border text-primary" role="status">
-                                            <span class="visually-hidden">載入中...</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Database Statistics -->
                 <div class="config-card">
                     <div class="card">
@@ -547,11 +388,17 @@
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize provider selection
             initProviderSelection();
-            // Load data on page load
-            loadDatabaseStats();
-            loadAdminUsers();
+            
+            // Load initial status
             checkAIStatus();
             checkWhatsAppStatus();
+            loadDatabaseStats();
+            
+            // Setup WhatsApp toggle
+            document.getElementById('whatsappEnabled').addEventListener('change', function() {
+                const details = document.getElementById('whatsappConfigDetails');
+                details.style.display = this.checked ? 'block' : 'none';
+            });
         });
 
         function initProviderSelection() {
@@ -693,189 +540,62 @@
         }
 
         function loadDatabaseStats() {
-            fetch('/admin/api/database-stats')
+            fetch('/admin/database/stats')
             .then(response => response.json())
             .then(data => {
-                const statsContainer = document.getElementById('databaseStats');
-                if (data.success) {
-                    statsContainer.innerHTML = `
-                        <div class="row text-center">
-                            <div class="col-md-4">
-                                <div class="stat-item">
-                                    <h3 class="text-primary">${data.stats.doctors_count}</h3>
-                                    <p class="mb-0">醫生數量</p>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="stat-item">
-                                    <h3 class="text-success">${data.stats.queries_today}</h3>
-                                    <p class="mb-0">今日查詢</p>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="stat-item">
-                                    <h3 class="text-info">${data.stats.total_queries}</h3>
-                                    <p class="mb-0">總查詢數</p>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    statsContainer.innerHTML = `
-                        <div class="alert alert-warning">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            無法載入數據庫統計信息
-                        </div>
-                    `;
+                if (data.error) {
+                    throw new Error(data.error);
                 }
+                
+                const statsHtml = `
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <i class="fas fa-user-md fa-2x text-primary mb-2"></i>
+                                    <h4>${data.doctors_count}</h4>
+                                    <p class="text-muted">醫生數據</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <i class="fas fa-search fa-2x text-success mb-2"></i>
+                                    <h4>${data.user_queries_count}</h4>
+                                    <p class="text-muted">用戶查詢</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <i class="fas fa-mouse-pointer fa-2x text-info mb-2"></i>
+                                    <h4>${data.doctor_clicks_count}</h4>
+                                    <p class="text-muted">醫生點擊</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <i class="fas fa-chart-bar fa-2x text-warning mb-2"></i>
+                                    <h4>${data.analytics_events_count}</h4>
+                                    <p class="text-muted">分析事件</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('databaseStats').innerHTML = statsHtml;
             })
             .catch(error => {
                 document.getElementById('databaseStats').innerHTML = `
-                    <div class="alert alert-danger">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        載入統計信息時發生錯誤
-                    </div>
+                    <div class="alert alert-danger">載入數據庫統計失敗: ${error.message}</div>
                 `;
             });
         }
-
-        function loadAdminUsers() {
-            fetch('/admin/api/users')
-            .then(response => response.json())
-            .then(data => {
-                const usersContainer = document.getElementById('adminUsersList');
-                if (data.success && data.users.length > 0) {
-                    usersContainer.innerHTML = `
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>用戶名</th>
-                                        <th>角色</th>
-                                        <th>電子郵件</th>
-                                        <th>狀態</th>
-                                        <th>創建時間</th>
-                                        <th>操作</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${data.users.map(user => `
-                                        <tr>
-                                            <td>
-                                                <i class="fas fa-user me-2"></i>
-                                                ${user.username}
-                                            </td>
-                                            <td>
-                                                <span class="badge bg-${user.role === 'admin' || user.role === 'super_admin' ? 'primary' : user.role === 'editor' ? 'success' : 'secondary'}">
-                                                    ${user.role === 'admin' || user.role === 'super_admin' ? '管理員' : user.role === 'editor' ? '編輯者' : '查看者'}
-                                                </span>
-                                            </td>
-                                            <td>${user.email || '-'}</td>
-                                            <td>
-                                                <span class="badge bg-${user.is_active ? 'success' : 'danger'}">
-                                                    ${user.is_active ? '啟用' : '停用'}
-                                                </span>
-                                            </td>
-                                            <td>${new Date(user.created_at).toLocaleDateString('zh-TW')}</td>
-                                            <td>
-                                                <button class="btn btn-sm btn-outline-${user.is_active ? 'danger' : 'success'}" 
-                                                        onclick="toggleUser(${user.id}, ${user.is_active})">
-                                                    <i class="fas fa-${user.is_active ? 'ban' : 'check'} me-1"></i>
-                                                    ${user.is_active ? '停用' : '啟用'}
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    `).join('')}
-                                </tbody>
-                            </table>
-                        </div>
-                    `;
-                } else {
-                    usersContainer.innerHTML = `
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle me-2"></i>
-                            暫無管理員用戶
-                        </div>
-                    `;
-                }
-            })
-            .catch(error => {
-                document.getElementById('adminUsersList').innerHTML = `
-                    <div class="alert alert-danger">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        載入用戶列表時發生錯誤
-                    </div>
-                `;
-            });
-        }
-
-        function toggleUser(userId, isActive) {
-            if (!confirm(`確定要${isActive ? '停用' : '啟用'}此用戶嗎？`)) {
-                return;
-            }
-
-            fetch(`/admin/config/users/${userId}/toggle`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    loadAdminUsers(); // Reload the user list
-                    alert(data.message);
-                } else {
-                    alert('操作失敗：' + data.error);
-                }
-            })
-            .catch(error => {
-                alert('操作失敗：' + error.message);
-            });
-        }
-
-        // Password validation
-        document.addEventListener('DOMContentLoaded', function() {
-            const newPassword = document.getElementById('newPassword');
-            const confirmPassword = document.getElementById('confirmPassword');
-            const passwordMatch = document.getElementById('passwordMatch');
-            
-            function validatePasswords() {
-                if (confirmPassword.value === '') {
-                    passwordMatch.textContent = '';
-                    passwordMatch.className = 'form-text';
-                    return;
-                }
-                
-                if (newPassword.value === confirmPassword.value) {
-                    passwordMatch.textContent = '密碼匹配';
-                    passwordMatch.className = 'form-text text-success';
-                } else {
-                    passwordMatch.textContent = '密碼不匹配';
-                    passwordMatch.className = 'form-text text-danger';
-                }
-            }
-            
-            if (newPassword && confirmPassword) {
-                newPassword.addEventListener('input', validatePasswords);
-                confirmPassword.addEventListener('input', validatePasswords);
-                
-                // Form submission validation
-                document.getElementById('passwordForm').addEventListener('submit', function(e) {
-                    if (newPassword.value !== confirmPassword.value) {
-                        e.preventDefault();
-                        alert('新密碼和確認密碼不匹配，請重新輸入。');
-                        return false;
-                    }
-                    
-                    if (newPassword.value.length < 8) {
-                        e.preventDefault();
-                        alert('密碼長度至少需要8個字符。');
-                        return false;
-                    }
-                });
-            }
-        });
     </script>
 </body>
 </html>

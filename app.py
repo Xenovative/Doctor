@@ -217,7 +217,7 @@ def load_ai_config_from_db():
         cursor = conn.cursor()
         
         # Load AI config
-        cursor.execute('SELECT value FROM system_config WHERE config_key = ?', ('ai_config',))
+        cursor.execute('SELECT config_value FROM system_config WHERE config_key = ?', ('ai_config',))
         result = cursor.fetchone()
         
         if result:
@@ -349,24 +349,35 @@ def init_db():
         
         conn.commit()
         conn.close()
-        print("Database initialized successfully")
+        print("=== DATABASE INITIALIZED SUCCESSFULLY ===")
+        print(f"Created tables: analytics, user_queries, doctor_clicks, system_config, admin_users, admin_config")
+        print(f"Default admin user: {ADMIN_USERNAME}")
         
     except Exception as e:
-        print(f"Database initialization error: {e}")
+        print(f"=== DATABASE INITIALIZATION ERROR ===")
+        print(f"Error: {e}")
+        print(f"Error type: {type(e).__name__}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
         # Create a minimal fallback database
         try:
             conn = sqlite3.connect('admin_data.db')
             conn.close()
-            print("Created minimal database file")
+            print("=== CREATED MINIMAL DATABASE FILE ===")
         except Exception as fallback_error:
-            print(f"Failed to create database file: {fallback_error}")
+            print(f"=== FAILED TO CREATE DATABASE FILE ===")
+            print(f"Fallback error: {fallback_error}")
 
 # Initialize database on startup
+print("=== STARTING DATABASE INITIALIZATION ===")
 init_db()
 
 # Load configurations from database
+print("=== LOADING AI CONFIG FROM DATABASE ===")
 load_ai_config_from_db()
+print("=== LOADING WHATSAPP CONFIG FROM DATABASE ===")
 load_whatsapp_config_from_db()
+print("=== APP STARTUP COMPLETE ===")
 
 # WhatsApp客戶端實例
 whatsapp_client = None
@@ -1775,10 +1786,45 @@ def admin_analytics():
         flash('載入分析數據時發生錯誤', 'error')
         return render_template('admin/analytics.html')
 
-@app.route('/admin/config')
+@app.route('/admin/config', methods=['GET', 'POST'])
 @login_required
 def admin_config():
     """Admin configuration page"""
+    if request.method == 'POST':
+        action = request.form.get('action')
+        
+        if action == 'update_profile':
+            try:
+                username = request.form.get('username')
+                email = request.form.get('email')
+                display_name = request.form.get('display_name')
+                
+                user_id = session.get('admin_user_id')
+                if user_id:
+                    # Update database user profile
+                    conn = sqlite3.connect('admin_data.db')
+                    cursor = conn.cursor()
+                    cursor.execute('''
+                        UPDATE admin_users 
+                        SET username = ?, email = ?, display_name = ?
+                        WHERE id = ?
+                    ''', (username, email, display_name, user_id))
+                    conn.commit()
+                    conn.close()
+                    
+                    # Update session
+                    session['admin_username'] = username
+                    
+                    flash('個人資料更新成功', 'success')
+                else:
+                    flash('環境變數用戶無法更新個人資料', 'error')
+                    
+            except Exception as e:
+                print(f"Profile update error: {e}")
+                flash('更新個人資料時發生錯誤', 'error')
+                
+        return redirect(url_for('admin_config'))
+    
     return render_template('admin/config.html', whatsapp_config=WHATSAPP_CONFIG, ai_config=AI_CONFIG)
 
 @app.route('/admin/api/openai-models')
@@ -1789,6 +1835,107 @@ def get_openai_models_api():
     api_key = request.args.get('api_key')
     models = get_openai_models(api_key)
     return jsonify({'models': models})
+
+@app.route('/admin/api/database-stats')
+@require_admin
+def get_database_stats():
+    """API endpoint to get database statistics"""
+    try:
+        # Get doctors count from loaded data
+        doctors_count = len(DOCTORS_DATA) if DOCTORS_DATA else 0
+        
+        # Get analytics data from admin_data.db
+        conn = sqlite3.connect('admin_data.db')
+        cursor = conn.cursor()
+        
+        # Get today's queries
+        today = datetime.now().strftime('%Y-%m-%d')
+        try:
+            cursor.execute('SELECT COUNT(*) FROM user_queries WHERE DATE(timestamp) = ?', (today,))
+            queries_today = cursor.fetchone()[0]
+        except:
+            queries_today = 0
+        
+        # Get total queries
+        try:
+            cursor.execute('SELECT COUNT(*) FROM user_queries')
+            total_queries = cursor.fetchone()[0]
+        except:
+            total_queries = 0
+        
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'stats': {
+                'doctors_count': doctors_count,
+                'queries_today': queries_today,
+                'total_queries': total_queries
+            }
+        })
+    except Exception as e:
+        print(f"Database stats error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/api/users')
+@require_admin
+def get_admin_users_api():
+    """API endpoint to get admin users list"""
+    try:
+        conn = sqlite3.connect('admin_data.db')
+        cursor = conn.cursor()
+        
+        # Check if admin_users table exists
+        cursor.execute('''
+            SELECT name FROM sqlite_master 
+            WHERE type='table' AND name='admin_users'
+        ''')
+        
+        if not cursor.fetchone():
+            conn.close()
+            return jsonify({
+                'success': True,
+                'users': []
+            })
+        
+        # Check if all columns exist
+        cursor.execute('PRAGMA table_info(admin_users)')
+        columns = [col[1] for col in cursor.fetchall()]
+        
+        # Build query based on available columns
+        base_columns = ['id', 'username', 'role']
+        optional_columns = ['email', 'display_name', 'is_active', 'created_at']
+        
+        select_columns = base_columns.copy()
+        for col in optional_columns:
+            if col in columns:
+                select_columns.append(col)
+        
+        query = f"SELECT {', '.join(select_columns)} FROM admin_users ORDER BY id DESC"
+        cursor.execute(query)
+        
+        users = []
+        for row in cursor.fetchall():
+            user = {
+                'id': row[0],
+                'username': row[1],
+                'role': row[2] if len(row) > 2 else 'admin',
+                'email': row[3] if len(row) > 3 and 'email' in select_columns else None,
+                'display_name': row[4] if len(row) > 4 and 'display_name' in select_columns else None,
+                'is_active': bool(row[5]) if len(row) > 5 and 'is_active' in select_columns else True,
+                'created_at': row[6] if len(row) > 6 and 'created_at' in select_columns else None
+            }
+            users.append(user)
+        
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'users': users
+        })
+    except Exception as e:
+        print(f"Get admin users error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 def update_env_file(key: str, value: str) -> None:
     """Update or add a key-value pair in the .env file."""
@@ -2195,38 +2342,73 @@ def import_doctors_database():
 
 @app.route('/admin/database/stats')
 @require_admin
-def get_database_stats():
+def get_database_stats_page():
     """Get database statistics"""
     try:
         stats = {
-            'doctors_count': len(DOCTORS_DATA),
+            'doctors_count': len(DOCTORS_DATA) if DOCTORS_DATA else 0,
             'doctors_fields': list(DOCTORS_DATA[0].keys()) if DOCTORS_DATA else [],
-            'sample_doctor': DOCTORS_DATA[0] if DOCTORS_DATA else None
+            'sample_doctor': DOCTORS_DATA[0] if DOCTORS_DATA else None,
+            'user_queries_count': 0,
+            'doctor_clicks_count': 0,
+            'analytics_events_count': 0,
+            'admin_users_count': 0
         }
         
-        # Get analytics data count
-        conn = sqlite3.connect('admin_data.db')
-        cursor = conn.cursor()
-        
-        cursor.execute('SELECT COUNT(*) FROM user_queries')
-        stats['user_queries_count'] = cursor.fetchone()[0]
-        
-        cursor.execute('SELECT COUNT(*) FROM doctor_clicks')
-        stats['doctor_clicks_count'] = cursor.fetchone()[0]
-        
-        cursor.execute('SELECT COUNT(*) FROM analytics')
-        stats['analytics_events_count'] = cursor.fetchone()[0]
-        
-        cursor.execute('SELECT COUNT(*) FROM admin_users')
-        stats['admin_users_count'] = cursor.fetchone()[0]
-        
-        conn.close()
+        # Get analytics data count with table existence checks
+        try:
+            conn = sqlite3.connect('admin_data.db')
+            cursor = conn.cursor()
+            
+            # Check if tables exist before querying
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+            existing_tables = [row[0] for row in cursor.fetchall()]
+            
+            if 'user_queries' in existing_tables:
+                cursor.execute('SELECT COUNT(*) FROM user_queries')
+                stats['user_queries_count'] = cursor.fetchone()[0]
+            
+            if 'doctor_clicks' in existing_tables:
+                cursor.execute('SELECT COUNT(*) FROM doctor_clicks')
+                stats['doctor_clicks_count'] = cursor.fetchone()[0]
+            
+            if 'analytics' in existing_tables:
+                cursor.execute('SELECT COUNT(*) FROM analytics')
+                stats['analytics_events_count'] = cursor.fetchone()[0]
+            
+            if 'admin_users' in existing_tables:
+                cursor.execute('SELECT COUNT(*) FROM admin_users')
+                stats['admin_users_count'] = cursor.fetchone()[0]
+            
+            conn.close()
+            
+        except Exception as db_error:
+            print(f"=== DATABASE QUERY ERROR IN STATS ===")
+            print(f"Error: {db_error}")
+            print(f"Error type: {type(db_error).__name__}")
+            import traceback
+            print(f"Traceback: {traceback.format_exc()}")
+            # Try to reinitialize database
+            try:
+                print("=== ATTEMPTING DATABASE REINITIALIZATION ===")
+                init_db()
+                print("=== DATABASE REINITIALIZED AFTER ERROR ===")
+            except Exception as init_error:
+                print(f"=== FAILED TO REINITIALIZE DATABASE ===")
+                print(f"Init error: {init_error}")
         
         return jsonify(stats)
         
     except Exception as e:
         print(f"Database stats error: {e}")
-        return jsonify({'error': 'Failed to get database stats'}), 500
+        return jsonify({
+            'doctors_count': len(DOCTORS_DATA) if DOCTORS_DATA else 0,
+            'user_queries_count': 0,
+            'doctor_clicks_count': 0,
+            'analytics_events_count': 0,
+            'admin_users_count': 0,
+            'error': 'Database temporarily unavailable'
+        }), 200
 
 @app.route('/admin/database/export-analytics', methods=['GET', 'POST'])
 @require_permission('analytics')
