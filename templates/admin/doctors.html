@@ -836,8 +836,13 @@
                 body: JSON.stringify(data)
             })
             .then(response => {
+                console.log('Response status:', response.status);
+                console.log('Response URL:', response.url);
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    return response.text().then(text => {
+                        console.error('Error response:', text);
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    });
                 }
                 return response.json();
             })

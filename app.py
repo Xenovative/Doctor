@@ -2700,7 +2700,7 @@ def admin_doctors():
         flash('載入醫生資料時發生錯誤', 'error')
         return redirect(url_for('admin_dashboard'))
 
-@app.route('/admin/doctors/<int:doctor_id>')
+@app.route('/admin/doctors/<int:doctor_id>', methods=['GET'])
 @require_permission('config')
 def get_doctor_details(doctor_id):
     """獲取醫生詳細資料 (AJAX)"""
