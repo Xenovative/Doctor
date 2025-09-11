@@ -2946,7 +2946,7 @@ def get_user_reports(user_ip):
                 'symptoms': query[4],
                 'chronic_conditions': query[5],
                 'specialty': query[6],
-                'emergency_level': query[7] if query[7] else 'Normal',  # Use ai_diagnosis as emergency_level fallback
+                'emergency_level': extract_severity_from_diagnosis(query[7]) if query[7] else 'Normal',  # Extract severity from ai_diagnosis
                 'language': query[8],
                 'location': query[9],
                 'diagnosis_report': query[10]
