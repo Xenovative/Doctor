@@ -983,7 +983,7 @@ def analyze_symptoms_and_match(age: int, gender: str, symptoms: str, chronic_con
     # 第二步：檢查是否需要緊急醫療處理
     print(f"DEBUG - Emergency check: emergency_needed={diagnosis_result.get('emergency_needed', False)}, severity_level={diagnosis_result.get('severity_level')}")
     
-    if diagnosis_result.get('emergency_needed', False) or diagnosis_result.get('severity_level') == 'severe':
+    if diagnosis_result.get('emergency_needed', False):
         print("DEBUG - Emergency case detected, routing to emergency doctors")
         # 緊急情況：優先推薦急診科和醫院
         emergency_doctors = filter_doctors('急診科', language, location, symptoms, diagnosis_result['diagnosis'], location_details)
