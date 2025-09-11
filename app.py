@@ -252,102 +252,114 @@ def load_whatsapp_config_from_db():
 # Initialize database
 def init_db():
     """Initialize SQLite database for analytics and user data"""
-    conn = sqlite3.connect('admin_data.db')
-    cursor = conn.cursor()
-    
-    # Analytics table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS analytics (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-            event_type TEXT NOT NULL,
-            user_ip TEXT,
-            user_agent TEXT,
-            data TEXT,
-            session_id TEXT
-        )
-    ''')
-    
-    # User queries table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS user_queries (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-            age INTEGER,
-            symptoms TEXT,
-            chronic_conditions TEXT,
-            language TEXT,
-            location TEXT,
-            detailed_health_info TEXT,
-            ai_diagnosis TEXT,
-            recommended_specialty TEXT,
-            matched_doctors_count INTEGER,
-            user_ip TEXT,
-            session_id TEXT
-        )
-    ''')
-    
-    # Doctor clicks table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS doctor_clicks (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-            doctor_name TEXT,
-            doctor_specialty TEXT,
-            user_ip TEXT,
-            session_id TEXT,
-            query_id INTEGER,
-            FOREIGN KEY (query_id) REFERENCES user_queries (id)
-        )
-    ''')
-    
-    # System config table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS system_config (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            config_key TEXT UNIQUE,
-            config_value TEXT,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-    
-    # Admin users table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS admin_users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL,
-            role TEXT DEFAULT 'admin',
-            permissions TEXT DEFAULT '{}',
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            last_login DATETIME,
-            is_active BOOLEAN DEFAULT 1,
-            created_by INTEGER,
-            FOREIGN KEY (created_by) REFERENCES admin_users (id)
-        )
-    ''')
-    
-    # Admin config table for storing configuration settings
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS admin_config (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            key TEXT UNIQUE NOT NULL,
-            value TEXT,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-    
-    # Create default admin user if not exists
-    cursor.execute('SELECT COUNT(*) FROM admin_users WHERE username = ?', (ADMIN_USERNAME,))
-    if cursor.fetchone()[0] == 0:
+    try:
+        conn = sqlite3.connect('admin_data.db')
+        cursor = conn.cursor()
+        
+        # Analytics table
         cursor.execute('''
-            INSERT INTO admin_users (username, password_hash, role, permissions)
-            VALUES (?, ?, 'super_admin', '{"all": true}')
-        ''', (ADMIN_USERNAME, ADMIN_PASSWORD_HASH))
-        print(f"Created default admin user: {ADMIN_USERNAME}")
-    
-    conn.commit()
-    conn.close()
+            CREATE TABLE IF NOT EXISTS analytics (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                event_type TEXT NOT NULL,
+                user_ip TEXT,
+                user_agent TEXT,
+                data TEXT,
+                session_id TEXT
+            )
+        ''')
+        
+        # User queries table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS user_queries (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                age INTEGER,
+                symptoms TEXT,
+                chronic_conditions TEXT,
+                language TEXT,
+                location TEXT,
+                detailed_health_info TEXT,
+                ai_diagnosis TEXT,
+                recommended_specialty TEXT,
+                matched_doctors_count INTEGER,
+                user_ip TEXT,
+                session_id TEXT
+            )
+        ''')
+        
+        # Doctor clicks table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS doctor_clicks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                doctor_name TEXT,
+                doctor_specialty TEXT,
+                user_ip TEXT,
+                session_id TEXT,
+                query_id INTEGER,
+                FOREIGN KEY (query_id) REFERENCES user_queries (id)
+            )
+        ''')
+        
+        # System config table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS system_config (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                config_key TEXT UNIQUE,
+                config_value TEXT,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
+        # Admin users table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS admin_users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                role TEXT DEFAULT 'admin',
+                permissions TEXT DEFAULT '{}',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                last_login DATETIME,
+                is_active BOOLEAN DEFAULT 1,
+                created_by INTEGER,
+                FOREIGN KEY (created_by) REFERENCES admin_users (id)
+            )
+        ''')
+        
+        # Admin config table for storing configuration settings
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS admin_config (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                key TEXT UNIQUE NOT NULL,
+                value TEXT,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
+        # Create default admin user if not exists
+        cursor.execute('SELECT COUNT(*) FROM admin_users WHERE username = ?', (ADMIN_USERNAME,))
+        if cursor.fetchone()[0] == 0:
+            cursor.execute('''
+                INSERT INTO admin_users (username, password_hash, role, permissions)
+                VALUES (?, ?, 'super_admin', '{"all": true}')
+            ''', (ADMIN_USERNAME, ADMIN_PASSWORD_HASH))
+            print(f"Created default admin user: {ADMIN_USERNAME}")
+        
+        conn.commit()
+        conn.close()
+        print("Database initialized successfully")
+        
+    except Exception as e:
+        print(f"Database initialization error: {e}")
+        # Create a minimal fallback database
+        try:
+            conn = sqlite3.connect('admin_data.db')
+            conn.close()
+            print("Created minimal database file")
+        except Exception as fallback_error:
+            print(f"Failed to create database file: {fallback_error}")
 
 # Initialize database on startup
 init_db()
@@ -490,19 +502,34 @@ def get_real_ip():
         # Fallback to remote_addr
         return request.remote_addr
 
-def log_analytics(event_type, data=None, user_ip=None, user_agent=None, session_id=None):
-    """Log analytics event"""
+def log_analytics(event_type: str, data: Dict, user_ip: str, user_agent: str, session_id: str = None):
+    """Log analytics data to database"""
     try:
         conn = sqlite3.connect('admin_data.db')
         cursor = conn.cursor()
+        
+        # Check if analytics table exists
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='analytics'")
+        if not cursor.fetchone():
+            print("Analytics table not found, reinitializing database...")
+            conn.close()
+            init_db()
+            conn = sqlite3.connect('admin_data.db')
+            cursor = conn.cursor()
+        
         cursor.execute('''
             INSERT INTO analytics (event_type, user_ip, user_agent, data, session_id)
             VALUES (?, ?, ?, ?, ?)
-        ''', (event_type, user_ip, user_agent, json.dumps(data) if data else None, session_id))
+        ''', (event_type, user_ip, user_agent, json.dumps(data), session_id))
         conn.commit()
         conn.close()
     except Exception as e:
         print(f"Analytics logging error: {e}")
+        # Try to reinitialize database if it's corrupted
+        try:
+            init_db()
+        except:
+            pass
 
 def get_admin_user(username):
     """Get admin user from database"""
@@ -862,7 +889,8 @@ def diagnose_symptoms(age: int, symptoms: str, chronic_conditions: str = '', det
     
     # Debug logging
     print(f"DEBUG - AI Response: {diagnosis_response[:200]}...")
-    print(f"DEBUG - Extracted specialty: {recommended_specialty}")
+    print(f"DEBUG - Extracted specialties: {recommended_specialties}")
+    print(f"DEBUG - Primary specialty: {recommended_specialty}")
     print(f"DEBUG - Severity level: {severity_level}")
     print(f"DEBUG - Emergency needed: {emergency_needed}")
     
@@ -911,6 +939,7 @@ def analyze_symptoms_and_match(age: int, symptoms: str, chronic_conditions: str,
         # 一般情況：根據診斷結果推薦多個相關專科的醫生
         all_matched_doctors = []
         recommended_specialties = diagnosis_result.get('recommended_specialties', [diagnosis_result['recommended_specialty']])
+        print(f"DEBUG - Will search for specialties: {recommended_specialties}")
         
         for specialty in recommended_specialties:
             specialty_doctors = filter_doctors(
@@ -921,6 +950,8 @@ def analyze_symptoms_and_match(age: int, symptoms: str, chronic_conditions: str,
                 diagnosis_result['diagnosis'],
                 location_details
             )
+            
+            print(f"DEBUG - Found {len(specialty_doctors)} doctors for specialty: {specialty}")
             
             # 為每個醫生添加專科標記，用於排序
             for doctor in specialty_doctors:
@@ -1097,11 +1128,14 @@ def extract_specialties_from_diagnosis(diagnosis_text: str) -> List[str]:
         primary_specialty = list(found_specialties)[0]  # 取第一個作為主要專科
         related_specialties = specialty_mapping.get(primary_specialty, {}).get('related', [])
         
+        print(f"DEBUG - Primary specialty: {primary_specialty}, Related: {related_specialties}")
         # 添加最多2個相關專科，避免推薦太多
         for related in related_specialties[:2]:
             if related in specialty_mapping:  # 確保相關專科存在
                 found_specialties.add(related)
                 print(f"DEBUG - Added related specialty: {related}")
+            else:
+                print(f"DEBUG - Skipped invalid related specialty: {related}")
         
         result = list(found_specialties)
         print(f"DEBUG - Final specialties: {result}")

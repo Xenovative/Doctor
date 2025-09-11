@@ -276,36 +276,41 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     }
 
+    // Track if user has manually selected location
+    let userHasSelectedLocation = false;
+    
     // Auto-select location based on geolocation (including area)
     function autoSelectLocation(region, district, area = null) {
         const regionSelect = document.getElementById('region');
         const districtSelect = document.getElementById('district');
         const areaSelect = document.getElementById('area');
         
-        // Set region
-        regionSelect.value = region;
-        regionSelect.dispatchEvent(new Event('change'));
+        // Only auto-select if no location is currently selected AND user hasn't manually selected
+        if (regionSelect.value || userHasSelectedLocation) return;
         
-        // Wait for district options to populate, then set district
         setTimeout(() => {
-            districtSelect.value = district;
-            districtSelect.dispatchEvent(new Event('change'));
+            regionSelect.value = region;
+            regionSelect.dispatchEvent(new Event('change'));
             
-            // If area is found, wait for area options to populate and set area
-            if (area) {
-                setTimeout(() => {
-                    areaSelect.value = area;
-                    areaSelect.dispatchEvent(new Event('change'));
-                    
-                    // Show success message with area
+            setTimeout(() => {
+                districtSelect.value = district;
+                districtSelect.dispatchEvent(new Event('change'));
+                
+                if (area) {
+                    setTimeout(() => {
+                        areaSelect.value = area;
+                        areaSelect.dispatchEvent(new Event('change'));
+                        
+                        // Show success message with area
+                        const message = translateText('geolocation_auto_selected') || '已自動選擇您附近的地區';
+                        showLocationMessage(`${message}：${region} - ${district} - ${area}`, 'success');
+                    }, 200);
+                } else {
+                    // Show success message without area
                     const message = translateText('geolocation_auto_selected') || '已自動選擇您附近的地區';
-                    showLocationMessage(`${message}：${region} - ${district} - ${area}`, 'success');
-                }, 200);
-            } else {
-                // Show success message without area
-                const message = translateText('geolocation_auto_selected') || '已自動選擇您附近的地區';
-                showLocationMessage(`${message}：${region} - ${district}`, 'success');
-            }
+                    showLocationMessage(`${message}：${region} - ${district}`, 'success');
+                }
+            }, 100);
         }, 100);
     }
 
@@ -404,8 +409,20 @@ document.addEventListener('DOMContentLoaded', function() {
         requestGeolocation();
     }, 1000);
     
+    areaSelect.addEventListener('change', function() {
+        // Mark that user has manually selected location
+        if (this.value) {
+            userHasSelectedLocation = true;
+        }
+    });    
+
     regionSelect.addEventListener('change', function() {
         const selectedRegion = this.value;
+        
+        // Mark that user has manually selected location
+        if (selectedRegion) {
+            userHasSelectedLocation = true;
+        }
         
         // Reset and hide subsequent dropdowns
         const districtPlaceholder = window.currentTranslations && window.currentTranslations['select_district'] 
@@ -442,9 +459,15 @@ document.addEventListener('DOMContentLoaded', function() {
         const selectedRegion = regionSelect.value;
         const selectedDistrict = this.value;
         
-        // Reset area dropdown
+        // Mark that user has manually selected location
+        if (selectedDistrict) {
+            userHasSelectedLocation = true;
+        }
+        
+        // Reset and hide area dropdown
         const areaPlaceholder = window.currentTranslations && window.currentTranslations['select_area'] 
             ? window.currentTranslations['select_area'] : '請選擇具體位置 (可選)';
+            
         areaSelect.innerHTML = `<option value="" data-translate="select_area">${areaPlaceholder}</option>`;
         areaSelect.style.display = 'none';
         
