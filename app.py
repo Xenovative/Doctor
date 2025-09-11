@@ -2926,7 +2926,7 @@ def get_user_reports(user_ip):
         # Get all user queries with diagnosis reports
         cursor.execute('''
             SELECT id, timestamp, age, gender, symptoms, chronic_conditions, 
-                   recommended_specialty, emergency_level, language, location, 
+                   recommended_specialty, ai_diagnosis, language, location, 
                    diagnosis_report
             FROM user_queries 
             WHERE user_ip = ?
@@ -2946,7 +2946,7 @@ def get_user_reports(user_ip):
                 'symptoms': query[4],
                 'chronic_conditions': query[5],
                 'specialty': query[6],
-                'emergency_level': query[7],
+                'emergency_level': query[7] if query[7] else 'Normal',  # Use ai_diagnosis as emergency_level fallback
                 'language': query[8],
                 'location': query[9],
                 'diagnosis_report': query[10]
