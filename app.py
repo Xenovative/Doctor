@@ -855,7 +855,8 @@ def diagnose_symptoms(age: int, symptoms: str, chronic_conditions: str = '', det
     diagnosis_response = call_ai_api(diagnosis_prompt)
     
     # 解析診斷結果
-    recommended_specialty = extract_specialty_from_diagnosis(diagnosis_response)
+    recommended_specialties = extract_specialties_from_diagnosis(diagnosis_response)
+    recommended_specialty = recommended_specialties[0] if recommended_specialties else '內科'
     severity_level = extract_severity_from_diagnosis(diagnosis_response)
     emergency_needed = check_emergency_needed(diagnosis_response)
     
@@ -868,6 +869,7 @@ def diagnose_symptoms(age: int, symptoms: str, chronic_conditions: str = '', det
     return {
         'diagnosis': diagnosis_response,
         'recommended_specialty': recommended_specialty,
+        'recommended_specialties': recommended_specialties,
         'severity_level': severity_level,
         'emergency_needed': emergency_needed
     }
@@ -906,15 +908,44 @@ def analyze_symptoms_and_match(age: int, symptoms: str, chronic_conditions: str,
         matched_doctors = emergency_doctors
     else:
         print("DEBUG - Normal case, routing to specialty doctors")
-        # 一般情況：根據診斷結果推薦醫生
-        matched_doctors = filter_doctors(
-            diagnosis_result['recommended_specialty'], 
-            language, 
-            location, 
-            symptoms, 
-            diagnosis_result['diagnosis'],
-            location_details
-        )
+        # 一般情況：根據診斷結果推薦多個相關專科的醫生
+        all_matched_doctors = []
+        recommended_specialties = diagnosis_result.get('recommended_specialties', [diagnosis_result['recommended_specialty']])
+        
+        for specialty in recommended_specialties:
+            specialty_doctors = filter_doctors(
+                specialty, 
+                language, 
+                location, 
+                symptoms, 
+                diagnosis_result['diagnosis'],
+                location_details
+            )
+            
+            # 為每個醫生添加專科標記，用於排序
+            for doctor in specialty_doctors:
+                doctor['matched_specialty'] = specialty
+                doctor['is_primary_specialty'] = (specialty == diagnosis_result['recommended_specialty'])
+            
+            all_matched_doctors.extend(specialty_doctors)
+        
+        # 去除重複醫生並按優先級排序
+        seen_names = set()
+        unique_doctors = []
+        
+        # 首先添加主要專科的醫生
+        for doctor in all_matched_doctors:
+            if doctor.get('is_primary_specialty', False) and doctor['name'] not in seen_names:
+                seen_names.add(doctor['name'])
+                unique_doctors.append(doctor)
+        
+        # 然後添加其他專科的醫生
+        for doctor in all_matched_doctors:
+            if not doctor.get('is_primary_specialty', False) and doctor['name'] not in seen_names:
+                seen_names.add(doctor['name'])
+                unique_doctors.append(doctor)
+        
+        matched_doctors = unique_doctors[:15]  # 增加到15位醫生以包含多個專科
         
         # 確保非緊急情況下不設置緊急標記
         for doctor in matched_doctors:
@@ -931,7 +962,7 @@ def analyze_symptoms_and_match(age: int, symptoms: str, chronic_conditions: str,
             if doctor['name'] not in seen_names:
                 seen_names.add(doctor['name'])
                 unique_doctors.append(doctor)
-        matched_doctors = unique_doctors[:10]  # 限制最多10位醫生
+        matched_doctors = unique_doctors[:15]  # 限制最多15位醫生以包含多個專科
     
     return {
         'user_summary': user_summary,
@@ -942,30 +973,81 @@ def analyze_symptoms_and_match(age: int, symptoms: str, chronic_conditions: str,
         'doctors': matched_doctors
     }
 
-def extract_specialty_from_diagnosis(diagnosis_text: str) -> str:
-    """從診斷文本中提取推薦的專科"""
+def extract_specialties_from_diagnosis(diagnosis_text: str) -> List[str]:
+    """從診斷文本中提取推薦的專科（支援多個專科）"""
     if not diagnosis_text:
-        return '內科'
+        return ['內科']
     
-    # 專科名稱正規化映射
+    # 專科名稱正規化映射和相關專科
     specialty_mapping = {
-        '精神科': ['精神科', '心理科', '精神健康科', '精神醫學科', 'Psychiatry', 'Mental Health'],
-        '神經科': ['神經科', '腦神經科', '神經內科', 'Neurology'],
-        '心臟科': ['心臟科', '心臟內科', '心血管科', 'Cardiology'],
-        '急診科': ['急診科', '急症科', 'Emergency', 'Emergency Medicine'],
-        '外科': ['外科', '一般外科', '普通外科', 'Surgery', 'General Surgery'],
-        '皮膚科': ['皮膚科', '皮膚及性病科', 'Dermatology'],
-        '眼科': ['眼科', 'Ophthalmology'],
-        '耳鼻喉科': ['耳鼻喉科', 'ENT', 'Otolaryngology'],
-        '婦產科': ['婦產科', '婦科', '產科', 'Gynecology', 'Obstetrics'],
-        '兒科': ['兒科', '小兒科', 'Pediatrics', 'Pediatric'],
-        '骨科': ['骨科', '骨外科', 'Orthopedics', 'Orthopedic'],
-        '泌尿科': ['泌尿科', '泌尿外科', 'Urology'],
-        '腸胃科': ['腸胃科', '消化內科', '胃腸科', 'Gastroenterology'],
-        '內分泌科': ['內分泌科', '糖尿病科', 'Endocrinology'],
-        '感染科': ['感染科', '傳染病科', 'Infectious Disease', 'Infectious Disease Specialist'],
-        '呼吸科': ['呼吸科', '胸肺科', '肺科', 'Pulmonology', 'Respiratory'],
-        '內科': ['內科', '普通科', '家庭醫學科', '全科', 'General Practitioner', 'General Practice', 'Internal Medicine']
+        '精神科': {
+            'variations': ['精神科', '心理科', '精神健康科', '精神醫學科', 'Psychiatry', 'Mental Health'],
+            'related': ['神經科', '內科']
+        },
+        '神經科': {
+            'variations': ['神經科', '腦神經科', '神經內科', 'Neurology'],
+            'related': ['精神科', '內科', '急診科']
+        },
+        '心臟科': {
+            'variations': ['心臟科', '心臟內科', '心血管科', 'Cardiology'],
+            'related': ['內科', '急診科', '外科']
+        },
+        '急診科': {
+            'variations': ['急診科', '急症科', 'Emergency', 'Emergency Medicine'],
+            'related': ['內科', '外科']
+        },
+        '外科': {
+            'variations': ['外科', '一般外科', '普通外科', 'Surgery', 'General Surgery'],
+            'related': ['急診科', '骨科', '泌尿科']
+        },
+        '皮膚科': {
+            'variations': ['皮膚科', '皮膚及性病科', 'Dermatology'],
+            'related': ['內科', '感染科']
+        },
+        '眼科': {
+            'variations': ['眼科', 'Ophthalmology'],
+            'related': ['神經科', '內科']
+        },
+        '耳鼻喉科': {
+            'variations': ['耳鼻喉科', 'ENT', 'Otolaryngology'],
+            'related': ['感染科', '內科', '外科']
+        },
+        '婦產科': {
+            'variations': ['婦產科', '婦科', '產科', 'Gynecology', 'Obstetrics'],
+            'related': ['內科', '外科', '泌尿科']
+        },
+        '兒科': {
+            'variations': ['兒科', '小兒科', 'Pediatrics', 'Pediatric'],
+            'related': ['內科', '感染科', '呼吸科']
+        },
+        '骨科': {
+            'variations': ['骨科', '骨外科', 'Orthopedics', 'Orthopedic'],
+            'related': ['外科', '神經科', '內科']
+        },
+        '泌尿科': {
+            'variations': ['泌尿科', '泌尿外科', 'Urology'],
+            'related': ['外科', '內科', '腎科']
+        },
+        '腸胃科': {
+            'variations': ['腸胃科', '消化內科', '胃腸科', 'Gastroenterology'],
+            'related': ['內科', '外科', '感染科']
+        },
+        '內分泌科': {
+            'variations': ['內分泌科', '糖尿病科', 'Endocrinology'],
+            'related': ['內科', '心臟科', '腎科']
+        },
+        '感染科': {
+            'variations': ['感染科', '傳染病科', 'Infectious Disease', 'Infectious Disease Specialist'],
+            'related': ['內科', '呼吸科', '急診科']
+        },
+        '呼吸科': {
+            'variations': ['呼吸科', '胸肺科', '肺科', 'Pulmonology', 'Respiratory'],
+            'related': ['內科', '感染科', '心臟科']
+        },
+        '內科': {
+            'variations': ['內科', '普通科', '家庭醫學科', '全科', 'General Practitioner', 'General Practice', 'Internal Medicine'],
+            'related': ['心臟科', '腸胃科', '呼吸科', '內分泌科']
+        }
     }
     
     # 使用正則表達式提取專科資訊 (支援中英文)
@@ -979,46 +1061,60 @@ def extract_specialty_from_diagnosis(diagnosis_text: str) -> str:
         r'([^。\n\r]*(?:科|Specialist|Medicine|Surgery|ology|ics))\s*(?:醫師|專科|doctor)?',
     ]
     
-    recommended_specialty = None
+    found_specialties = set()
+    
+    # 首先嘗試從明確的專科推薦中提取
     for pattern in specialty_patterns:
         matches = re.findall(pattern, diagnosis_text, re.IGNORECASE)
         if matches:
             recommended_specialty = matches[0].strip()
             print(f"DEBUG - Specialty pattern matched: '{pattern}' -> '{recommended_specialty}'")
+            
+            # 清理提取的專科名稱
+            recommended_specialty = re.sub(r'\s*(or|或)\s*.*$', '', recommended_specialty, flags=re.IGNORECASE).strip()
+            
+            # 尋找匹配的標準專科名稱
+            for standard_specialty, specialty_info in specialty_mapping.items():
+                for variation in specialty_info['variations']:
+                    if variation.lower() in recommended_specialty.lower():
+                        found_specialties.add(standard_specialty)
+                        print(f"DEBUG - Primary specialty found: '{variation}' -> '{standard_specialty}'")
+                        break
             break
     
-    if not recommended_specialty:
+    # 如果沒有找到明確的專科推薦，搜索關鍵字
+    if not found_specialties:
         print("DEBUG - No specialty pattern matched, searching for keywords")
-        # 如果沒有找到明確的專科推薦，嘗試從文本中提取科別關鍵字
         text_lower = diagnosis_text.lower()
-        for standard_specialty, variations in specialty_mapping.items():
-            for variation in variations:
+        for standard_specialty, specialty_info in specialty_mapping.items():
+            for variation in specialty_info['variations']:
                 if variation.lower() in text_lower:
+                    found_specialties.add(standard_specialty)
                     print(f"DEBUG - Keyword match found: '{variation}' -> '{standard_specialty}'")
-                    return standard_specialty
-        print("DEBUG - No specialty keywords found, defaulting to Internal Medicine")
-        return '內科'
     
-    # 清理提取的專科名稱
-    original_specialty = recommended_specialty
-    recommended_specialty = re.sub(r'\s*(or|或)\s*.*$', '', recommended_specialty, flags=re.IGNORECASE).strip()
-    print(f"DEBUG - Cleaned specialty: '{original_specialty}' -> '{recommended_specialty}'")
+    # 如果找到了主要專科，添加相關專科
+    if found_specialties:
+        primary_specialty = list(found_specialties)[0]  # 取第一個作為主要專科
+        related_specialties = specialty_mapping.get(primary_specialty, {}).get('related', [])
+        
+        # 添加最多2個相關專科，避免推薦太多
+        for related in related_specialties[:2]:
+            if related in specialty_mapping:  # 確保相關專科存在
+                found_specialties.add(related)
+                print(f"DEBUG - Added related specialty: {related}")
+        
+        result = list(found_specialties)
+        print(f"DEBUG - Final specialties: {result}")
+        return result
     
-    # 尋找匹配的標準專科名稱
-    for standard_specialty, variations in specialty_mapping.items():
-        for variation in variations:
-            if variation.lower() in recommended_specialty.lower():
-                print(f"DEBUG - Specialty mapping found: '{variation}' -> '{standard_specialty}'")
-                return standard_specialty
-    
-    # 如果找不到匹配，但有提取到專科名稱，返回清理後的名稱
-    if recommended_specialty and len(recommended_specialty) > 0:
-        print(f"DEBUG - No mapping found, returning extracted specialty: '{recommended_specialty}'")
-        return recommended_specialty
-    
-    # 如果沒有找到明確的專科推薦，返回內科作為默認
-    print("DEBUG - Final fallback to Internal Medicine")
-    return '內科'
+    # 如果沒有找到任何專科，返回內科作為默認
+    print("DEBUG - No specialty keywords found, defaulting to Internal Medicine")
+    return ['內科']
+
+def extract_specialty_from_diagnosis(diagnosis_text: str) -> str:
+    """從診斷文本中提取推薦的專科（單一專科，保留兼容性）"""
+    specialties = extract_specialties_from_diagnosis(diagnosis_text)
+    return specialties[0] if specialties else '內科'
 
 def extract_specialty_from_ai_response(ai_response: str) -> str:
     """從AI回應中提取推薦的專科（保留兼容性）"""

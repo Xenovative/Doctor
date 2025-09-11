@@ -69,7 +69,7 @@ TRANSLATIONS = {
         
         # Loading and Results
         'loading_message': 'AI正在分析您的症狀並配對合適的醫生...',
-        'recommended_doctors': '推薦醫生',
+        'recommended_doctors': 'AI診斷結果',
         
         # Footer
         'terms_conditions': '條款及細則',
@@ -104,7 +104,8 @@ TRANSLATIONS = {
         'more_info': '更多資料',
         'less_info': '收起資料',
         'show_more_doctors': '顯示更多醫生',
-        'recommended_doctors': '推薦醫生',
+        'recommended_doctors': 'AI診斷結果',
+        'doctor_list_header': '醫生列表',
         'no_doctors_found': '抱歉，未能找到合適的醫生。請嘗試修改搜索條件。',
         'service_unavailable': '服務暫時不可用',
         'ai_diagnosis_unavailable': 'AI診斷暫時不可用',
@@ -154,8 +155,8 @@ TRANSLATIONS = {
         '預防醫學科': 'Preventive Medicine',
         
         # Doctor Card Labels
-        'recommendation_rank': '第',
-        'recommendation_suffix': '推薦',
+        'recommendation_rank': '',
+        'recommendation_suffix': '',
         'click_to_contact': {
             'zh-TW': '點擊聯絡',
             'en': 'Click to Contact'
@@ -245,6 +246,13 @@ TRANSLATIONS = {
         '屯門區': '屯門區',
         '元朗區': '元朗區',
         
+        # Geolocation messages
+        'geolocation_auto_selected': '已自動選擇您附近的地區',
+        'geolocation_permission_denied': '位置權限被拒絕，請手動選擇地區',
+        'geolocation_unavailable': '位置信息不可用，請手動選擇地區',
+        'geolocation_timeout': '獲取位置超時，請手動選擇地區',
+        'geolocation_error': '無法獲取您的位置',
+
         # Location translations - Areas
         '中環': '中環', '上環': '上環', '西環': '西環', '金鐘': '金鐘', '堅尼地城': '堅尼地城', '石塘咀': '石塘咀', '西營盤': '西營盤',
         '銅鑼灣': '銅鑼灣', '天后': '天后', '炮台山': '炮台山', '北角': '北角', '鰂魚涌': '鰂魚涌', '西灣河': '西灣河', '筲箕灣': '筲箕灣', '柴灣': '柴灣', '小西灣': '小西灣',
@@ -356,7 +364,7 @@ TRANSLATIONS = {
         
         # Loading and Results
         'loading_message': 'AI正在分析您的症状并配对合适的医生...',
-        'recommended_doctors': '推荐医生',
+        'recommended_doctors': 'AI诊断结果',
         
         # Footer
         'terms_conditions': '条款及细则',
@@ -391,7 +399,8 @@ TRANSLATIONS = {
         'more_info': '更多资料',
         'less_info': '收起资料',
         'show_more_doctors': '显示更多医生',
-        'recommended_doctors': '推荐医生',
+        'recommended_doctors': 'AI诊断结果',
+        'doctor_list_header': '医生列表',
         'no_doctors_found': '抱歉，未能找到合适的医生。请尝试修改搜索条件。',
         'service_unavailable': '服务暂时不可用',
         'ai_diagnosis_unavailable': 'AI诊断暂时不可用',
@@ -441,8 +450,8 @@ TRANSLATIONS = {
         '預防醫學科': '预防医学科',
         
         # Doctor Card Labels
-        'recommendation_rank': '第',
-        'recommendation_suffix': '推荐',
+        'recommendation_rank': '',
+        'recommendation_suffix': '',
         'click_to_contact': '点击联络',
         'language_label': '语言：',
         'phone_label': '电话：',
@@ -473,6 +482,13 @@ TRANSLATIONS = {
         '屯門區': '屯门区',
         '元朗區': '元朗区',
         
+        # Geolocation messages
+        'geolocation_auto_selected': '已自动选择您附近的地区',
+        'geolocation_permission_denied': '位置权限被拒绝，请手动选择地区',
+        'geolocation_unavailable': '位置信息不可用，请手动选择地区',
+        'geolocation_timeout': '获取位置超时，请手动选择地区',
+        'geolocation_error': '无法获取您的位置',
+
         # Location translations - Areas
         '中環': '中环', '上環': '上环', '西環': '西环', '金鐘': '金钟', '堅尼地城': '坚尼地城', '石塘咀': '石塘咀', '西營盤': '西营盘',
         '銅鑼灣': '铜锣湾', '天后': '天后', '炮台山': '炮台山', '北角': '北角', '鰂魚涌': '鲗鱼涌', '西灣河': '西湾河', '筲箕灣': '筲箕湾', '柴灣': '柴湾', '小西灣': '小西湾',
@@ -584,7 +600,7 @@ TRANSLATIONS = {
         
         # Loading and Results
         'loading_message': 'AI is analyzing your symptoms and matching suitable doctors...',
-        'recommended_doctors': 'Recommended Doctors',
+        'recommended_doctors': 'AI Diagnosis Results',
         
         # Footer
         'terms_conditions': 'Terms & Conditions',
@@ -619,7 +635,8 @@ TRANSLATIONS = {
         'more_info': 'More Information',
         'less_info': 'Less Information',
         'show_more_doctors': 'Show More Doctors',
-        'recommended_doctors': 'Recommended Doctors',
+        'recommended_doctors': 'AI Diagnosis Results',
+        'doctor_list_header': 'Doctor List',
         'no_doctors_found': 'Sorry, no suitable doctors found. Please try modifying your search criteria.',
         'service_unavailable': 'Service Temporarily Unavailable',
         'ai_diagnosis_unavailable': 'AI Diagnosis Temporarily Unavailable',
@@ -669,7 +686,7 @@ TRANSLATIONS = {
         '預防醫學科': 'Preventive Medicine',
         
         # Doctor Card Labels
-        'recommendation_rank': 'Recommendation #',
+        'recommendation_rank': '',
         'recommendation_suffix': '',
         'click_to_contact': 'Click to Contact',
         'language_label': 'Languages: ',
@@ -683,6 +700,13 @@ TRANSLATIONS = {
         'emergency_care_needed': '🚨 Emergency Care Recommended',
         'urgent_consultation': 'Urgent Medical Consultation Required',
         
+        # Geolocation messages
+        'geolocation_auto_selected': 'Automatically selected nearby area',
+        'geolocation_permission_denied': 'Location permission denied, please select area manually',
+        'geolocation_unavailable': 'Location information unavailable, please select area manually',
+        'geolocation_timeout': 'Location request timed out, please select area manually',
+        'geolocation_error': 'Unable to get your location',
+
         # Location translations - Districts
         '中西區': 'Central and Western District',
         '東區': 'Eastern District', 

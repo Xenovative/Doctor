@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const doctorList = document.getElementById('doctorList');
     const diagnosisResult = document.getElementById('diagnosisResult');
     
-    // Location cascade data
+    // Location cascade data with coordinates for geolocation matching
     const locationData = {
         '香港島': {
             '中西區': ['中環', '上環', '西環', '金鐘', '堅尼地城', '石塘咀', '西營盤'],
@@ -32,11 +32,377 @@ document.addEventListener('DOMContentLoaded', function() {
             '元朗區': ['元朗', '天水圍', '洪水橋', '流浮山', '錦田', '八鄉']
         }
     };
+
+    // Area coordinates for precise geolocation matching
+    const areaCoordinates = {
+        // 中西區
+        '中環': { lat: 22.2810, lng: 114.1577, district: '中西區' },
+        '上環': { lat: 22.2866, lng: 114.1506, district: '中西區' },
+        '西環': { lat: 22.2855, lng: 114.1286, district: '中西區' },
+        '金鐘': { lat: 22.2783, lng: 114.1647, district: '中西區' },
+        '堅尼地城': { lat: 22.2816, lng: 114.1256, district: '中西區' },
+        '石塘咀': { lat: 22.2855, lng: 114.1356, district: '中西區' },
+        '西營盤': { lat: 22.2855, lng: 114.1406, district: '中西區' },
+        
+        // 東區
+        '銅鑼灣': { lat: 22.2783, lng: 114.1847, district: '東區' },
+        '天后': { lat: 22.2833, lng: 114.1947, district: '東區' },
+        '炮台山': { lat: 22.2883, lng: 114.2047, district: '東區' },
+        '北角': { lat: 22.2933, lng: 114.2097, district: '東區' },
+        '鰂魚涌': { lat: 22.2983, lng: 114.2197, district: '東區' },
+        '西灣河': { lat: 22.2833, lng: 114.2297, district: '東區' },
+        '筲箕灣': { lat: 22.2783, lng: 114.2397, district: '東區' },
+        '柴灣': { lat: 22.2683, lng: 114.2497, district: '東區' },
+        '小西灣': { lat: 22.2633, lng: 114.2597, district: '東區' },
+        
+        // 南區
+        '香港仔': { lat: 22.2461, lng: 114.1628, district: '南區' },
+        '鴨脷洲': { lat: 22.2411, lng: 114.1578, district: '南區' },
+        '黃竹坑': { lat: 22.2511, lng: 114.1728, district: '南區' },
+        '深水灣': { lat: 22.2361, lng: 114.1878, district: '南區' },
+        '淺水灣': { lat: 22.2311, lng: 114.1978, district: '南區' },
+        '赤柱': { lat: 22.2161, lng: 114.2078, district: '南區' },
+        '石澳': { lat: 22.2011, lng: 114.2278, district: '南區' },
+        
+        // 灣仔區
+        '灣仔': { lat: 22.2783, lng: 114.1747, district: '灣仔區' },
+        '跑馬地': { lat: 22.2733, lng: 114.1847, district: '灣仔區' },
+        '大坑': { lat: 22.2833, lng: 114.1897, district: '灣仔區' },
+        '渣甸山': { lat: 22.2883, lng: 114.1947, district: '灣仔區' },
+        '寶馬山': { lat: 22.2933, lng: 114.1997, district: '灣仔區' },
+        
+        // 九龍城區
+        '九龍城': { lat: 22.3193, lng: 114.1847, district: '九龍城區' },
+        '土瓜灣': { lat: 22.3143, lng: 114.1797, district: '九龍城區' },
+        '馬頭角': { lat: 22.3093, lng: 114.1747, district: '九龍城區' },
+        '馬頭圍': { lat: 22.3043, lng: 114.1697, district: '九龍城區' },
+        '啟德': { lat: 22.3243, lng: 114.1997, district: '九龍城區' },
+        '紅磡': { lat: 22.3043, lng: 114.1847, district: '九龍城區' },
+        '何文田': { lat: 22.3143, lng: 114.1747, district: '九龍城區' },
+        
+        // 觀塘區
+        '觀塘': { lat: 22.3193, lng: 114.2267, district: '觀塘區' },
+        '牛頭角': { lat: 22.3143, lng: 114.2217, district: '觀塘區' },
+        '九龍灣': { lat: 22.3243, lng: 114.2167, district: '觀塘區' },
+        '彩虹': { lat: 22.3293, lng: 114.2017, district: '觀塘區' },
+        '坪石': { lat: 22.3343, lng: 114.1967, district: '觀塘區' },
+        '秀茂坪': { lat: 22.3393, lng: 114.2117, district: '觀塘區' },
+        '藍田': { lat: 22.3043, lng: 114.2367, district: '觀塘區' },
+        '油塘': { lat: 22.2993, lng: 114.2417, district: '觀塘區' },
+        
+        // 深水埗區
+        '深水埗': { lat: 22.3303, lng: 114.1627, district: '深水埗區' },
+        '長沙灣': { lat: 22.3353, lng: 114.1577, district: '深水埗區' },
+        '荔枝角': { lat: 22.3403, lng: 114.1527, district: '深水埗區' },
+        '美孚': { lat: 22.3453, lng: 114.1377, district: '深水埗區' },
+        '石硤尾': { lat: 22.3353, lng: 114.1677, district: '深水埗區' },
+        '又一村': { lat: 22.3403, lng: 114.1727, district: '深水埗區' },
+        
+        // 黃大仙區
+        '黃大仙': { lat: 22.3423, lng: 114.1937, district: '黃大仙區' },
+        '新蒲崗': { lat: 22.3373, lng: 114.1887, district: '黃大仙區' },
+        '樂富': { lat: 22.3473, lng: 114.1837, district: '黃大仙區' },
+        '橫頭磡': { lat: 22.3523, lng: 114.1787, district: '黃大仙區' },
+        '東頭': { lat: 22.3573, lng: 114.1737, district: '黃大仙區' },
+        '竹園': { lat: 22.3623, lng: 114.1687, district: '黃大仙區' },
+        '慈雲山': { lat: 22.3673, lng: 114.1987, district: '黃大仙區' },
+        '鑽石山': { lat: 22.3423, lng: 114.2037, district: '黃大仙區' },
+        
+        // 油尖旺區
+        '油麻地': { lat: 22.3053, lng: 114.1693, district: '油尖旺區' },
+        '尖沙咀': { lat: 22.2953, lng: 114.1743, district: '油尖旺區' },
+        '旺角': { lat: 22.3153, lng: 114.1693, district: '油尖旺區' },
+        '大角咀': { lat: 22.3203, lng: 114.1643, district: '油尖旺區' },
+        '太子': { lat: 22.3253, lng: 114.1693, district: '油尖旺區' },
+        '佐敦': { lat: 22.3003, lng: 114.1743, district: '油尖旺區' },
+        
+        // 離島區
+        '長洲': { lat: 22.2097, lng: 114.0297, district: '離島區' },
+        '南丫島': { lat: 22.2147, lng: 114.1347, district: '離島區' },
+        '坪洲': { lat: 22.2897, lng: 114.0447, district: '離島區' },
+        '大嶼山': { lat: 22.2597, lng: 113.9427, district: '離島區' },
+        '東涌': { lat: 22.2897, lng: 113.9427, district: '離島區' },
+        '愉景灣': { lat: 22.2647, lng: 114.0027, district: '離島區' },
+        
+        // 葵青區
+        '葵涌': { lat: 22.3573, lng: 114.1287, district: '葵青區' },
+        '青衣': { lat: 22.3473, lng: 114.1087, district: '葵青區' },
+        '葵芳': { lat: 22.3623, lng: 114.1237, district: '葵青區' },
+        '荔景': { lat: 22.3523, lng: 114.1187, district: '葵青區' },
+        
+        // 北區
+        '上水': { lat: 22.4953, lng: 114.1287, district: '北區' },
+        '粉嶺': { lat: 22.4903, lng: 114.1387, district: '北區' },
+        '打鼓嶺': { lat: 22.5253, lng: 114.1587, district: '北區' },
+        '沙頭角': { lat: 22.5453, lng: 114.2087, district: '北區' },
+        '鹿頸': { lat: 22.5353, lng: 114.2387, district: '北區' },
+        
+        // 西貢區
+        '西貢': { lat: 22.3143, lng: 114.2677, district: '西貢區' },
+        '將軍澳': { lat: 22.3043, lng: 114.2577, district: '西貢區' },
+        '坑口': { lat: 22.2943, lng: 114.2677, district: '西貢區' },
+        '調景嶺': { lat: 22.3143, lng: 114.2477, district: '西貢區' },
+        '寶林': { lat: 22.3243, lng: 114.2577, district: '西貢區' },
+        '康盛花園': { lat: 22.3043, lng: 114.2377, district: '西貢區' },
+        
+        // 沙田區
+        '沙田': { lat: 22.3823, lng: 114.1977, district: '沙田區' },
+        '大圍': { lat: 22.3723, lng: 114.1827, district: '沙田區' },
+        '火炭': { lat: 22.3973, lng: 114.1827, district: '沙田區' },
+        '馬鞍山': { lat: 22.4273, lng: 114.2327, district: '沙田區' },
+        '烏溪沙': { lat: 22.4373, lng: 114.2427, district: '沙田區' },
+        
+        // 大埔區
+        '大埔': { lat: 22.4453, lng: 114.1647, district: '大埔區' },
+        '太和': { lat: 22.4553, lng: 114.1597, district: '大埔區' },
+        '大埔墟': { lat: 22.4403, lng: 114.1697, district: '大埔區' },
+        '林村': { lat: 22.4303, lng: 114.1447, district: '大埔區' },
+        '汀角': { lat: 22.4653, lng: 114.1897, district: '大埔區' },
+        
+        // 荃灣區
+        '荃灣': { lat: 22.3693, lng: 114.1147, district: '荃灣區' },
+        '梨木樹': { lat: 22.3793, lng: 114.1047, district: '荃灣區' },
+        '象山': { lat: 22.3643, lng: 114.1097, district: '荃灣區' },
+        '城門': { lat: 22.3743, lng: 114.1197, district: '荃灣區' },
+        
+        // 屯門區
+        '屯門': { lat: 22.3913, lng: 113.9767, district: '屯門區' },
+        '友愛': { lat: 22.3863, lng: 113.9717, district: '屯門區' },
+        '安定': { lat: 22.3963, lng: 113.9817, district: '屯門區' },
+        '山景': { lat: 22.4013, lng: 113.9867, district: '屯門區' },
+        '大興': { lat: 22.4063, lng: 113.9917, district: '屯門區' },
+        '良景': { lat: 22.4113, lng: 113.9967, district: '屯門區' },
+        '建生': { lat: 22.4163, lng: 114.0017, district: '屯門區' },
+        
+        // 元朗區
+        '元朗': { lat: 22.4453, lng: 114.0347, district: '元朗區' },
+        '天水圍': { lat: 22.4653, lng: 114.0047, district: '元朗區' },
+        '洪水橋': { lat: 22.4253, lng: 114.0147, district: '元朗區' },
+        '流浮山': { lat: 22.4753, lng: 113.9947, district: '元朗區' },
+        '錦田': { lat: 22.4353, lng: 114.0547, district: '元朗區' },
+        '八鄉': { lat: 22.4153, lng: 114.0747, district: '元朗區' }
+    };
+
+    // District coordinates for fallback (approximate centers)
+    const districtCoordinates = {
+        '中西區': { lat: 22.2855, lng: 114.1577 },
+        '東區': { lat: 22.2783, lng: 114.2367 },
+        '南區': { lat: 22.2461, lng: 114.1628 },
+        '灣仔區': { lat: 22.2783, lng: 114.1747 },
+        '九龍城區': { lat: 22.3193, lng: 114.1847 },
+        '觀塘區': { lat: 22.3193, lng: 114.2267 },
+        '深水埗區': { lat: 22.3303, lng: 114.1627 },
+        '黃大仙區': { lat: 22.3423, lng: 114.1937 },
+        '油尖旺區': { lat: 22.3053, lng: 114.1693 },
+        '離島區': { lat: 22.2587, lng: 113.9427 },
+        '葵青區': { lat: 22.3573, lng: 114.1287 },
+        '北區': { lat: 22.4953, lng: 114.1287 },
+        '西貢區': { lat: 22.3143, lng: 114.2677 },
+        '沙田區': { lat: 22.3823, lng: 114.1977 },
+        '大埔區': { lat: 22.4453, lng: 114.1647 },
+        '荃灣區': { lat: 22.3693, lng: 114.1147 },
+        '屯門區': { lat: 22.3913, lng: 113.9767 },
+        '元朗區': { lat: 22.4453, lng: 114.0347 }
+    };
+
+    // Geolocation functionality
+    let userLocation = null;
+    let geolocationAttempted = false;
     
+    // Calculate distance between two coordinates using Haversine formula
+    function calculateDistance(lat1, lng1, lat2, lng2) {
+        const R = 6371; // Earth's radius in kilometers
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLng = (lng2 - lng1) * Math.PI / 180;
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                  Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                  Math.sin(dLng/2) * Math.sin(dLng/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c;
+    }
+
+    // Find closest area based on user's coordinates (with fallback to district)
+    function findClosestLocation(userLat, userLng) {
+        let closestArea = null;
+        let closestDistrict = null;
+        let closestRegion = null;
+        let minDistance = Infinity;
+
+        // First try to find closest specific area
+        for (const [area, coords] of Object.entries(areaCoordinates)) {
+            const distance = calculateDistance(userLat, userLng, coords.lat, coords.lng);
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestArea = area;
+                closestDistrict = coords.district;
+                
+                // Find which region this district belongs to
+                for (const [region, districts] of Object.entries(locationData)) {
+                    if (districts.hasOwnProperty(closestDistrict)) {
+                        closestRegion = region;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // If no area found within reasonable distance, fallback to district matching
+        if (minDistance > 5) { // 5km threshold
+            minDistance = Infinity;
+            closestArea = null;
+            
+            for (const [district, coords] of Object.entries(districtCoordinates)) {
+                const distance = calculateDistance(userLat, userLng, coords.lat, coords.lng);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closestDistrict = district;
+                    
+                    // Find which region this district belongs to
+                    for (const [region, districts] of Object.entries(locationData)) {
+                        if (districts.hasOwnProperty(district)) {
+                            closestRegion = region;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        return { 
+            region: closestRegion, 
+            district: closestDistrict, 
+            area: closestArea,
+            distance: minDistance 
+        };
+    }
+
+    // Auto-select location based on geolocation (including area)
+    function autoSelectLocation(region, district, area = null) {
+        const regionSelect = document.getElementById('region');
+        const districtSelect = document.getElementById('district');
+        const areaSelect = document.getElementById('area');
+        
+        // Set region
+        regionSelect.value = region;
+        regionSelect.dispatchEvent(new Event('change'));
+        
+        // Wait for district options to populate, then set district
+        setTimeout(() => {
+            districtSelect.value = district;
+            districtSelect.dispatchEvent(new Event('change'));
+            
+            // If area is found, wait for area options to populate and set area
+            if (area) {
+                setTimeout(() => {
+                    areaSelect.value = area;
+                    areaSelect.dispatchEvent(new Event('change'));
+                    
+                    // Show success message with area
+                    const message = translateText('geolocation_auto_selected') || '已自動選擇您附近的地區';
+                    showLocationMessage(`${message}：${region} - ${district} - ${area}`, 'success');
+                }, 200);
+            } else {
+                // Show success message without area
+                const message = translateText('geolocation_auto_selected') || '已自動選擇您附近的地區';
+                showLocationMessage(`${message}：${region} - ${district}`, 'success');
+            }
+        }, 100);
+    }
+
+    // Show location message
+    function showLocationMessage(message, type = 'info') {
+        const existingMessage = document.querySelector('.location-message');
+        if (existingMessage) {
+            existingMessage.remove();
+        }
+
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `location-message alert alert-${type === 'success' ? 'success' : 'info'}`;
+        messageDiv.style.cssText = `
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            background-color: ${type === 'success' ? '#d4edda' : '#d1ecf1'};
+            border: 1px solid ${type === 'success' ? '#c3e6cb' : '#bee5eb'};
+            color: ${type === 'success' ? '#155724' : '#0c5460'};
+            font-size: 14px;
+        `;
+        messageDiv.innerHTML = `
+            <i class="fas fa-${type === 'success' ? 'check-circle' : 'info-circle'}"></i>
+            ${message}
+        `;
+
+        const locationSection = document.querySelector('.form-group:has(#region)') || 
+                               document.querySelector('#region').closest('.form-group');
+        if (locationSection) {
+            locationSection.appendChild(messageDiv);
+            
+            // Auto-remove message after 5 seconds
+            setTimeout(() => {
+                if (messageDiv.parentNode) {
+                    messageDiv.remove();
+                }
+            }, 5000);
+        }
+    }
+
+    // Request geolocation
+    function requestGeolocation() {
+        if (geolocationAttempted || !navigator.geolocation) {
+            return;
+        }
+        
+        geolocationAttempted = true;
+        
+        const options = {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 300000 // 5 minutes
+        };
+
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                userLocation = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                };
+                
+                const closest = findClosestLocation(userLocation.lat, userLocation.lng);
+                if (closest.region && closest.district) {
+                    autoSelectLocation(closest.region, closest.district, closest.area);
+                }
+            },
+            function(error) {
+                console.log('Geolocation error:', error);
+                let errorMessage = translateText('geolocation_error') || '無法獲取您的位置';
+                
+                switch(error.code) {
+                    case error.PERMISSION_DENIED:
+                        errorMessage = translateText('geolocation_permission_denied') || '位置權限被拒絕，請手動選擇地區';
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        errorMessage = translateText('geolocation_unavailable') || '位置信息不可用，請手動選擇地區';
+                        break;
+                    case error.TIMEOUT:
+                        errorMessage = translateText('geolocation_timeout') || '獲取位置超時，請手動選擇地區';
+                        break;
+                }
+                
+                showLocationMessage(errorMessage, 'info');
+            },
+            options
+        );
+    }
+
     // Location cascade handlers
     const regionSelect = document.getElementById('region');
     const districtSelect = document.getElementById('district');
     const areaSelect = document.getElementById('area');
+
+    // Auto-request geolocation when page loads
+    setTimeout(() => {
+        requestGeolocation();
+    }, 1000);
     
     regionSelect.addEventListener('change', function() {
         const selectedRegion = this.value;
@@ -328,8 +694,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (allDoctors.length > 0) {
             // 添加醫生推薦標題
             const doctorHeader = document.createElement('h3');
-            const headerText = window.currentTranslations && window.currentTranslations['recommended_doctors'] 
-                ? window.currentTranslations['recommended_doctors'] : '推薦醫生';
+            const headerText = window.currentTranslations && window.currentTranslations['doctor_list_header'] 
+                ? window.currentTranslations['doctor_list_header'] : '醫生列表';
             doctorHeader.innerHTML = `<i class="fas fa-user-doctor"></i> ${headerText}`;
             doctorHeader.style.cssText = 'margin: 30px 0 20px 0; color: #333; font-size: 1.5rem; display: flex; align-items: center; gap: 10px;';
             doctorList.appendChild(doctorHeader);
@@ -504,13 +870,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 ${doctor.emergency_message || translateText('emergency_care_needed')}
             </div>
             ` : ''}
-            <div class="match-score">
-                <i class="fas fa-star"></i>
-                ${translateText('recommendation_rank')} ${rank}${(() => {
-                    const suffix = translateText('recommendation_suffix');
-                    return (suffix && suffix !== 'recommendation_suffix' && suffix.trim()) ? ' ' + suffix : '';
-                })()}
-            </div>
             <div class="whatsapp-hint">
                 <i class="fab fa-whatsapp"></i>
                 ${translateText('click_to_contact')}
