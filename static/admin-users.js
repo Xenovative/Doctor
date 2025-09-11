@@ -157,7 +157,7 @@ function viewUserReports(userIp) {
                                 <div class="col-md-6">
                                     <h6>診斷結果</h6>
                                     <p><strong>推薦專科:</strong> ${report.specialty}</p>
-                                    <p><strong>緊急程度:</strong> ${report.emergency_level}</p>
+                                    <p><strong>緊急程度:</strong> ${report.emergency_level === 'Yes' ? '是' : '否'}</p>
                                     <p><strong>語言:</strong> ${report.language}</p>
                                     <p><strong>地區:</strong> ${report.location}</p>
                                 </div>
