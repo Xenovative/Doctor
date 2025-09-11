@@ -2864,8 +2864,7 @@ def add_doctor():
                 consultation_hours, consultation_fee, profile_url,
                 registration_number, priority_flag,
                 name, specialty, qualifications, languages,
-                phone, address,
-                created_at, updated_at
+                phone, address
             ) VALUES (
                 ?, ?, ?, ?,
                 ?, ?, ?, ?,
@@ -2873,8 +2872,7 @@ def add_doctor():
                 ?, ?, ?,
                 ?, ?,
                 ?, ?, ?, ?,
-                ?, ?,
-                CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+                ?, ?
             )
         ''', (
             data.get('name_zh'), data.get('specialty_zh'), data.get('qualifications_zh'), data.get('languages_zh'),
