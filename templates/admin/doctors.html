@@ -712,12 +712,30 @@
         }
         
         function editDoctor(doctorId) {
+            console.log('Edit doctor called with ID:', doctorId);
+            
+            // Validate doctorId first
+            if (!doctorId) {
+                alert('錯誤：無效的醫生ID');
+                return;
+            }
+            
+            // Set doctor ID immediately
+            document.getElementById('editDoctorId').value = doctorId;
+            
             // Load doctor data and show edit modal
             fetch(`/admin/doctors/${doctorId}`)
-                .then(response => response.json())
+                .then(response => {
+                    console.log('Fetch response status:', response.status);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
                 .then(data => {
-                    if (data.error) {
-                        alert('錯誤: ' + data.error);
+                    console.log('Doctor data received:', data);
+                    if (!data || data.error) {
+                        alert('載入醫生資料失敗：' + (data?.error || '未知錯誤'));
                         return;
                     }
                     
@@ -822,11 +840,21 @@
             const formData = new FormData(document.getElementById('editDoctorForm'));
             const doctorId = document.getElementById('editDoctorId').value;
             
+            // Validate doctorId
+            if (!doctorId || doctorId.trim() === '') {
+                alert('錯誤：無法獲取醫生ID，請重新打開編輯視窗');
+                return;
+            }
+            
+            console.log('Doctor ID:', doctorId);
+            
             // Convert FormData to JSON
             const data = {};
             formData.forEach((value, key) => {
                 data[key] = value;
             });
+            
+            console.log('Update data:', data);
             
             fetch(`/admin/doctors/${doctorId}/update`, {
                 method: 'POST',
