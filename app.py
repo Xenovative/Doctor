@@ -683,7 +683,8 @@ def call_openrouter_api(prompt: str) -> str:
                 {"role": "user", "content": prompt}
             ],
             "max_tokens": AI_CONFIG['openrouter']['max_tokens'],
-            "temperature": 0.7
+            "temperature": 0.3,
+            "top_p": 0.9
         }
         
         response = requests.post(
@@ -719,7 +720,8 @@ def call_openai_api(prompt: str) -> str:
                 {"role": "user", "content": prompt}
             ],
             "max_tokens": AI_CONFIG['openai']['max_tokens'],
-            "temperature": 0.7
+            "temperature": 0.3,
+            "top_p": 0.9
         }
         
         response = requests.post(
@@ -810,6 +812,19 @@ def call_ai_api(prompt: str) -> str:
     else:
         return f"不支援的AI提供商: {provider}"
 
+def get_available_specialties() -> List[str]:
+    """獲取資料庫中所有可用的專科"""
+    try:
+        conn = sqlite3.connect('doctors.db')
+        cursor = conn.cursor()
+        cursor.execute("SELECT DISTINCT COALESCE(specialty_zh, specialty_en, specialty) as specialty FROM doctors WHERE specialty IS NOT NULL ORDER BY specialty")
+        specialties = [row[0] for row in cursor.fetchall() if row[0] and row[0].strip()]
+        conn.close()
+        return specialties
+    except Exception as e:
+        print(f"Error fetching specialties: {e}")
+        return ['內科', '外科', '小兒科', '婦產科', '骨科', '皮膚科', '眼科', '耳鼻喉科', '精神科', '神經科', '心臟科', '急診科']
+
 def diagnose_symptoms(age: int, gender: str, symptoms: str, chronic_conditions: str = '', detailed_health_info: Dict = None, user_language: str = 'zh-TW') -> Dict[str, str]:
     """使用AI診斷症狀"""
     
@@ -865,7 +880,11 @@ def diagnose_symptoms(age: int, gender: str, symptoms: str, chronic_conditions: 
     # Build health info with translated labels
     health_info = "\n    - ".join(health_details) if health_details else t('no_special_health_info')
     
-    # Build AI diagnosis prompt in user's language
+    # Get available specialties from database
+    available_specialties = get_available_specialties()
+    specialty_list = "、".join(available_specialties)
+    
+    # Build AI diagnosis prompt in user's language with consistency instructions
     diagnosis_prompt = f"""
     {t('diagnosis_prompt_intro')}
 
@@ -887,8 +906,17 @@ def diagnose_symptoms(age: int, gender: str, symptoms: str, chronic_conditions: 
     - {t('emergency_guideline')}
     - {t('specialty_guideline')}
 
+    **一致性要求 (Consistency Requirements):**
+    - 必須嚴格按照以下格式回答，不可偏離
+    - 嚴重程度只能是：輕微、中等、嚴重 (三選一)
+    - 緊急程度只能是：是、否 (二選一)
+    - 專科名稱必須從以下可用專科中選擇：{specialty_list}
+    - 不可推薦資料庫中不存在的專科
+    - 回答必須簡潔明確，避免模糊用詞
+
     {t('response_language')}
     
+    **嚴格格式要求 (Strict Format Requirements):**
     {t('diagnosis_format')}
     {t('specialty_format')}
     {t('severity_format')}
