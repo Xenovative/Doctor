@@ -593,11 +593,19 @@
                     "type": "GET"
                 },
                 "columns": [
-                    { "data": "name", "title": "姓名", "width": "18%" },
-                    { "data": "specialty", "title": "專科", "width": "18%" },
+                    { 
+                        "data": "name", 
+                        "title": "姓名 <i class='fas fa-sort text-muted ms-1' style='cursor: pointer;' onclick='sortColumn(0)'></i>", 
+                        "width": "18%"
+                    },
+                    { 
+                        "data": "specialty", 
+                        "title": "專科 <i class='fas fa-sort text-muted ms-1' style='cursor: pointer;' onclick='sortColumn(1)'></i>", 
+                        "width": "18%"
+                    },
                     { 
                         "data": "qualifications", 
-                        "title": "資格", 
+                        "title": "資格 <i class='fas fa-sort text-muted ms-1' style='cursor: pointer;' onclick='sortColumn(2)'></i>", 
                         "width": "22%",
                         "render": function(data, type, row) {
                             if (type === 'display' && data && data.length > 50) {
@@ -606,11 +614,19 @@
                             return data || '';
                         }
                     },
-                    { "data": "contact_numbers", "title": "聯絡電話", "width": "12%" },
-                    { "data": "clinic_addresses", "title": "診所地址", "width": "12%" },
+                    { 
+                        "data": "contact_numbers", 
+                        "title": "聯絡電話 <i class='fas fa-sort text-muted ms-1' style='cursor: pointer;' onclick='sortColumn(3)'></i>", 
+                        "width": "12%"
+                    },
+                    { 
+                        "data": "clinic_addresses", 
+                        "title": "診所地址 <i class='fas fa-sort text-muted ms-1' style='cursor: pointer;' onclick='sortColumn(4)'></i>", 
+                        "width": "12%"
+                    },
                     { 
                         "data": "priority_flag", 
-                        "title": "優先",
+                        "title": "優先 <i class='fas fa-sort text-muted ms-1' style='cursor: pointer;' onclick='sortColumn(5)'></i>",
                         "width": "6%",
                         "render": function(data, type, row) {
                             return data == 1 ? '<span class="badge bg-warning">優先</span>' : '';
@@ -783,6 +799,43 @@
             nextLi.className = `page-item ${currentCardPage === totalPages ? 'disabled' : ''}`;
             nextLi.innerHTML = `<a class="page-link" href="#" onclick="loadCardsView(${currentCardPage + 1}); return false;">下一頁</a>`;
             pagination.appendChild(nextLi);
+        }
+
+        // Sort column function
+        function sortColumn(columnIndex) {
+            const currentOrder = doctorsTable.order();
+            let newOrder = 'asc';
+            
+            // If already sorting by this column, toggle direction
+            if (currentOrder.length > 0 && currentOrder[0][0] === columnIndex) {
+                newOrder = currentOrder[0][1] === 'asc' ? 'desc' : 'asc';
+            }
+            
+            doctorsTable.order([columnIndex, newOrder]).draw();
+            
+            // Update sort icons
+            updateSortIcons(columnIndex, newOrder);
+        }
+
+        // Update sort icons in column headers
+        function updateSortIcons(activeColumn, direction) {
+            // Reset all sort icons
+            document.querySelectorAll('th i.fas').forEach(icon => {
+                if (icon.classList.contains('fa-sort') || 
+                    icon.classList.contains('fa-sort-up') || 
+                    icon.classList.contains('fa-sort-down')) {
+                    icon.className = 'fas fa-sort text-muted ms-1';
+                }
+            });
+            
+            // Update active column icon
+            const headers = document.querySelectorAll('th');
+            if (headers[activeColumn]) {
+                const icon = headers[activeColumn].querySelector('i.fas');
+                if (icon) {
+                    icon.className = `fas fa-sort-${direction === 'asc' ? 'up' : 'down'} text-primary ms-1`;
+                }
+            }
         }
         
         function changePageSize(size) {
