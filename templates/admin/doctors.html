@@ -1421,25 +1421,16 @@
             mapMarkers.forEach(marker => doctorsMap.removeLayer(marker));
             mapMarkers = [];
             
-            // Get doctors data from the table
-            const doctorRows = document.querySelectorAll('#doctorsTable tbody tr');
+            // Get all doctors data from backend
+            const doctorsData = {{ doctors_data | tojson | safe }};
             
-            doctorRows.forEach(row => {
-                const cells = row.querySelectorAll('td');
-                if (cells.length >= 6) {
-                    const name = cells[0].textContent.trim();
-                    const specialty = cells[1].textContent.trim();
-                    const language = cells[2].textContent.trim();
-                    const address = cells[5].textContent.trim();
-                    
-                    // Try to geocode the address (simplified - you might want to use a proper geocoding service)
-                    geocodeAddress(address, name, specialty, language);
-                }
+            doctorsData.forEach(doctor => {
+                geocodeAddress(doctor.address, doctor.name, doctor.specialty, doctor.language, doctor.contact, doctor.qualifications);
             });
         }
         
         // Simple geocoding function (you might want to replace with a proper service)
-        function geocodeAddress(address, name, specialty, language) {
+        function geocodeAddress(address, name, specialty, language, contact, qualifications) {
             // Hong Kong district coordinates (simplified mapping)
             const hkDistricts = {
                 '中環': [22.2783, 114.1747],
@@ -1478,10 +1469,12 @@
             
             // Create popup content
             const popupContent = `
-                <div style="min-width: 200px;">
+                <div style="min-width: 250px;">
                     <h6 style="margin-bottom: 8px; color: #333;">${name}</h6>
                     <p style="margin: 4px 0; font-size: 14px;"><strong>專科:</strong> ${specialty}</p>
                     <p style="margin: 4px 0; font-size: 14px;"><strong>語言:</strong> ${language}</p>
+                    <p style="margin: 4px 0; font-size: 14px;"><strong>聯絡:</strong> ${contact}</p>
+                    <p style="margin: 4px 0; font-size: 14px;"><strong>資格:</strong> ${qualifications}</p>
                     <p style="margin: 4px 0; font-size: 14px;"><strong>地址:</strong> ${address}</p>
                 </div>
             `;
