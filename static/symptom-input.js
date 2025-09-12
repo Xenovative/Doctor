@@ -58,28 +58,51 @@ class SymptomInput {
     }
     
     handleInput(e) {
-        const value = e.target.value.trim();
-        if (value.length > 0) {
-            this.showFilteredSuggestions(value);
-        } else {
+        const value = e.target.value;
+        
+        // Check if user typed a separator at the end
+        if (value.endsWith(',') || value.endsWith(';')) {
+            this.processInput();
+            return;
+        }
+        
+        const query = value.trim();
+        
+        if (query === '') {
             this.showAllSuggestions();
+        } else {
+            this.showFilteredSuggestions(query);
         }
     }
     
     handleKeydown(e) {
-        if (e.key === 'Enter') {
+        // Handle multiple separators: Enter, Space, Comma, Semicolon
+        if (e.key === 'Enter' || e.key === ' ' || e.key === ',' || e.key === ';') {
             e.preventDefault();
-            const value = this.input.value.trim();
-            if (value) {
-                this.addSymptom(value);
-                this.input.value = '';
-                this.hideSuggestions();
-            }
+            this.processInput();
         } else if (e.key === 'Escape') {
             this.hideSuggestions();
         } else if (e.key === 'Backspace' && this.input.value === '' && this.symptoms.length > 0) {
             // Remove last symptom when backspace is pressed on empty input
             this.removeSymptom(this.symptoms.length - 1);
+        }
+    }
+    
+    processInput() {
+        const value = this.input.value.trim();
+        if (value) {
+            // Split by multiple delimiters and process each part
+            const parts = value.split(/[,;\s]+/).filter(part => part.trim().length > 0);
+            
+            parts.forEach(part => {
+                const trimmedPart = part.trim();
+                if (trimmedPart) {
+                    this.addSymptom(trimmedPart);
+                }
+            });
+            
+            this.input.value = '';
+            this.hideSuggestions();
         }
     }
     
