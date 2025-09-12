@@ -343,6 +343,53 @@
         </main>
     </div>
     
+    <!-- Bug Report Button -->
+    <button id="bugReportBtn" class="bug-report-btn" title="Report a Bug">
+        <i class="fas fa-bug"></i>
+    </button>
+    
+    <!-- Bug Report Modal -->
+    <div id="bugReportModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-bug"></i> <span data-translate="bug_report_title">回報問題</span></h3>
+                <span class="close" id="closeBugModal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="bugReportForm">
+                    <div class="form-group">
+                        <label for="bugDescription">
+                            <i class="fas fa-comment-dots"></i>
+                            <span data-translate="bug_description">問題描述</span>
+                            <span class="required-asterisk">*</span>
+                        </label>
+                        <textarea id="bugDescription" name="bugDescription" rows="5" 
+                                data-translate-placeholder="bug_description_placeholder" 
+                                placeholder="請詳細描述您遇到的問題..." required></textarea>
+                        <div class="input-hint" data-translate="bug_hint">請盡量詳細描述問題，以便我們更好地協助您</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="contactInfo">
+                            <i class="fas fa-envelope"></i>
+                            <span data-translate="contact_info">聯絡方式</span>
+                            <span class="optional-note" data-translate="optional">(可選)</span>
+                        </label>
+                        <input type="text" id="contactInfo" name="contactInfo" 
+                               data-translate-placeholder="contact_info_placeholder" 
+                               placeholder="電郵或電話號碼 (如需回覆)">
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary" id="cancelBugReport" data-translate="cancel">取消</button>
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-paper-plane"></i>
+                            <span data-translate="send_report">發送回報</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
     <footer class="footer">
         
         <div class="footer-bottom">
@@ -361,5 +408,6 @@
     <script src="static/symptom-input.js"></script>
     <script src="static/form-validation.js"></script>
     <script src="static/script.js"></script>
+    <script src="static/bug-report.js"></script>
 </body>
 </html>

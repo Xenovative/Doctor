@@ -84,7 +84,18 @@ TRANSLATIONS = {
         'terms_conditions': '條款及細則',
         'privacy_policy': '隱私權政策',
         'accessibility': '無障礙聲明',
-        'copyright': '2025 XENOVATIVE Limited. 版權所有',
+        'copyright': ' 2025 XENOVATIVE Limited. 版權所有',
+        
+        # Bug Report
+        'bug_report_title': '回報問題',
+        'bug_description': '問題描述',
+        'bug_description_placeholder': '請詳細描述您遇到的問題...',
+        'bug_hint': '請盡量詳細描述問題，以便我們更好地協助您',
+        'contact_info': '聯絡方式',
+        'contact_info_placeholder': '電郵或電話號碼 (如需回覆)',
+        'cancel': '取消',
+        'send_report': '發送回報',
+        'sending': '發送中...',
         
         # Admin Panel
         'dashboard': '儀表板',

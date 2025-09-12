@@ -9,6 +9,7 @@ openpyxl
 pytz==1.0.0
 python-socketio>=5.0.0
 websocket-client>=1.0.0
+schedule
 
 # Windows service support (optional, only needed for Windows service deployment)
 pywin32==306; sys_platform == "win32"

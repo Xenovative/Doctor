@@ -27,6 +27,8 @@ import threading
 import logging
 from dotenv import load_dotenv, set_key
 from pathlib import Path
+import schedule
+import time
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -3566,6 +3568,111 @@ def get_whatsapp_status():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/admin/bug-reports')
+@require_admin
+def admin_bug_reports():
+    """Bug reports management page"""
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+        
+        # Get all bug reports
+        cursor.execute('''
+            SELECT id, description, contact_info, timestamp, url, user_agent, status
+            FROM bug_reports 
+            ORDER BY timestamp DESC
+        ''')
+        bug_reports = cursor.fetchall()
+        
+        # Convert to list of dicts for easier template handling
+        reports = []
+        for report in bug_reports:
+            reports.append({
+                'id': report[0],
+                'description': report[1],
+                'contact_info': report[2],
+                'timestamp': report[3],
+                'url': report[4],
+                'user_agent': report[5],
+                'status': report[6] or 'new'
+            })
+        
+        # Get stats
+        cursor.execute('''
+            SELECT status, COUNT(*) 
+            FROM bug_reports 
+            GROUP BY status
+        ''')
+        status_counts = dict(cursor.fetchall())
+        
+        cursor.execute('SELECT COUNT(*) FROM bug_reports')
+        total_count = cursor.fetchone()[0]
+        
+        stats = {
+            'new': status_counts.get('new', 0),
+            'in_progress': status_counts.get('in-progress', 0),
+            'resolved': status_counts.get('resolved', 0),
+            'total': total_count
+        }
+        
+        conn.close()
+        
+        return render_template('admin/bug-reports.html', 
+                             bug_reports=reports, 
+                             stats=stats)
+        
+    except Exception as e:
+        logger.error(f"Error loading bug reports: {e}")
+        flash('載入問題回報時發生錯誤', 'error')
+        return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/api/bug-reports/<int:report_id>/status', methods=['POST'])
+@require_admin
+def update_bug_report_status(report_id):
+    """Update bug report status"""
+    try:
+        data = request.get_json()
+        new_status = data.get('status')
+        
+        if new_status not in ['new', 'in-progress', 'resolved']:
+            return jsonify({'error': '無效的狀態'}), 400
+        
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            UPDATE bug_reports 
+            SET status = ? 
+            WHERE id = ?
+        ''', (new_status, report_id))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': '狀態已更新'})
+        
+    except Exception as e:
+        logger.error(f"Error updating bug report status: {e}")
+        return jsonify({'error': '更新狀態時發生錯誤'}), 500
+
+@app.route('/admin/api/bug-reports/<int:report_id>', methods=['DELETE'])
+@require_admin
+def delete_bug_report(report_id):
+    """Delete bug report"""
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+        
+        cursor.execute('DELETE FROM bug_reports WHERE id = ?', (report_id,))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': '問題回報已刪除'})
+        
+    except Exception as e:
+        logger.error(f"Error deleting bug report: {e}")
+        return jsonify({'error': '刪除問題回報時發生錯誤'}), 500
+
 @app.route('/admin/api/whatsapp-test', methods=['POST'])
 @login_required
 def test_whatsapp_connection():
@@ -3668,6 +3775,127 @@ def update_whatsapp_config():
         flash(f'更新WhatsApp配置失敗: {str(e)}', 'error')
         return redirect(url_for('admin_config'))
 
+def cleanup_old_diagnosis_reports():
+    """Clean up diagnosis reports older than 30 days"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Calculate cutoff date (30 days ago)
+        cutoff_date = datetime.now() - timedelta(days=30)
+        cutoff_timestamp = cutoff_date.strftime('%Y-%m-%d %H:%M:%S')
+        
+        # Delete old diagnosis reports
+        cursor.execute("""
+            DELETE FROM diagnosis_reports 
+            WHERE created_at < ?
+        """, (cutoff_timestamp,))
+        
+        deleted_count = cursor.rowcount
+        conn.commit()
+        conn.close()
+        
+        logger.info(f"Cleaned up {deleted_count} diagnosis reports older than 30 days")
+        return deleted_count
+        
+    except Exception as e:
+        logger.error(f"Error during diagnosis reports cleanup: {str(e)}")
+        return 0
+
+@app.route('/submit-bug-report', methods=['POST'])
+def submit_bug_report():
+    """Handle bug report submissions and send to WhatsApp"""
+    try:
+        data = request.get_json()
+        
+        if not data or not data.get('description'):
+            return jsonify({'error': '問題描述不能為空'}), 400
+        
+        # Format bug report message
+        bug_message = f"""🐛 **系統問題回報**
+
+📝 **問題描述:**
+{data['description']}
+
+📞 **聯絡方式:** {data.get('contact', '未提供')}
+🕐 **回報時間:** {data.get('timestamp', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))}
+🌐 **頁面:** {data.get('url', '未知')}
+💻 **瀏覽器:** {data.get('userAgent', '未知')[:100]}...
+
+---
+此問題由 Doctor AI 系統自動轉發"""
+
+        # Send to WhatsApp if enabled
+        if WHATSAPP_CONFIG['enabled'] and whatsapp_client:
+            try:
+                # Send to the configured notification number
+                target_number = WHATSAPP_CONFIG.get('target_number', '')
+                if target_number:
+                    whatsapp_client.emit('send_message', {
+                        'to': target_number,
+                        'message': bug_message
+                    })
+                    logger.info(f"Bug report sent to WhatsApp: {target_number}")
+                else:
+                    logger.warning("No WhatsApp target number configured for bug reports")
+            except Exception as whatsapp_error:
+                logger.error(f"Failed to send bug report to WhatsApp: {whatsapp_error}")
+        
+        # Store in database for admin reference
+        try:
+            conn = sqlite3.connect(DATABASE_PATH)
+            cursor = conn.cursor()
+            
+            # Create bug_reports table if it doesn't exist
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS bug_reports (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    description TEXT NOT NULL,
+                    contact_info TEXT,
+                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    url TEXT,
+                    user_agent TEXT,
+                    status TEXT DEFAULT 'new'
+                )
+            ''')
+            
+            cursor.execute('''
+                INSERT INTO bug_reports (description, contact_info, url, user_agent)
+                VALUES (?, ?, ?, ?)
+            ''', (
+                data['description'],
+                data.get('contact', ''),
+                data.get('url', ''),
+                data.get('userAgent', '')
+            ))
+            
+            conn.commit()
+            conn.close()
+            
+        except Exception as db_error:
+            logger.error(f"Failed to store bug report in database: {db_error}")
+        
+        return jsonify({'success': True, 'message': '問題回報已成功提交'})
+        
+    except Exception as e:
+        logger.error(f"Error processing bug report: {e}")
+        return jsonify({'error': '處理問題回報時發生錯誤'}), 500
+
+def run_scheduled_tasks():
+    """Run scheduled maintenance tasks in background thread"""
+    def scheduler_thread():
+        # Schedule cleanup to run daily at 2 AM
+        schedule.every().day.at("02:00").do(cleanup_old_diagnosis_reports)
+        
+        while True:
+            schedule.run_pending()
+            time.sleep(3600)  # Check every hour
+    
+    # Start scheduler in background thread
+    scheduler = threading.Thread(target=scheduler_thread, daemon=True)
+    scheduler.start()
+    logger.info("Scheduled tasks initialized - diagnosis reports cleanup will run daily at 2 AM")
+
 if __name__ == '__main__':
     # Initialize database and load saved config
     init_db()
@@ -3676,6 +3904,9 @@ if __name__ == '__main__':
     
     # Initialize WhatsApp client
     init_whatsapp_client()
+    
+    # Start scheduled tasks
+    run_scheduled_tasks()
     
     print(f"已載入 {len(DOCTORS_DATA)} 位醫生資料")
     print("正在啟動AI香港醫療配對系統...")
