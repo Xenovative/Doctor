@@ -2938,35 +2938,10 @@ def admin_doctors():
         cursor.execute("SELECT DISTINCT COALESCE(specialty_zh, specialty_en, specialty) as specialty FROM doctors WHERE specialty IS NOT NULL ORDER BY specialty")
         specialties = [row[0] for row in cursor.fetchall() if row[0]]
         
-        # Get all doctors for map view (reopen connection)
-        conn = sqlite3.connect('doctors.db')
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT name_zh, name_en, specialty_zh, specialty_en, 
-                   languages_zh, languages_en, clinic_addresses_zh, clinic_addresses_en,
-                   contact_numbers, qualifications_zh, qualifications_en
-            FROM doctors 
-            ORDER BY name_zh, name_en
-        """)
-        all_doctors = cursor.fetchall()
-        
-        # Format doctors data for JavaScript
-        doctors_data = []
-        for doctor in all_doctors:
-            doctors_data.append({
-                'name': doctor[0] or doctor[1] or 'Unknown',
-                'specialty': doctor[2] or doctor[3] or 'General',
-                'language': doctor[4] or doctor[5] or 'Not specified',
-                'address': doctor[6] or doctor[7] or 'Address not available',
-                'contact': doctor[8] or 'Not available',
-                'qualifications': doctor[9] or doctor[10] or 'Not specified'
-            })
-        
         conn.close()
         
         return render_template('admin/doctors.html',
                              doctors=[],  # Empty list - will load via AJAX
-                             doctors_data=doctors_data,  # All doctors for map
                              total_doctors=total_doctors,
                              total_specialties=total_specialties,
                              bilingual_doctors=bilingual_doctors,
