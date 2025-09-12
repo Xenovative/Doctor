@@ -677,10 +677,11 @@
                     const cardsContainer = document.getElementById('cardsView');
                     cardsContainer.innerHTML = '';
                     
+                    let cardsHtml = '';
                     result.data.forEach(doctor => {
-                        const cardHtml = `
-                            <div class="col-md-6 col-lg-4">
-                                <div class="doctor-card card">
+                        cardsHtml += `
+                            <div class="col-md-6 col-lg-4 mb-3">
+                                <div class="doctor-card card h-100">
                                     <div class="card-body">
                                         <h6 class="card-title">
                                             ${doctor.name || 'Unknown'}
@@ -695,7 +696,7 @@
                                             <small><i class="fas fa-phone me-1"></i>${doctor.contact_numbers.split(',')[0]}</small>
                                         </p>
                                         ` : ''}
-                                        <div class="d-flex justify-content-between">
+                                        <div class="d-flex justify-content-between mt-auto">
                                             <button class="btn btn-sm btn-success me-1" onclick="editDoctor(${doctor.id})">
                                                 <i class="fas fa-edit"></i> 編輯
                                             </button>
@@ -710,8 +711,8 @@
                                 </div>
                             </div>
                         `;
-                        cardsContainer.innerHTML += cardHtml;
                     });
+                    cardsContainer.innerHTML = cardsHtml;
                 })
                 .catch(error => {
                     console.error('Error loading cards:', error);
