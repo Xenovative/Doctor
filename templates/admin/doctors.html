@@ -663,12 +663,21 @@
         function deleteDoctor(doctorId, doctorName) {
             if (confirm(`確定要刪除醫生「${doctorName}」嗎？此操作無法復原。`)) {
                 fetch(`/admin/doctors/${doctorId}/delete`, {
-                    method: 'POST',
+                    method: 'DELETE',
                     headers: {
                         'Content-Type': 'application/json',
                     }
                 })
-                .then(response => response.json())
+                .then(response => {
+                    console.log('Delete response status:', response.status);
+                    if (!response.ok) {
+                        return response.text().then(text => {
+                            console.error('Error response:', text);
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        });
+                    }
+                    return response.json();
+                })
                 .then(result => {
                     if (result.success) {
                         alert('醫生已成功刪除！');
@@ -684,7 +693,7 @@
             }
         }
         
-        function addDoctor() {
+        async function addDoctor() {
             // Clear form and show modal for adding new doctor
             document.getElementById('editDoctorId').value = '';
             document.getElementById('editNameZh').value = '';
@@ -707,11 +716,15 @@
             // Update modal title
             document.querySelector('#editDoctorModal .modal-title').textContent = '新增醫生';
             
+            // Load specialties before showing modal
+            await loadSpecialties();
+            
             // Show modal
-            new bootstrap.Modal(document.getElementById('editDoctorModal')).show();
+            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('editDoctorModal'));
+            modal.show();
         }
         
-        function editDoctor(doctorId) {
+        async function editDoctor(doctorId) {
             console.log('Edit doctor called with ID:', doctorId);
             
             // Validate doctorId first
@@ -764,8 +777,12 @@
                     // Update modal title
                     document.querySelector('#editDoctorModal .modal-title').textContent = '編輯醫生資料';
                     
+                    // Load specialties before showing modal
+                    await loadSpecialties();
+                    
                     // Show modal
-                    new bootstrap.Modal(document.getElementById('editDoctorModal')).show();
+                    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('editDoctorModal'));
+                    modal.show();
                 })
                 .catch(error => {
                     console.error('Error loading doctor data:', error);
@@ -930,8 +947,11 @@
         let specialtyMap = {};
         let reverseSpecialtyMap = {};
 
-        // Load specialties from database
+        // Load specialties from database (cached)
+        let specialtiesLoaded = false;
         async function loadSpecialties() {
+            if (specialtiesLoaded) return; // Prevent duplicate loading
+            
             try {
                 const response = await fetch('/admin/specialties');
                 const data = await response.json();
@@ -939,26 +959,33 @@
                 if (data.chinese && data.english) {
                     // Populate Chinese specialty dropdown
                     const chineseSelect = document.getElementById('editSpecialtyZh');
-                    chineseSelect.innerHTML = '<option value="">請選擇專科</option>';
-                    data.chinese.forEach(specialty => {
-                        const option = document.createElement('option');
-                        option.value = specialty;
-                        option.textContent = specialty;
-                        chineseSelect.appendChild(option);
-                    });
+                    if (chineseSelect && chineseSelect.options.length <= 1) {
+                        chineseSelect.innerHTML = '<option value="">請選擇專科</option>';
+                        data.chinese.forEach(specialty => {
+                            const option = document.createElement('option');
+                            option.value = specialty;
+                            option.textContent = specialty;
+                            chineseSelect.appendChild(option);
+                        });
+                    }
 
                     // Populate English specialty dropdown
                     const englishSelect = document.getElementById('editSpecialtyEn');
-                    englishSelect.innerHTML = '<option value="">Select English specialty</option>';
-                    data.english.forEach(specialty => {
-                        const option = document.createElement('option');
-                        option.value = specialty;
-                        option.textContent = specialty;
-                        englishSelect.appendChild(option);
-                    });
+                    if (englishSelect && englishSelect.options.length <= 1) {
+                        englishSelect.innerHTML = '<option value="">Select English specialty</option>';
+                        data.english.forEach(specialty => {
+                            const option = document.createElement('option');
+                            option.value = specialty;
+                            option.textContent = specialty;
+                            englishSelect.appendChild(option);
+                        });
+                    }
 
                     // Create mapping by matching existing doctor records
-                    await createSpecialtyMapping();
+                    if (Object.keys(specialtyMap).length === 0) {
+                        await createSpecialtyMapping();
+                    }
+                    specialtiesLoaded = true;
                 }
             } catch (error) {
                 console.error('Error loading specialties:', error);
@@ -1012,13 +1039,21 @@
         }
 
         // Add event listeners for language checkboxes
+        let eventListenersAdded = false;
         document.addEventListener('DOMContentLoaded', function() {
+            if (eventListenersAdded) return; // Prevent duplicate listeners
+            
             // Load specialties on page load
             loadSpecialties();
             
             ['langChinese', 'langEnglish', 'langCantonese'].forEach(id => {
-                document.getElementById(id).addEventListener('change', updateLanguageField);
+                const element = document.getElementById(id);
+                if (element && !element.hasAttribute('data-listener-added')) {
+                    element.addEventListener('change', updateLanguageField);
+                    element.setAttribute('data-listener-added', 'true');
+                }
             });
+            eventListenersAdded = true;
 
             // Form validation
             const form = document.getElementById('editDoctorForm');
