@@ -500,27 +500,27 @@ def format_diagnosis_report_full(user_query_data: dict, doctor_data: dict) -> st
 免責聲明：此分析僅供參考，不能替代專業醫療診斷，請務必諮詢合格醫生。
 
 ---
-AI香港醫療配對系統"""
+Doctor-AI香港醫療配對系統"""
     
     return message
 
 def format_whatsapp_message(doctor_data: dict, report_url: str) -> str:
     """格式化WhatsApp消息，包含診斷報告鏈接"""
-    message = f"""🏥 AI醫療診斷報告
+    message = f"""AI醫療診斷報告
 
 您好！我通過AI醫療配對系統選擇了您作為我的醫生。
 
-👨‍⚕️ 醫生信息
+醫生信息
 姓名: {doctor_data.get('doctor_name', 'N/A')}
 專科: {doctor_data.get('doctor_specialty', 'N/A')}
 
-📋 完整診斷報告請查看：
+完整診斷報告請查看：
 {report_url}
 
 期待您的專業建議，謝謝！
 
 ---
-AI香港醫療配對系統"""
+Doctor-AI香港醫療配對系統"""
     
     return message
 
@@ -3280,12 +3280,32 @@ def get_whatsapp_url():
                 report_id = str(uuid.uuid4())
                 
                 # Store the full diagnosis report in database
-                cursor.execute('''
-                    INSERT OR REPLACE INTO diagnosis_reports (id, query_id, doctor_name, doctor_specialty, report_data, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                ''', (report_id, query_id, doctor_name, doctor_specialty, 
-                     format_diagnosis_report_full(user_query_data, doctor_data), 
-                     datetime.now().isoformat()))
+                try:
+                    cursor.execute('''
+                        INSERT OR REPLACE INTO diagnosis_reports (id, query_id, doctor_name, doctor_specialty, report_data, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    ''', (report_id, query_id, doctor_name, doctor_specialty, 
+                         format_diagnosis_report_full(user_query_data, doctor_data), 
+                         datetime.now().isoformat()))
+                except sqlite3.OperationalError as e:
+                    print(f"Database error: {e}")
+                    # Create table if it doesn't exist
+                    cursor.execute('''
+                        CREATE TABLE IF NOT EXISTS diagnosis_reports (
+                            id TEXT PRIMARY KEY, 
+                            query_id INTEGER, 
+                            doctor_name TEXT, 
+                            doctor_specialty TEXT, 
+                            report_data TEXT, 
+                            created_at TEXT
+                        )
+                    ''')
+                    cursor.execute('''
+                        INSERT OR REPLACE INTO diagnosis_reports (id, query_id, doctor_name, doctor_specialty, report_data, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    ''', (report_id, query_id, doctor_name, doctor_specialty, 
+                         format_diagnosis_report_full(user_query_data, doctor_data), 
+                         datetime.now().isoformat()))
                 conn.commit()
                 
                 # Generate report URL
@@ -3295,9 +3315,9 @@ def get_whatsapp_url():
                 message = format_whatsapp_message(doctor_data, report_url)
                 print(f"DEBUG: Generated message length: {len(message)}")
                 
-                # URL encode the message for WhatsApp web
-                from urllib.parse import quote_plus
-                encoded_message = quote_plus(message)
+                # URL encode the message for WhatsApp web - use quote instead of quote_plus for better emoji handling
+                from urllib.parse import quote
+                encoded_message = quote(message, safe='')
                 whatsapp_url = f"https://wa.me/{whatsapp_number}?text={encoded_message}"
                 print(f"DEBUG: Final URL length: {len(whatsapp_url)}")
         
@@ -3311,7 +3331,9 @@ def get_whatsapp_url():
         return jsonify({'success': True, 'whatsapp_url': whatsapp_url})
     except Exception as e:
         print(f"WhatsApp URL generation error: {e}")
-        return jsonify({'error': 'Failed to generate WhatsApp URL'}), 500
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Failed to generate WhatsApp URL: {str(e)}'}), 500
 
 @app.route('/track_click', methods=['POST'])
 def track_click():
