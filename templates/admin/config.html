@@ -287,6 +287,68 @@
                     </div>
                 </div>
 
+                <!-- Timezone Configuration -->
+                <div class="config-card">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-clock me-2"></i>時區設定
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                設定應用程式使用的時區，影響診斷報告的時間戳記顯示
+                            </div>
+                            
+                            <form method="POST" action="{{ url_for('update_timezone_config') }}">
+                                <div class="mb-3">
+                                    <label class="form-label">時區</label>
+                                    <select class="form-select" name="timezone">
+                                        <option value="Asia/Hong_Kong" {{ 'selected' if timezone_config.timezone == 'Asia/Hong_Kong' else '' }}>香港時間 (GMT+8)</option>
+                                        <option value="Asia/Shanghai" {{ 'selected' if timezone_config.timezone == 'Asia/Shanghai' else '' }}>上海時間 (GMT+8)</option>
+                                        <option value="Asia/Taipei" {{ 'selected' if timezone_config.timezone == 'Asia/Taipei' else '' }}>台北時間 (GMT+8)</option>
+                                        <option value="Asia/Singapore" {{ 'selected' if timezone_config.timezone == 'Asia/Singapore' else '' }}>新加坡時間 (GMT+8)</option>
+                                        <option value="UTC" {{ 'selected' if timezone_config.timezone == 'UTC' else '' }}>協調世界時 (UTC)</option>
+                                        <option value="America/New_York" {{ 'selected' if timezone_config.timezone == 'America/New_York' else '' }}>紐約時間 (EST/EDT)</option>
+                                        <option value="Europe/London" {{ 'selected' if timezone_config.timezone == 'Europe/London' else '' }}>倫敦時間 (GMT/BST)</option>
+                                        <option value="Asia/Tokyo" {{ 'selected' if timezone_config.timezone == 'Asia/Tokyo' else '' }}>東京時間 (GMT+9)</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="d-flex align-items-center mb-3">
+                                    <span class="text-muted me-3">當前時間:</span>
+                                    <span id="currentTime" class="badge bg-primary">載入中...</span>
+                                </div>
+                                
+                                <script>
+                                    function updateCurrentTime() {
+                                        const now = new Date();
+                                        const timeString = now.toLocaleString('zh-HK', {
+                                            timeZone: '{{ timezone_config.timezone }}',
+                                            year: 'numeric',
+                                            month: '2-digit',
+                                            day: '2-digit',
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                            second: '2-digit'
+                                        });
+                                        document.getElementById('currentTime').textContent = timeString;
+                                    }
+                                    
+                                    // Update time immediately and then every second
+                                    updateCurrentTime();
+                                    setInterval(updateCurrentTime, 1000);
+                                </script>
+                                
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i>保存時區設定
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- WhatsApp Configuration -->
                 <div class="config-card">
                     <div class="card">

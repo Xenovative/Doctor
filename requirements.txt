@@ -1,7 +1,12 @@
 Flask==2.3.3
 pandas==2.0.3
-requests==2.31.0
-python-dotenv==1.0.0
+requests
+flask
+flask-login
+pandas
+python-dotenv
+openpyxl
+pytz==1.0.0
 python-socketio>=5.0.0
 websocket-client>=1.0.0
 

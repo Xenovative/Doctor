@@ -8,6 +8,7 @@ if sys.version_info >= (3, 12):
     sys.exit(1)
 
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for, flash
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from translations import get_translation, get_available_languages, TRANSLATIONS
 import pandas as pd
 import requests
@@ -16,6 +17,7 @@ import os
 import re
 import sqlite3
 from datetime import datetime, timedelta
+import pytz
 from functools import wraps
 from typing import List, Dict, Any
 import hashlib
@@ -111,6 +113,11 @@ WHATSAPP_CONFIG = {
     'api_key': os.getenv('WHATSAPP_API_KEY', ''),
     'target_number': os.getenv('WHATSAPP_TARGET_NUMBER', ''),  # Format: 852XXXXXXXX (for wa.me links)
     'session_name': os.getenv('WHATSAPP_SESSION_NAME', 'default')
+}
+
+# 時區配置
+TIMEZONE_CONFIG = {
+    'timezone': os.getenv('APP_TIMEZONE', 'Asia/Hong_Kong')
 }
 
 # AI服務配置
@@ -469,9 +476,21 @@ def send_whatsapp_notification(message: str):
         print(f"WhatsApp通知錯誤: {e}")
         return False
 
+def get_app_timezone():
+    """Get configured timezone"""
+    try:
+        return pytz.timezone(TIMEZONE_CONFIG['timezone'])
+    except:
+        return pytz.timezone('Asia/Hong_Kong')
+
+def get_current_time():
+    """Get current time in configured timezone"""
+    tz = get_app_timezone()
+    return datetime.now(tz)
+
 def format_diagnosis_report_full(user_query_data: dict, doctor_data: dict) -> str:
     """格式化完整診斷報告為HTML顯示"""
-    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    timestamp = get_current_time().strftime('%Y-%m-%d %H:%M:%S')
     
     # Format gender display
     gender = user_query_data.get('gender', '')
@@ -1874,42 +1893,43 @@ def admin_analytics():
 @login_required
 def admin_config():
     """Admin configuration page"""
-    if request.method == 'POST':
-        action = request.form.get('action')
+    return render_template('admin/config.html', 
+                         ai_config=AI_CONFIG,
+                         whatsapp_config=WHATSAPP_CONFIG,
+                         timezone_config=TIMEZONE_CONFIG)
+
+@app.route('/admin/update-timezone', methods=['POST'])
+@login_required
+def update_timezone_config():
+    """Update timezone configuration"""
+    try:
+        timezone = request.form.get('timezone', 'Asia/Hong_Kong')
         
-        if action == 'update_profile':
-            try:
-                username = request.form.get('username')
-                email = request.form.get('email')
-                display_name = request.form.get('display_name')
-                
-                user_id = session.get('admin_user_id')
-                if user_id:
-                    # Update database user profile
-                    conn = sqlite3.connect('admin_data.db')
-                    cursor = conn.cursor()
-                    cursor.execute('''
-                        UPDATE admin_users 
-                        SET username = ?, email = ?, display_name = ?
-                        WHERE id = ?
-                    ''', (username, email, display_name, user_id))
-                    conn.commit()
-                    conn.close()
-                    
-                    # Update session
-                    session['admin_username'] = username
-                    
-                    flash('個人資料更新成功', 'success')
-                else:
-                    flash('環境變數用戶無法更新個人資料', 'error')
-                    
-            except Exception as e:
-                print(f"Profile update error: {e}")
-                flash('更新個人資料時發生錯誤', 'error')
-                
-        return redirect(url_for('admin_config'))
+        # Validate timezone
+        try:
+            pytz.timezone(timezone)
+        except:
+            flash('無效的時區設定', 'error')
+            return redirect(url_for('admin_config'))
+        
+        # Update environment variable
+        env_path = Path('.env')
+        if env_path.exists():
+            set_key(env_path, 'APP_TIMEZONE', timezone)
+        else:
+            with open('.env', 'w') as f:
+                f.write(f'APP_TIMEZONE={timezone}\n')
+        
+        # Update runtime config
+        TIMEZONE_CONFIG['timezone'] = timezone
+        
+        flash(f'時區已更新為 {timezone}', 'success')
+        
+    except Exception as e:
+        print(f"Timezone update error: {e}")
+        flash('更新時區設定時發生錯誤', 'error')
     
-    return render_template('admin/config.html', whatsapp_config=WHATSAPP_CONFIG, ai_config=AI_CONFIG)
+    return redirect(url_for('admin_config'))
 
 @app.route('/admin/api/openai-models')
 @require_admin
@@ -3286,7 +3306,7 @@ def get_whatsapp_url():
                         VALUES (?, ?, ?, ?, ?, ?)
                     ''', (report_id, query_id, doctor_name, doctor_specialty, 
                          format_diagnosis_report_full(user_query_data, doctor_data), 
-                         datetime.now().isoformat()))
+                         get_current_time().isoformat()))
                 except sqlite3.OperationalError as e:
                     print(f"Database error: {e}")
                     # Create table if it doesn't exist
@@ -3305,7 +3325,7 @@ def get_whatsapp_url():
                         VALUES (?, ?, ?, ?, ?, ?)
                     ''', (report_id, query_id, doctor_name, doctor_specialty, 
                          format_diagnosis_report_full(user_query_data, doctor_data), 
-                         datetime.now().isoformat()))
+                         get_current_time().isoformat()))
                 conn.commit()
                 
                 # Generate report URL
