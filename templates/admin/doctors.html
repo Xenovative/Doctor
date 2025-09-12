@@ -72,6 +72,38 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
         }
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .modal-loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        .modal-loading .spinner-border {
+            color: #667eea;
+        }
     </style>
 </head>
 <body>
@@ -83,6 +115,17 @@
     <!-- Sidebar Overlay -->
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
     
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="text-center">
+            <div class="loading-spinner"></div>
+            <div class="mt-3">
+                <h5>載入醫生資料中...</h5>
+                <p class="text-muted">請稍候</p>
+            </div>
+        </div>
+    </div>
+
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
@@ -404,6 +447,14 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
+                    <!-- Modal Loading Indicator -->
+                    <div id="modalLoading" class="modal-loading">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">載入中...</span>
+                        </div>
+                        <p class="mt-2">載入專科資料中...</p>
+                    </div>
+                    
                     <form id="editDoctorForm">
                         <input type="hidden" id="editDoctorId" name="doctor_id">
                         
@@ -694,6 +745,14 @@
         }
         
         async function addDoctor() {
+            // Show modal loading
+            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('editDoctorModal'));
+            modal.show();
+            
+            // Show loading indicator
+            document.getElementById('modalLoading').style.display = 'block';
+            document.getElementById('editDoctorForm').style.display = 'none';
+            
             // Clear form and show modal for adding new doctor
             document.getElementById('editDoctorId').value = '';
             document.getElementById('editNameZh').value = '';
@@ -719,9 +778,9 @@
             // Load specialties before showing modal
             await loadSpecialties();
             
-            // Show modal
-            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('editDoctorModal'));
-            modal.show();
+            // Hide loading and show form
+            document.getElementById('modalLoading').style.display = 'none';
+            document.getElementById('editDoctorForm').style.display = 'block';
         }
         
         async function editDoctor(doctorId) {
@@ -732,6 +791,14 @@
                 alert('錯誤：無效的醫生ID');
                 return;
             }
+            
+            // Show modal with loading first
+            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('editDoctorModal'));
+            modal.show();
+            
+            // Show loading indicator
+            document.getElementById('modalLoading').style.display = 'block';
+            document.getElementById('editDoctorForm').style.display = 'none';
             
             // Set doctor ID immediately
             document.getElementById('editDoctorId').value = doctorId;
@@ -745,12 +812,15 @@
                     }
                     return response.json();
                 })
-                .then(data => {
+                .then(async data => {
                     console.log('Doctor data received:', data);
                     if (!data || data.error) {
                         alert('載入醫生資料失敗：' + (data?.error || '未知錯誤'));
                         return;
                     }
+                    
+                    // Load specialties first
+                    await loadSpecialties();
                     
                     // Populate edit form
                     document.getElementById('editDoctorId').value = data.id;
@@ -777,12 +847,9 @@
                     // Update modal title
                     document.querySelector('#editDoctorModal .modal-title').textContent = '編輯醫生資料';
                     
-                    // Load specialties before showing modal
-                    await loadSpecialties();
-                    
-                    // Show modal
-                    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('editDoctorModal'));
-                    modal.show();
+                    // Hide loading and show form
+                    document.getElementById('modalLoading').style.display = 'none';
+                    document.getElementById('editDoctorForm').style.display = 'block';
                 })
                 .catch(error => {
                     console.error('Error loading doctor data:', error);
@@ -1038,13 +1105,31 @@
             });
         }
 
+        // Show page loading overlay
+        function showPageLoading() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+        }
+        
+        // Hide page loading overlay
+        function hidePageLoading() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+
         // Add event listeners for language checkboxes
         let eventListenersAdded = false;
         document.addEventListener('DOMContentLoaded', function() {
             if (eventListenersAdded) return; // Prevent duplicate listeners
             
+            // Show loading while page initializes
+            showPageLoading();
+            
             // Load specialties on page load
-            loadSpecialties();
+            loadSpecialties().then(() => {
+                // Hide loading once everything is ready
+                hidePageLoading();
+            }).catch(() => {
+                hidePageLoading();
+            });
             
             ['langChinese', 'langEnglish', 'langCantonese'].forEach(id => {
                 const element = document.getElementById(id);
