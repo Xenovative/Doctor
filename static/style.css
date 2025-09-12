@@ -55,6 +55,8 @@ body::before {
     background: white;
     min-height: 120px;
     transition: border-color 0.3s ease;
+    display: flex;
+    flex-direction: column;
 }
 
 .symptom-input-container:focus-within {
@@ -129,6 +131,7 @@ body::before {
 
 .symptom-input-wrapper {
     position: relative;
+    margin-top: auto;
 }
 
 #symptomInput {
