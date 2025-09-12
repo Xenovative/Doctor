@@ -1127,14 +1127,39 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Function to handle doctor contact
-    window.contactDoctor = function(event, doctorName, doctorSpecialty) {
+    window.contactDoctor = async function(event, doctorName, doctorSpecialty) {
         event.stopPropagation();
         
-        // Track doctor click
-        trackDoctorClick(doctorName, doctorSpecialty);
-        
-        const whatsappUrl = 'https://api.whatsapp.com/send/?phone=85294974070';
-        window.open(whatsappUrl, '_blank');
+        try {
+            // Get WhatsApp URL with diagnosis report
+            const response = await fetch('/get_whatsapp_url', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    doctor_name: doctorName,
+                    doctor_specialty: doctorSpecialty
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success && data.whatsapp_url) {
+                // Open WhatsApp with pre-filled diagnosis report
+                window.open(data.whatsapp_url, '_blank');
+            } else {
+                // Fallback to basic WhatsApp URL if there's an error
+                const fallbackUrl = 'https://wa.me/85294974070';
+                window.open(fallbackUrl, '_blank');
+                console.error('Failed to generate WhatsApp URL:', data.error);
+            }
+        } catch (error) {
+            // Fallback to basic WhatsApp URL if request fails
+            const fallbackUrl = 'https://wa.me/85294974070';
+            window.open(fallbackUrl, '_blank');
+            console.error('Error contacting doctor:', error);
+        }
         
         // Close modal if it's open
         closeDoctorModal();

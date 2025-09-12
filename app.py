@@ -3143,15 +3143,18 @@ def get_user_reports(user_ip):
         print(f"User reports error: {e}")
         return jsonify({'error': 'Failed to fetch user reports'}), 500
 
-@app.route('/track_click', methods=['POST'])
-def track_click():
-    """Track doctor link clicks and send WhatsApp notification"""
+@app.route('/get_whatsapp_url', methods=['POST'])
+def get_whatsapp_url():
+    """Generate WhatsApp web URL with diagnosis report"""
     try:
         data = request.get_json()
         doctor_name = data.get('doctor_name', '')
         doctor_specialty = data.get('doctor_specialty', '')
         query_id = session.get('last_query_id')
         session_id = session.get('session_id')
+        
+        # Your designated WhatsApp number (replace with your actual number)
+        whatsapp_number = os.getenv('WHATSAPP_TARGET_NUMBER', '85294974070')
         
         # Log to database
         conn = sqlite3.connect('admin_data.db')
@@ -3162,7 +3165,9 @@ def track_click():
         ''', (doctor_name, doctor_specialty, get_real_ip(), session_id, query_id))
         conn.commit()
         
-        # Get user query data for WhatsApp notification
+        # Get user query data for diagnosis report
+        whatsapp_url = f"https://wa.me/{whatsapp_number}"
+        
         if query_id:
             cursor.execute('''
                 SELECT age, gender, symptoms, chronic_conditions, language, location, 
@@ -3189,9 +3194,13 @@ def track_click():
                     'doctor_specialty': doctor_specialty
                 }
                 
-                # Send WhatsApp notification
+                # Generate diagnosis report message
                 message = format_diagnosis_report(user_query_data, doctor_data)
-                send_whatsapp_notification(message)
+                
+                # URL encode the message for WhatsApp web
+                from urllib.parse import quote
+                encoded_message = quote(message)
+                whatsapp_url = f"https://wa.me/{whatsapp_number}?text={encoded_message}"
         
         conn.close()
         
@@ -3200,10 +3209,15 @@ def track_click():
             'doctor_name': doctor_name, 'doctor_specialty': doctor_specialty
         }, get_real_ip(), request.user_agent.string, session_id)
         
-        return jsonify({'success': True})
+        return jsonify({'success': True, 'whatsapp_url': whatsapp_url})
     except Exception as e:
-        print(f"Click tracking error: {e}")
-        return jsonify({'error': 'Failed to track click'}), 500
+        print(f"WhatsApp URL generation error: {e}")
+        return jsonify({'error': 'Failed to generate WhatsApp URL'}), 500
+
+@app.route('/track_click', methods=['POST'])
+def track_click():
+    """Legacy endpoint - now redirects to get_whatsapp_url"""
+    return get_whatsapp_url()
 
 @app.route('/admin/api/whatsapp-status')
 @login_required

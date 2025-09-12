@@ -292,60 +292,90 @@
                     <div class="card">
                         <div class="card-header">
                             <h5 class="mb-0">
-                                <i class="fab fa-whatsapp me-2"></i>WhatsApp通知配置
+                                <i class="fab fa-whatsapp me-2"></i>WhatsApp聯絡配置
                             </h5>
                         </div>
                         <div class="card-body">
+                            <div class="alert alert-info mb-4">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>WhatsApp Web整合：</strong>
+                                系統現在使用WhatsApp Web直接發送診斷報告，用戶點擊聯絡醫生時會開啟WhatsApp並預填完整的診斷報告訊息。
+                            </div>
+                            
                             <form method="POST" action="{{ url_for('update_whatsapp_config') }}">
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <div class="form-check form-switch">
-                                            <input class="form-check-input" type="checkbox" id="whatsappEnabled" 
-                                                   name="enabled" {{ 'checked' if whatsapp_config.enabled else '' }}>
-                                            <label class="form-check-label" for="whatsappEnabled">
-                                                啟用WhatsApp通知
-                                            </label>
+                                <div class="row mb-4">
+                                    <div class="col-md-8">
+                                        <label class="form-label">
+                                            <i class="fas fa-phone me-2"></i>接收診斷報告的WhatsApp號碼
+                                        </label>
+                                        <input type="text" class="form-control" name="target_number" 
+                                               value="{{ whatsapp_config.target_number or '85294974070' }}" 
+                                               placeholder="85294974070"
+                                               pattern="[0-9]+"
+                                               title="請輸入純數字的電話號碼">
+                                        <div class="form-text">
+                                            <i class="fas fa-lightbulb me-1"></i>
+                                            用戶點擊聯絡醫生時，會開啟WhatsApp並將診斷報告發送到此號碼
                                         </div>
                                     </div>
-                                    <div class="col-md-6">
-                                        <span id="whatsappStatus" class="badge bg-secondary">檢查中...</span>
+                                    <div class="col-md-4 d-flex align-items-end">
+                                        <div class="w-100">
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check-circle me-1"></i>WhatsApp Web 已啟用
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div id="whatsappConfigDetails" style="display: {{ 'block' if whatsapp_config.enabled else 'none' }};">
-                                    <div class="row">
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label">Socket服務地址</label>
-                                            <input type="url" class="form-control" name="socket_url" 
-                                                   value="{{ whatsapp_config.socket_url }}" 
-                                                   placeholder="http://localhost:3000">
-                                        </div>
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label">目標號碼</label>
-                                            <input type="text" class="form-control" name="target_number" 
-                                                   value="{{ whatsapp_config.target_number }}" 
-                                                   placeholder="85294974070@c.us">
+                                <div class="row mb-4">
+                                    <div class="col-12">
+                                        <h6 class="fw-bold mb-3">
+                                            <i class="fas fa-file-medical me-2"></i>診斷報告內容預覽
+                                        </h6>
+                                        <div class="border rounded p-3 bg-light">
+                                            <small class="text-muted">用戶聯絡醫生時會發送包含以下信息的完整報告：</small>
+                                            <ul class="mt-2 mb-0">
+                                                <li>患者基本信息（年齡、性別、症狀、地區）</li>
+                                                <li>AI診斷結果和推薦專科</li>
+                                                <li>選擇的醫生信息</li>
+                                                <li>詳細健康資料（如有提供）</li>
+                                                <li>時間戳記和系統標識</li>
+                                            </ul>
                                         </div>
                                     </div>
-                                    <div class="row">
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label">API密鑰</label>
-                                            <input type="password" class="form-control" name="api_key" 
-                                                   value="{{ whatsapp_config.api_key }}" 
-                                                   placeholder="WhatsApp API密鑰">
-                                        </div>
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label">會話名稱</label>
-                                            <input type="text" class="form-control" name="session_name" 
-                                                   value="{{ whatsapp_config.session_name }}" 
-                                                   placeholder="default">
+                                </div>
+
+                                <!-- Legacy Server Configuration (Deprecated) -->
+                                <div class="card border-warning mb-3">
+                                    <div class="card-header bg-warning bg-opacity-10">
+                                        <h6 class="mb-0 text-warning">
+                                            <i class="fas fa-exclamation-triangle me-2"></i>舊版伺服器配置（已停用）
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <p class="text-muted mb-3">
+                                            以下配置已不再使用，系統現在直接使用WhatsApp Web。保留此設定僅供參考。
+                                        </p>
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label text-muted">Socket服務地址（已停用）</label>
+                                                <input type="url" class="form-control" name="socket_url" 
+                                                       value="{{ whatsapp_config.socket_url }}" 
+                                                       placeholder="http://localhost:3000" disabled>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label text-muted">API密鑰（已停用）</label>
+                                                <input type="password" class="form-control" name="api_key" 
+                                                       value="{{ whatsapp_config.api_key }}" 
+                                                       placeholder="WhatsApp API密鑰" disabled>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div class="d-flex justify-content-between">
-                                    <button type="button" class="btn btn-outline-success" onclick="testWhatsAppConnection()">
-                                        <i class="fab fa-whatsapp me-2"></i>測試WhatsApp
+                                    <button type="button" class="btn btn-outline-success" onclick="testWhatsAppWebUrl()">
+                                        <i class="fab fa-whatsapp me-2"></i>測試WhatsApp Web連結
                                     </button>
                                     <button type="submit" class="btn btn-success">
                                         <i class="fas fa-save me-2"></i>保存配置
@@ -665,6 +695,30 @@
             });
         }
 
+        function testWhatsAppWebUrl() {
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>測試中...';
+            btn.disabled = true;
+
+            // Get the target number from the form
+            const targetNumber = document.querySelector('input[name="target_number"]').value || '85294974070';
+            
+            // Create a test WhatsApp web URL
+            const testMessage = encodeURIComponent('🏥 AI醫療配對系統測試訊息\n\n這是來自管理後台的測試訊息，確認WhatsApp Web整合正常運作。\n\n---\nAI香港醫療配對系統');
+            const whatsappUrl = `https://wa.me/${targetNumber}?text=${testMessage}`;
+            
+            // Open WhatsApp web in a new tab
+            window.open(whatsappUrl, '_blank');
+            
+            // Show success message
+            setTimeout(() => {
+                showAlert('success', `WhatsApp Web連結已開啟！如果WhatsApp正常開啟並顯示預填訊息，表示配置正確。目標號碼：${targetNumber}`);
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }, 1000);
+        }
+
         function checkAIStatus() {
             fetch('/health')
             .then(response => response.json())
@@ -680,16 +734,33 @@
         }
 
         function checkWhatsAppStatus() {
-            fetch('/admin/api/whatsapp-status')
-            .then(response => response.json())
-            .then(data => {
-                const statusBadge = document.getElementById('whatsappStatus');
-                statusBadge.className = `badge ${data.connected ? 'bg-success' : 'bg-warning'}`;
-                statusBadge.textContent = data.connected ? '已連接' : '未連接';
-            })
-            .catch(() => {
-                document.getElementById('whatsappStatus').textContent = '未知';
-            });
+            // WhatsApp Web is always available - no server connection needed
+            const statusBadge = document.getElementById('whatsappStatus');
+            if (statusBadge) {
+                statusBadge.className = 'badge bg-success';
+                statusBadge.textContent = 'WhatsApp Web 已啟用';
+            }
+        }
+
+        function showAlert(type, message) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            const container = document.querySelector('main .container-fluid .row main');
+            if (container) {
+                container.insertBefore(alertDiv, container.firstChild);
+            }
+            
+            // Auto-dismiss after 5 seconds
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 5000);
         }
 
         function loadDatabaseStats() {
