@@ -1859,13 +1859,23 @@ def admin_analytics():
         
         # Get user queries with details
         cursor.execute('''
-            SELECT id, timestamp, age, symptoms, language, location, 
+            SELECT id, timestamp, age, gender, symptoms, language, location, 
                    recommended_specialty, matched_doctors_count, user_ip
             FROM user_queries 
             ORDER BY timestamp DESC 
             LIMIT 50
         ''')
         user_queries = cursor.fetchall()
+        
+        # Get gender statistics for dashboard
+        cursor.execute('''
+            SELECT gender, COUNT(*) as count
+            FROM user_queries 
+            WHERE gender IS NOT NULL AND gender != ''
+            GROUP BY gender 
+            ORDER BY count DESC
+        ''')
+        gender_stats = cursor.fetchall()
         
         # Get doctor clicks
         cursor.execute('''
@@ -1883,7 +1893,8 @@ def admin_analytics():
         return render_template('admin/analytics.html',
                              event_stats=event_stats,
                              user_queries=user_queries,
-                             doctor_clicks=doctor_clicks)
+                             doctor_clicks=doctor_clicks,
+                             gender_stats=gender_stats)
     except Exception as e:
         print(f"Analytics error: {e}")
         flash('載入分析數據時發生錯誤', 'error')
