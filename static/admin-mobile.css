@@ -52,14 +52,14 @@
 
 /* Admin logo circle styling */
 .admin-logo-circle {
-    width: 50px;
-    height: 50px;
+    width: 36px;
+    height: 36px;
     background: rgba(255, 255, 255, 0.9);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 0 auto 10px auto;
+    margin: 0 auto 15px auto;
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     transition: all 0.3s ease;
 }
@@ -70,9 +70,15 @@
 }
 
 .admin-logo {
-    width: 30px;
-    height: 30px;
+    width: 36px;
+    height: 36px;
     object-fit: contain;
+}
+
+/* Admin title styling */
+.sidebar h5 {
+    font-size: 1.4rem !important;
+    font-weight: 600 !important;
 }
 
 .sidebar-overlay.show {
