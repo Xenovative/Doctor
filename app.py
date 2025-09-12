@@ -2017,12 +2017,17 @@ def admin_analytics():
         detailed_events = []
         for event_type, data, timestamp, user_ip, user_agent in recent_events:
             event_info = get_event_display_info(event_type)
+            try:
+                parsed_data = json.loads(data) if data else {}
+            except (json.JSONDecodeError, TypeError):
+                parsed_data = {}
+            
             detailed_events.append({
                 'type': event_type,
                 'display_name': event_info['name'],
                 'color': event_info['color'],
-                'data': json.loads(data) if data else {},
-                'timestamp': timestamp,
+                'data': parsed_data,
+                'timestamp': format_timestamp(timestamp),
                 'user_ip': user_ip,
                 'user_agent': user_agent
             })
@@ -2087,11 +2092,13 @@ def admin_analytics():
         
         return render_template('admin/analytics.html', 
                              event_stats=event_stats,
-                             queries=queries,
+                             queries=user_queries,
                              detailed_events=detailed_events,
                              total_queries=len(raw_queries),
                              total_events=sum(count for _, count in raw_event_stats),
-                             location_stats=location_stats)
+                             gender_stats=gender_stats,
+                             location_stats=location_stats,
+                             doctor_clicks=doctor_clicks)
     except Exception as e:
         print(f"Analytics error: {e}")
         flash('載入分析數據時發生錯誤', 'error')
