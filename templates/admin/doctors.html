@@ -343,8 +343,21 @@
                 </div>
 
                 <!-- Cards View -->
-                <div id="cardsView" class="row" style="display: none;">
-                    <!-- Cards will be loaded dynamically via AJAX -->
+                <div id="cardsView" style="display: none;">
+                    <div class="row" id="cardsContainer">
+                        <!-- Cards will be loaded dynamically via AJAX -->
+                    </div>
+                    <!-- Card Pagination -->
+                    <div class="d-flex justify-content-between align-items-center mt-4">
+                        <div>
+                            <span id="cardsPagingInfo">顯示 0 - 0 筆，共 0 筆</span>
+                        </div>
+                        <nav>
+                            <ul class="pagination pagination-sm mb-0" id="cardsPagination">
+                                <!-- Pagination buttons will be generated here -->
+                            </ul>
+                        </nav>
+                    </div>
                 </div>
             </main>
         </div>
@@ -669,20 +682,29 @@
             }
         }
 
-        // Load cards view with AJAX data
-        function loadCardsView() {
-            fetch('/admin/doctors/paginated?length=100')
+        // Card view pagination variables
+        let currentCardPage = 1;
+        const cardsPerPage = 12;
+        let totalCardRecords = 0;
+
+        // Load cards view with AJAX data and pagination
+        function loadCardsView(page = 1) {
+            currentCardPage = page;
+            const start = (page - 1) * cardsPerPage;
+            
+            fetch(`/admin/doctors/paginated?start=${start}&length=${cardsPerPage}`)
                 .then(response => response.json())
                 .then(result => {
-                    const cardsContainer = document.getElementById('cardsView');
+                    const cardsContainer = document.getElementById('cardsContainer');
                     cardsContainer.innerHTML = '';
+                    totalCardRecords = result.recordsTotal;
                     
                     let cardsHtml = '';
                     result.data.forEach(doctor => {
                         cardsHtml += `
                             <div class="col-md-6 col-lg-4 mb-3">
                                 <div class="doctor-card card h-100">
-                                    <div class="card-body">
+                                    <div class="card-body d-flex flex-column">
                                         <h6 class="card-title">
                                             ${doctor.name || 'Unknown'}
                                         </h6>
@@ -713,11 +735,54 @@
                         `;
                     });
                     cardsContainer.innerHTML = cardsHtml;
+                    
+                    // Update pagination info and controls
+                    updateCardsPagination(result);
                 })
                 .catch(error => {
                     console.error('Error loading cards:', error);
-                    document.getElementById('cardsView').innerHTML = '<div class="col-12"><p class="text-center">載入卡片資料時發生錯誤</p></div>';
+                    document.getElementById('cardsContainer').innerHTML = '<div class="col-12"><p class="text-center">載入卡片資料時發生錯誤</p></div>';
                 });
+        }
+
+        // Update cards pagination controls
+        function updateCardsPagination(result) {
+            const start = (currentCardPage - 1) * cardsPerPage + 1;
+            const end = Math.min(start + result.data.length - 1, result.recordsTotal);
+            const total = result.recordsTotal;
+            
+            // Update info text
+            document.getElementById('cardsPagingInfo').textContent = `顯示 ${start} - ${end} 筆，共 ${total} 筆`;
+            
+            // Generate pagination buttons
+            const totalPages = Math.ceil(total / cardsPerPage);
+            const pagination = document.getElementById('cardsPagination');
+            pagination.innerHTML = '';
+            
+            if (totalPages <= 1) return;
+            
+            // Previous button
+            const prevLi = document.createElement('li');
+            prevLi.className = `page-item ${currentCardPage === 1 ? 'disabled' : ''}`;
+            prevLi.innerHTML = `<a class="page-link" href="#" onclick="loadCardsView(${currentCardPage - 1}); return false;">上一頁</a>`;
+            pagination.appendChild(prevLi);
+            
+            // Page numbers
+            const startPage = Math.max(1, currentCardPage - 2);
+            const endPage = Math.min(totalPages, currentCardPage + 2);
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const li = document.createElement('li');
+                li.className = `page-item ${i === currentCardPage ? 'active' : ''}`;
+                li.innerHTML = `<a class="page-link" href="#" onclick="loadCardsView(${i}); return false;">${i}</a>`;
+                pagination.appendChild(li);
+            }
+            
+            // Next button
+            const nextLi = document.createElement('li');
+            nextLi.className = `page-item ${currentCardPage === totalPages ? 'disabled' : ''}`;
+            nextLi.innerHTML = `<a class="page-link" href="#" onclick="loadCardsView(${currentCardPage + 1}); return false;">下一頁</a>`;
+            pagination.appendChild(nextLi);
         }
         
         function changePageSize(size) {
