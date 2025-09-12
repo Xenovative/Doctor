@@ -2699,8 +2699,16 @@ def admin_doctors_paginated():
         length = request.args.get('length', type=int, default=25)
         search_value = request.args.get('search[value]', default='')
         
+        # Get sorting parameters
+        order_column = request.args.get('order[0][column]', type=int, default=0)
+        order_dir = request.args.get('order[0][dir]', default='asc')
+        
         conn = sqlite3.connect('doctors.db')
         cursor = conn.cursor()
+        
+        # Column mapping for sorting
+        columns = ['name', 'specialty', 'qualifications', 'contact_numbers', 'clinic_addresses', 'priority_flag']
+        sort_column = columns[order_column] if order_column < len(columns) else 'name'
         
         # Base query
         base_query = """
@@ -2738,8 +2746,9 @@ def admin_doctors_paginated():
         else:
             records_filtered = records_total
         
-        # Get paginated data
-        query = f"{base_query} {where_clause} ORDER BY name LIMIT ? OFFSET ?"
+        # Get paginated data with sorting
+        order_clause = f"ORDER BY {sort_column} {order_dir.upper()}"
+        query = f"{base_query} {where_clause} {order_clause} LIMIT ? OFFSET ?"
         params.extend([length, start])
         
         cursor.execute(query, params)

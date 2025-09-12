@@ -813,8 +813,10 @@
             
             doctorsTable.order([columnIndex, newOrder]).draw();
             
-            // Update sort icons
-            updateSortIcons(columnIndex, newOrder);
+            // Update sort icons after draw completes
+            setTimeout(() => {
+                updateSortIcons(columnIndex, newOrder);
+            }, 100);
         }
 
         // Update sort icons in column headers
