@@ -3576,6 +3576,19 @@ def admin_bug_reports():
         conn = sqlite3.connect('admin_data.db')
         cursor = conn.cursor()
         
+        # Create bug_reports table if it doesn't exist
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS bug_reports (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                description TEXT NOT NULL,
+                contact_info TEXT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                url TEXT,
+                user_agent TEXT,
+                status TEXT DEFAULT 'new'
+            )
+        ''')
+        
         # Get all bug reports
         cursor.execute('''
             SELECT id, description, contact_info, timestamp, url, user_agent, status

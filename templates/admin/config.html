@@ -62,7 +62,9 @@
             <nav class="col-md-3 col-lg-2 d-md-block sidebar" id="adminSidebar">
                 <div class="position-sticky pt-3">
                     <div class="text-center mb-4">
-                        <img src="{{ url_for('static', filename='../assets/img/doctoricon.png') }}" alt="Doctor AI" style="width: 40px; height: 40px; margin-bottom: 10px;">
+                        <div class="admin-logo-circle">
+                            <img src="{{ url_for('static', filename='../assets/img/doctoricon.png') }}" alt="Doctor AI" class="admin-logo">
+                        </div>
                         <h5 class="text-white mb-1">
                             Doctor AI.io
                         </h5>

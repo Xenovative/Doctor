@@ -48,8 +48,31 @@
     height: 100%;
     background: rgba(0,0,0,0.5);
     z-index: 1040;
-    opacity: 0;
-    transition: opacity 0.3s ease;
+}
+
+/* Admin logo circle styling */
+.admin-logo-circle {
+    width: 50px;
+    height: 50px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 10px auto;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+.admin-logo-circle:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.admin-logo {
+    width: 30px;
+    height: 30px;
+    object-fit: contain;
 }
 
 .sidebar-overlay.show {
