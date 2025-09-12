@@ -3857,6 +3857,31 @@ def submit_bug_report():
                 url = request.form.get('url', '')
                 user_agent = request.form.get('user_agent', '')
                 image_file = request.files.get('image')
+        
+        if not description:
+            return jsonify({'error': '問題描述不能為空'}), 400
+        
+        # Handle image upload
+        image_path = None
+        if image_file and image_file.filename:
+            import os
+            from werkzeug.utils import secure_filename
+            import time
+            
+            # Create uploads directory if it doesn't exist
+            upload_dir = os.path.join('static', 'uploads')
+            if not os.path.exists(upload_dir):
+                os.makedirs(upload_dir)
+            
+            # Generate secure filename
+            filename = secure_filename(image_file.filename)
+            timestamp = str(int(time.time()))
+            filename = f"{timestamp}_{filename}"
+            
+            # Save file
+            file_path = os.path.join(upload_dir, filename)
+            image_file.save(file_path)
+            image_path = f"uploads/{filename}"
 
         # Format bug report message
         bug_message = f"""🐛 **系統問題回報**
