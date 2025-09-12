@@ -268,18 +268,6 @@ body::before {
     position: relative;
 }
 
-.form-group.field-required::before {
-    content: '';
-    position: absolute;
-    left: -3px;
-    top: 0;
-    bottom: 0;
-    width: 3px;
-    background: linear-gradient(to bottom, #dc3545, #ff6b6b);
-    border-radius: 2px;
-    opacity: 0.7;
-}
-
 .validation-summary {
     border-radius: 8px;
     border: 1px solid #f5c6cb;
