@@ -3590,6 +3590,13 @@ def admin_bug_reports():
             )
         ''')
         
+        # Add image_path column if it doesn't exist (for existing tables)
+        try:
+            cursor.execute('ALTER TABLE bug_reports ADD COLUMN image_path TEXT')
+        except sqlite3.OperationalError:
+            # Column already exists
+            pass
+        
         # Get all bug reports
         cursor.execute('''
             SELECT id, description, contact_info, timestamp, url, user_agent, status, image_path
