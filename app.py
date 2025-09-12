@@ -1965,15 +1965,16 @@ def get_event_display_info(event_type: str) -> dict:
     """Convert event type to display-friendly name and color"""
     event_mapping = {
         'page_visit': {'name': '頁面訪問', 'color': 'primary'},
-        'doctor_search': {'name': '醫生搜索', 'color': 'success'},
-        'doctor_click': {'name': '醫生點擊', 'color': 'info'},
-        'admin_login': {'name': '管理員登入', 'color': 'warning'},
-        'admin_login_failed': {'name': '管理員登入失敗', 'color': 'danger'},
+        'doctor_search': {'name': '醫生搜尋', 'color': 'success'},
+        'admin_login': {'name': '管理員登入', 'color': 'info'},
         'admin_logout': {'name': '管理員登出', 'color': 'secondary'},
-        'config_update': {'name': '配置更新', 'color': 'dark'},
-        'ai_analysis': {'name': 'AI分析', 'color': 'success'},
-        'error': {'name': '錯誤事件', 'color': 'danger'},
-        'health_check': {'name': '健康檢查', 'color': 'light'}
+        'admin_login_failed': {'name': '登入失敗', 'color': 'danger'},
+        'config_update': {'name': '配置更新', 'color': 'warning'},
+        'password_change': {'name': '密碼更改', 'color': 'info'},
+        'admin_user_created': {'name': '新增管理員', 'color': 'success'},
+        'database_export': {'name': '數據庫匯出', 'color': 'primary'},
+        'database_import': {'name': '數據庫匯入', 'color': 'warning'},
+        'bug_report_submitted': {'name': '問題回報', 'color': 'danger'}
     }
     return event_mapping.get(event_type, {'name': event_type, 'color': 'secondary'})
 
@@ -3940,6 +3941,14 @@ def submit_bug_report():
         report_id = cursor.lastrowid
         conn.commit()
         conn.close()
+        
+        # Log to analytics
+        log_analytics('bug_report_submitted', {
+            'report_id': report_id,
+            'has_image': image_path is not None,
+            'has_contact': bool(contact_info),
+            'description_length': len(description)
+        }, get_real_ip(), request.user_agent.string)
         
         # Send to WhatsApp
         try:
