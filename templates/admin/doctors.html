@@ -344,58 +344,7 @@
 
                 <!-- Cards View -->
                 <div id="cardsView" class="row" style="display: none;">
-                    {% for doctor in doctors %}
-                    <div class="col-md-6 col-lg-4">
-                        <div class="doctor-card card">
-                            <div class="card-body">
-                                <h6 class="card-title">
-                                    {% if doctor.name_zh %}
-                                        {{ doctor.name_zh }}
-                                        {% if doctor.name_en %}
-                                            <br><small class="text-muted">{{ doctor.name_en }}</small>
-                                        {% endif %}
-                                    {% elif doctor.name_en %}
-                                        {{ doctor.name_en }}
-                                    {% else %}
-                                        {{ doctor.name or 'Unknown' }}
-                                    {% endif %}
-                                </h6>
-                                <p class="card-text">
-                                    <span class="specialty-badge">
-                                        {{ doctor.specialty_zh or doctor.specialty_en or doctor.specialty }}
-                                    </span>
-                                </p>
-                                <p class="card-text">
-                                    <small class="text-muted">
-                                        <i class="fas fa-language me-1"></i>
-                                        {{ doctor.languages_zh or doctor.languages_en or doctor.languages or '未提供' }}
-                                    </small>
-                                </p>
-                                {% if doctor.contact_numbers %}
-                                <p class="card-text">
-                                    <small><i class="fas fa-phone me-1"></i>{{ doctor.contact_numbers.split(',')[0] }}</small>
-                                </p>
-                                {% endif %}
-                                <div class="d-flex justify-content-between">
-                                    <button class="btn btn-sm btn-success me-1" onclick="editDoctor({{ doctor.id }})">
-                                        <i class="fas fa-edit"></i> 編輯
-                                    </button>
-                                    <button class="btn btn-sm btn-info me-1" onclick="viewDoctor({{ doctor.id }})">
-                                        <i class="fas fa-eye"></i> 檢視
-                                    </button>
-                                    <button class="btn btn-sm btn-danger" onclick="deleteDoctor({{ doctor.id }}, '{{ (doctor.name_zh or doctor.name_en or 'Unknown')|replace("'", "\\'") }}')">
-                                        <i class="fas fa-trash"></i> 刪除
-                                    </button>
-                                    {% if doctor.profile_url %}
-                                    <a href="{{ doctor.profile_url }}" target="_blank" class="btn btn-sm btn-outline-info">
-                                        <i class="fas fa-external-link-alt me-1"></i>檔案
-                                    </a>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
+                    <!-- Cards will be loaded dynamically via AJAX -->
                 </div>
             </main>
         </div>
@@ -631,14 +580,25 @@
                     "type": "GET"
                 },
                 "columns": [
-                    { "data": "name", "title": "姓名", "width": "15%" },
-                    { "data": "specialty", "title": "專科", "width": "20%" },
-                    { "data": "qualifications", "title": "資格", "width": "25%" },
-                    { "data": "contact_numbers", "title": "聯絡電話", "width": "15%" },
-                    { "data": "clinic_addresses", "title": "診所地址", "width": "15%" },
+                    { "data": "name", "title": "姓名", "width": "18%" },
+                    { "data": "specialty", "title": "專科", "width": "18%" },
+                    { 
+                        "data": "qualifications", 
+                        "title": "資格", 
+                        "width": "22%",
+                        "render": function(data, type, row) {
+                            if (type === 'display' && data && data.length > 50) {
+                                return '<span title="' + data + '">' + data.substr(0, 50) + '...</span>';
+                            }
+                            return data || '';
+                        }
+                    },
+                    { "data": "contact_numbers", "title": "聯絡電話", "width": "12%" },
+                    { "data": "clinic_addresses", "title": "診所地址", "width": "12%" },
                     { 
                         "data": "priority_flag", 
                         "title": "優先",
+                        "width": "6%",
                         "render": function(data, type, row) {
                             return data == 1 ? '<span class="badge bg-warning">優先</span>' : '';
                         }
@@ -646,17 +606,18 @@
                     { 
                         "data": "id", 
                         "title": "操作",
+                        "width": "12%",
                         "orderable": false,
                         "render": function(data, type, row) {
                             return `
-                                <div class="btn-group btn-group-sm">
-                                    <button class="btn btn-sm btn-success me-1" onclick="editDoctor(${data})">
+                                <div class="btn-group-vertical btn-group-sm" style="width: 100%;">
+                                    <button class="btn btn-xs btn-success mb-1" onclick="editDoctor(${data})" style="font-size: 0.7rem; padding: 2px 4px;">
                                         <i class="fas fa-edit"></i> 編輯
                                     </button>
-                                    <button class="btn btn-sm btn-info me-1" onclick="viewDoctor(${data})">
+                                    <button class="btn btn-xs btn-info mb-1" onclick="viewDoctor(${data})" style="font-size: 0.7rem; padding: 2px 4px;">
                                         <i class="fas fa-eye"></i> 檢視
                                     </button>
-                                    <button class="btn btn-sm btn-danger" onclick="deleteDoctor(${data}, '${row.name || 'Unknown'}')">
+                                    <button class="btn btn-xs btn-danger" onclick="deleteDoctor(${data}, '${row.name || 'Unknown'}')" style="font-size: 0.7rem; padding: 2px 4px;">
                                         <i class="fas fa-trash"></i> 刪除
                                     </button>
                                 </div>
@@ -691,6 +652,7 @@
             });
         });
         
+        // View switching function
         function switchView(view) {
             currentView = view;
             if (view === 'table') {
@@ -703,7 +665,58 @@
                 document.getElementById('cardsView').style.display = 'block';
                 document.getElementById('tableViewBtn').classList.remove('active');
                 document.getElementById('cardsViewBtn').classList.add('active');
+                loadCardsView();
             }
+        }
+
+        // Load cards view with AJAX data
+        function loadCardsView() {
+            fetch('/admin/doctors/paginated?length=100')
+                .then(response => response.json())
+                .then(result => {
+                    const cardsContainer = document.getElementById('cardsView');
+                    cardsContainer.innerHTML = '';
+                    
+                    result.data.forEach(doctor => {
+                        const cardHtml = `
+                            <div class="col-md-6 col-lg-4">
+                                <div class="doctor-card card">
+                                    <div class="card-body">
+                                        <h6 class="card-title">
+                                            ${doctor.name || 'Unknown'}
+                                        </h6>
+                                        <p class="card-text">
+                                            <span class="specialty-badge">
+                                                ${doctor.specialty || ''}
+                                            </span>
+                                        </p>
+                                        ${doctor.contact_numbers ? `
+                                        <p class="card-text">
+                                            <small><i class="fas fa-phone me-1"></i>${doctor.contact_numbers.split(',')[0]}</small>
+                                        </p>
+                                        ` : ''}
+                                        <div class="d-flex justify-content-between">
+                                            <button class="btn btn-sm btn-success me-1" onclick="editDoctor(${doctor.id})">
+                                                <i class="fas fa-edit"></i> 編輯
+                                            </button>
+                                            <button class="btn btn-sm btn-info me-1" onclick="viewDoctor(${doctor.id})">
+                                                <i class="fas fa-eye"></i> 檢視
+                                            </button>
+                                            <button class="btn btn-sm btn-danger" onclick="deleteDoctor(${doctor.id}, '${doctor.name || 'Unknown'}')">
+                                                <i class="fas fa-trash"></i> 刪除
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        cardsContainer.innerHTML += cardHtml;
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading cards:', error);
+                    document.getElementById('cardsView').innerHTML = '<div class="col-12"><p class="text-center">載入卡片資料時發生錯誤</p></div>';
+                });
         }
         
         function changePageSize(size) {
