@@ -1147,7 +1147,7 @@ def analyze_symptoms_and_match(age: int, gender: str, symptoms: str, chronic_con
             'validation_error': True,
             'validation_issues': symptom_validation.get('issues', []),
             'validation_suggestions': symptom_validation.get('suggestions', []),
-            'validation_message': '您輸入的症狀描述似乎無效或不完整。請提供真實、具體的醫療症狀描述。'
+            'validation_message': '您輸入的內容不是有效的醫療症狀。請重新輸入真實的身體不適症狀，例如頭痛、發燒、咳嗽等。'
         }
     
     # 第二步：AI診斷 (pass user language)

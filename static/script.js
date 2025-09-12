@@ -717,9 +717,9 @@ document.addEventListener('DOMContentLoaded', function() {
             <div style="font-size: 3rem; color: #fc8181; margin-bottom: 15px;">
                 <i class="fas fa-exclamation-circle"></i>
             </div>
-            <h3 style="color: #c53030; margin-bottom: 15px;">症狀描述無效</h3>
+            <h3 style="color: #c53030; margin-bottom: 15px;">輸入內容不是症狀</h3>
             <p style="color: #742a2a; font-size: 1.1rem; margin-bottom: 20px;">
-                ${data.validation_message || '您輸入的症狀描述似乎無效或不完整。'}
+                ${data.validation_message || '您輸入的內容不是有效的醫療症狀。請重新輸入真實的身體不適症狀。'}
             </p>
             ${issuesHtml}
             ${suggestionsHtml}
