@@ -76,8 +76,8 @@ class SymptomInput {
     }
     
     handleKeydown(e) {
-        // Handle multiple separators: Enter, Space, Comma, Semicolon
-        if (e.key === 'Enter' || e.key === ' ' || e.key === ',' || e.key === ';') {
+        // Handle multiple separators: Enter, Space, Comma, Semicolon, Tab
+        if (e.key === 'Enter' || e.key === ' ' || e.key === ',' || e.key === ';' || e.key === 'Tab') {
             e.preventDefault();
             this.processInput();
         } else if (e.key === 'Escape') {
