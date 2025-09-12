@@ -469,33 +469,55 @@ def send_whatsapp_notification(message: str):
         print(f"WhatsApp通知錯誤: {e}")
         return False
 
-def format_diagnosis_report(user_query_data: dict, doctor_data: dict) -> str:
-    """格式化診斷報告為WhatsApp消息"""
+def format_diagnosis_report_full(user_query_data: dict, doctor_data: dict) -> str:
+    """格式化完整診斷報告為HTML顯示"""
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     
     # Format gender display
     gender = user_query_data.get('gender', '')
     gender_display = f"生理性別: {gender}" if gender else "生理性別: 未提供"
     
-    message = f"""🏥 *AI醫療診斷報告*
+    message = f"""🏥 AI醫療診斷報告
 📅 時間: {timestamp}
 
-👤 *患者信息*
+👤 患者信息
 年齡: {user_query_data.get('age', 'N/A')}歲
 {gender_display}
 症狀: {user_query_data.get('symptoms', 'N/A')}
 語言: {user_query_data.get('language', 'N/A')}
 地區: {user_query_data.get('location', 'N/A')}
 
-🔍 *AI診斷結果*
+🔍 AI診斷結果
 推薦專科: {user_query_data.get('recommended_specialty', 'N/A')}
 
-👨‍⚕️ *選擇的醫生*
+👨‍⚕️ 選擇的醫生
 醫生姓名: {doctor_data.get('doctor_name', 'N/A')}
 專科: {doctor_data.get('doctor_specialty', 'N/A')}
 
-📊 *完整診斷*
-{user_query_data.get('ai_diagnosis', 'N/A')[:500]}{'...' if len(user_query_data.get('ai_diagnosis', '')) > 500 else ''}
+📊 完整診斷
+{user_query_data.get('ai_diagnosis', 'N/A')}
+
+免責聲明：此分析僅供參考，不能替代專業醫療診斷，請務必諮詢合格醫生。
+
+---
+AI香港醫療配對系統"""
+    
+    return message
+
+def format_whatsapp_message(doctor_data: dict, report_url: str) -> str:
+    """格式化WhatsApp消息，包含診斷報告鏈接"""
+    message = f"""🏥 AI醫療診斷報告
+
+您好！我通過AI醫療配對系統選擇了您作為我的醫生。
+
+👨‍⚕️ 醫生信息
+姓名: {doctor_data.get('doctor_name', 'N/A')}
+專科: {doctor_data.get('doctor_specialty', 'N/A')}
+
+📋 完整診斷報告請查看：
+{report_url}
+
+期待您的專業建議，謝謝！
 
 ---
 AI香港醫療配對系統"""
@@ -3143,15 +3165,74 @@ def get_user_reports(user_ip):
         print(f"User reports error: {e}")
         return jsonify({'error': 'Failed to fetch user reports'}), 500
 
+@app.route('/report/<report_id>')
+def view_report(report_id):
+    """Display diagnosis report"""
+    try:
+        conn = sqlite3.connect('admin_data.db')
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT report_data, created_at, doctor_name, doctor_specialty 
+            FROM diagnosis_reports 
+            WHERE id = ?
+        ''', (report_id,))
+        
+        report_row = cursor.fetchone()
+        conn.close()
+        
+        if not report_row:
+            return "報告未找到", 404
+            
+        report_data, created_at, doctor_name, doctor_specialty = report_row
+        
+        # Convert newlines to HTML breaks for display
+        report_html = report_data.replace('\n', '<br>')
+        
+        return f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>AI醫療診斷報告</title>
+            <style>
+                body {{ font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6; }}
+                .report {{ background: #f9f9f9; padding: 20px; border-radius: 10px; white-space: pre-line; }}
+                .header {{ text-align: center; color: #2c3e50; margin-bottom: 20px; }}
+                .footer {{ text-align: center; margin-top: 20px; color: #7f8c8d; font-size: 0.9em; }}
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>🏥 AI醫療診斷報告</h1>
+            </div>
+            <div class="report">
+                {report_html}
+            </div>
+            <div class="footer">
+                <p>此報告生成於: {created_at}</p>
+                <p><small>免責聲明：此分析僅供參考，不能替代專業醫療診斷，請務必諮詢合格醫生。</small></p>
+            </div>
+        </body>
+        </html>
+        """
+        
+    except Exception as e:
+        print(f"Report display error: {e}")
+        return "報告顯示錯誤", 500
+
 @app.route('/get_whatsapp_url', methods=['POST'])
 def get_whatsapp_url():
-    """Generate WhatsApp web URL with diagnosis report"""
+    """Generate WhatsApp URL with diagnosis report"""
     try:
         data = request.get_json()
-        doctor_name = data.get('doctor_name', '')
-        doctor_specialty = data.get('doctor_specialty', '')
-        query_id = session.get('last_query_id')
+        doctor_name = data.get('doctor_name')
+        doctor_specialty = data.get('doctor_specialty')
+        
+        # Get session info
         session_id = session.get('session_id')
+        query_id = session.get('last_query_id')
         
         # Your designated WhatsApp number (replace with your actual number)
         whatsapp_number = os.getenv('WHATSAPP_TARGET_NUMBER', '85294974070')
@@ -3194,13 +3275,31 @@ def get_whatsapp_url():
                     'doctor_specialty': doctor_specialty
                 }
                 
-                # Generate diagnosis report message
-                message = format_diagnosis_report(user_query_data, doctor_data)
+                # Generate unique report ID and store report
+                import uuid
+                report_id = str(uuid.uuid4())
+                
+                # Store the full diagnosis report in database
+                cursor.execute('''
+                    INSERT OR REPLACE INTO diagnosis_reports (id, query_id, doctor_name, doctor_specialty, report_data, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                ''', (report_id, query_id, doctor_name, doctor_specialty, 
+                     format_diagnosis_report_full(user_query_data, doctor_data), 
+                     datetime.now().isoformat()))
+                conn.commit()
+                
+                # Generate report URL
+                report_url = f"{request.scheme}://{request.host}/report/{report_id}"
+                
+                # Generate WhatsApp message with report link
+                message = format_whatsapp_message(doctor_data, report_url)
+                print(f"DEBUG: Generated message length: {len(message)}")
                 
                 # URL encode the message for WhatsApp web
                 from urllib.parse import quote_plus
                 encoded_message = quote_plus(message)
                 whatsapp_url = f"https://wa.me/{whatsapp_number}?text={encoded_message}"
+                print(f"DEBUG: Final URL length: {len(whatsapp_url)}")
         
         conn.close()
         
