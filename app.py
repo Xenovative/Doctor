@@ -1877,6 +1877,17 @@ def admin_analytics():
         ''')
         gender_stats = cursor.fetchall()
         
+        # Get location statistics for dashboard
+        cursor.execute('''
+            SELECT location, COUNT(*) as count
+            FROM user_queries 
+            WHERE location IS NOT NULL AND location != ''
+            GROUP BY location 
+            ORDER BY count DESC
+            LIMIT 10
+        ''')
+        location_stats = cursor.fetchall()
+        
         # Get doctor clicks
         cursor.execute('''
             SELECT dc.timestamp, dc.doctor_name, dc.doctor_specialty, 
@@ -1894,7 +1905,8 @@ def admin_analytics():
                              event_stats=event_stats,
                              user_queries=user_queries,
                              doctor_clicks=doctor_clicks,
-                             gender_stats=gender_stats)
+                             gender_stats=gender_stats,
+                             location_stats=location_stats)
     except Exception as e:
         print(f"Analytics error: {e}")
         flash('載入分析數據時發生錯誤', 'error')
