@@ -705,7 +705,7 @@
             const targetNumber = document.querySelector('input[name="target_number"]').value || '85294974070';
             
             // Create a test WhatsApp web URL
-            const testMessage = encodeURIComponent('🏥 AI醫療配對系統測試訊息\n\n這是來自管理後台的測試訊息，確認WhatsApp Web整合正常運作。\n\n---\nAI香港醫療配對系統');
+            const testMessage = '🏥 AI醫療配對系統測試訊息\n\n這是來自管理後台的測試訊息，確認WhatsApp Web整合正常運作。\n\n---\nAI香港醫療配對系統';
             const whatsappUrl = `https://wa.me/${targetNumber}?text=${testMessage}`;
             
             // Open WhatsApp web in a new tab

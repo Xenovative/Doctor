@@ -3198,8 +3198,8 @@ def get_whatsapp_url():
                 message = format_diagnosis_report(user_query_data, doctor_data)
                 
                 # URL encode the message for WhatsApp web
-                from urllib.parse import quote
-                encoded_message = quote(message, safe='')
+                from urllib.parse import quote_plus
+                encoded_message = quote_plus(message)
                 whatsapp_url = f"https://wa.me/{whatsapp_number}?text={encoded_message}"
         
         conn.close()
