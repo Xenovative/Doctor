@@ -182,6 +182,130 @@ body::before {
     background: #e9ecef;
 }
 
+/* Required field indicators */
+.required-asterisk {
+    color: #dc3545;
+    font-weight: bold;
+    margin-left: 4px;
+    font-size: 1.1em;
+}
+
+.form-group label {
+    font-weight: 600;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.form-group label i {
+    color: #805ad5;
+    width: 16px;
+}
+
+.required-note {
+    color: #dc3545;
+    font-weight: 500;
+    font-size: 0.9em;
+}
+
+.optional-note {
+    color: #6c757d;
+    font-weight: 400;
+    font-size: 0.9em;
+}
+
+/* Form validation states */
+.form-group input:invalid,
+.form-group select:invalid {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+.form-group input:valid,
+.form-group select:valid {
+    border-color: #28a745;
+}
+
+.form-group input:focus:invalid,
+.form-group select:focus:invalid {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+.form-group input:focus:valid,
+.form-group select:focus:valid {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+/* Validation messages */
+.validation-message {
+    display: block;
+    margin-top: 5px;
+    font-size: 0.875em;
+    color: #dc3545;
+}
+
+.validation-message.success {
+    color: #28a745;
+}
+
+.validation-message i {
+    margin-right: 5px;
+}
+
+/* Form group error state */
+.form-group.has-error label {
+    color: #dc3545;
+}
+
+.form-group.has-error .required-asterisk {
+    animation: pulse 1s infinite;
+}
+
+.form-group.field-required {
+    position: relative;
+}
+
+.form-group.field-required::before {
+    content: '';
+    position: absolute;
+    left: -3px;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: linear-gradient(to bottom, #dc3545, #ff6b6b);
+    border-radius: 2px;
+    opacity: 0.7;
+}
+
+.validation-summary {
+    border-radius: 8px;
+    border: 1px solid #f5c6cb;
+    background: #f8d7da;
+    margin-bottom: 20px;
+    padding: 15px;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 /* Mobile responsive styles for symptom tags */
 @media (max-width: 768px) {
     .symptom-input-container {
