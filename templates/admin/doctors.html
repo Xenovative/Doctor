@@ -840,23 +840,21 @@
             const formData = new FormData(document.getElementById('editDoctorForm'));
             const doctorId = document.getElementById('editDoctorId').value;
             
-            // Validate doctorId
-            if (!doctorId || doctorId.trim() === '') {
-                alert('錯誤：無法獲取醫生ID，請重新打開編輯視窗');
-                return;
-            }
-            
-            console.log('Doctor ID:', doctorId);
-            
             // Convert FormData to JSON
             const data = {};
             formData.forEach((value, key) => {
                 data[key] = value;
             });
             
-            console.log('Update data:', data);
+            console.log('Save data:', data);
             
-            fetch(`/admin/doctors/${doctorId}/update`, {
+            // Determine if this is a new doctor (no ID) or existing doctor (has ID)
+            const isNewDoctor = !doctorId || doctorId.trim() === '';
+            const url = isNewDoctor ? '/admin/doctors/add' : `/admin/doctors/${doctorId}/update`;
+            
+            console.log('Is new doctor:', isNewDoctor, 'URL:', url);
+            
+            fetch(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -876,14 +874,15 @@
             })
             .then(result => {
                 if (result.success) {
-                    alert('醫生資料已成功更新！');
+                    const message = isNewDoctor ? '醫生已成功新增！' : '醫生資料已成功更新！';
+                    alert(message);
                     // Hide modal
                     const modal = bootstrap.Modal.getInstance(document.getElementById('editDoctorModal'));
                     modal.hide();
                     // Refresh page to show updated data
                     location.reload();
                 } else {
-                    alert('更新失敗：' + (result.error || '未知錯誤'));
+                    alert('保存失敗：' + (result.error || '未知錯誤'));
                 }
             })
             .catch(error => {
