@@ -644,16 +644,53 @@
         let currentView = 'table';
         
         $(document).ready(function() {
-            // Initialize DataTable
+            // Initialize DataTable with server-side processing
             doctorsTable = $('#doctorsTable').DataTable({
+                "processing": true,
+                "serverSide": true,
+                "ajax": {
+                    "url": "/admin/doctors/paginated",
+                    "type": "GET"
+                },
+                "columns": [
+                    { "data": "name", "title": "姓名" },
+                    { "data": "specialty", "title": "專科" },
+                    { "data": "qualifications", "title": "資格" },
+                    { "data": "contact_numbers", "title": "聯絡電話" },
+                    { "data": "clinic_addresses", "title": "診所地址" },
+                    { 
+                        "data": "priority_flag", 
+                        "title": "優先",
+                        "render": function(data, type, row) {
+                            return data == 1 ? '<span class="badge bg-warning">優先</span>' : '';
+                        }
+                    },
+                    { 
+                        "data": "id", 
+                        "title": "操作",
+                        "orderable": false,
+                        "render": function(data, type, row) {
+                            return `
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-sm btn-success me-1" onclick="editDoctor(${data})">
+                                        <i class="fas fa-edit"></i> 編輯
+                                    </button>
+                                    <button class="btn btn-sm btn-info me-1" onclick="viewDoctor(${data})">
+                                        <i class="fas fa-eye"></i> 檢視
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteDoctor(${data}, '${row.name || 'Unknown'}')">
+                                        <i class="fas fa-trash"></i> 刪除
+                                    </button>
+                                </div>
+                            `;
+                        }
+                    }
+                ],
                 "pageLength": 25,
                 "order": [[ 0, "asc" ]],
                 "language": {
                     "url": "//cdn.datatables.net/plug-ins/1.11.5/i18n/zh_Hant.json"
                 },
-                "columnDefs": [
-                    { "orderable": false, "targets": 6 } // Disable sorting on action column
-                ],
                 "destroy": true,
                 "responsive": true,
                 "dom": '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>' +

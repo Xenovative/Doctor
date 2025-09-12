@@ -2673,22 +2673,10 @@ def admin_doctors():
         cursor.execute("SELECT DISTINCT COALESCE(specialty_zh, specialty_en, specialty) as specialty FROM doctors WHERE specialty IS NOT NULL ORDER BY specialty")
         specialties = [row[0] for row in cursor.fetchall() if row[0]]
         
-        # 獲取醫生列表（使用DataTables服務端處理）
-        cursor.execute("""
-            SELECT * FROM doctors 
-            ORDER BY name_zh, name_en, name
-        """)
-        
-        columns = [description[0] for description in cursor.description]
-        doctors_data = []
-        for row in cursor.fetchall():
-            doctor_dict = dict(zip(columns, row))
-            doctors_data.append(doctor_dict)
-        
         conn.close()
         
         return render_template('admin/doctors.html',
-                             doctors=doctors_data,
+                             doctors=[],  # Empty list - will load via AJAX
                              total_doctors=total_doctors,
                              total_specialties=total_specialties,
                              bilingual_doctors=bilingual_doctors,
@@ -2699,6 +2687,81 @@ def admin_doctors():
         print(f"Error in admin_doctors: {e}")
         flash('載入醫生資料時發生錯誤', 'error')
         return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/doctors/paginated')
+@require_permission('config')
+def admin_doctors_paginated():
+    """DataTables AJAX endpoint for paginated doctor data"""
+    try:
+        # Get DataTables parameters
+        draw = request.args.get('draw', type=int, default=1)
+        start = request.args.get('start', type=int, default=0)
+        length = request.args.get('length', type=int, default=25)
+        search_value = request.args.get('search[value]', default='')
+        
+        conn = sqlite3.connect('doctors.db')
+        cursor = conn.cursor()
+        
+        # Base query
+        base_query = """
+            SELECT id, 
+                   COALESCE(name_zh, name_en, name) as name,
+                   COALESCE(specialty_zh, specialty_en, specialty) as specialty,
+                   COALESCE(qualifications_zh, qualifications_en, qualifications) as qualifications,
+                   contact_numbers,
+                   clinic_addresses,
+                   priority_flag
+            FROM doctors
+        """
+        
+        # Add search filter if provided
+        where_clause = ""
+        params = []
+        if search_value:
+            where_clause = """
+                WHERE (COALESCE(name_zh, name_en, name) LIKE ? 
+                   OR COALESCE(specialty_zh, specialty_en, specialty) LIKE ?
+                   OR contact_numbers LIKE ?
+                   OR clinic_addresses LIKE ?)
+            """
+            search_param = f'%{search_value}%'
+            params = [search_param, search_param, search_param, search_param]
+        
+        # Get total count (without search)
+        cursor.execute("SELECT COUNT(*) FROM doctors")
+        records_total = cursor.fetchone()[0]
+        
+        # Get filtered count (with search)
+        if search_value:
+            cursor.execute(f"SELECT COUNT(*) FROM doctors {where_clause}", params)
+            records_filtered = cursor.fetchone()[0]
+        else:
+            records_filtered = records_total
+        
+        # Get paginated data
+        query = f"{base_query} {where_clause} ORDER BY name LIMIT ? OFFSET ?"
+        params.extend([length, start])
+        
+        cursor.execute(query, params)
+        columns = [description[0] for description in cursor.description]
+        
+        data = []
+        for row in cursor.fetchall():
+            doctor_dict = dict(zip(columns, row))
+            data.append(doctor_dict)
+        
+        conn.close()
+        
+        return jsonify({
+            'draw': draw,
+            'recordsTotal': records_total,
+            'recordsFiltered': records_filtered,
+            'data': data
+        })
+        
+    except Exception as e:
+        print(f"Error in admin_doctors_paginated: {e}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/admin/doctors/<int:doctor_id>', methods=['GET'])
 @require_permission('config')
