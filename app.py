@@ -3573,7 +3573,7 @@ def get_whatsapp_status():
 def admin_bug_reports():
     """Bug reports management page"""
     try:
-        conn = sqlite3.connect(DATABASE_PATH)
+        conn = sqlite3.connect('admin_data.db')
         cursor = conn.cursor()
         
         # Get all bug reports
@@ -3637,7 +3637,7 @@ def update_bug_report_status(report_id):
         if new_status not in ['new', 'in-progress', 'resolved']:
             return jsonify({'error': '無效的狀態'}), 400
         
-        conn = sqlite3.connect(DATABASE_PATH)
+        conn = sqlite3.connect('admin_data.db')
         cursor = conn.cursor()
         
         cursor.execute('''
@@ -3660,7 +3660,7 @@ def update_bug_report_status(report_id):
 def delete_bug_report(report_id):
     """Delete bug report"""
     try:
-        conn = sqlite3.connect(DATABASE_PATH)
+        conn = sqlite3.connect('admin_data.db')
         cursor = conn.cursor()
         
         cursor.execute('DELETE FROM bug_reports WHERE id = ?', (report_id,))
@@ -3843,7 +3843,7 @@ def submit_bug_report():
         
         # Store in database for admin reference
         try:
-            conn = sqlite3.connect(DATABASE_PATH)
+            conn = sqlite3.connect('admin_data.db')
             cursor = conn.cursor()
             
             # Create bug_reports table if it doesn't exist
