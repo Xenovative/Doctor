@@ -484,9 +484,35 @@ def get_app_timezone():
         return pytz.timezone('Asia/Hong_Kong')
 
 def get_current_time():
-    """Get current time in configured timezone"""
-    tz = get_app_timezone()
-    return datetime.now(tz)
+    """Get current time in Hong Kong timezone"""
+    hk_tz = pytz.timezone('Asia/Hong_Kong')
+    return datetime.now(hk_tz)
+
+def format_timestamp(timestamp_str):
+    """Format timestamp string to clean readable format"""
+    try:
+        # Parse the timestamp string
+        if isinstance(timestamp_str, str):
+            # Handle ISO format with timezone
+            if '+' in timestamp_str or 'T' in timestamp_str:
+                dt = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
+            else:
+                dt = datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S')
+        else:
+            dt = timestamp_str
+        
+        # Convert to Hong Kong timezone if needed
+        if dt.tzinfo is None:
+            hk_tz = pytz.timezone('Asia/Hong_Kong')
+            dt = hk_tz.localize(dt)
+        elif dt.tzinfo != pytz.timezone('Asia/Hong_Kong'):
+            dt = dt.astimezone(pytz.timezone('Asia/Hong_Kong'))
+        
+        # Format as clean readable string
+        return dt.strftime('%Y-%m-%d %H:%M:%S')
+    except Exception as e:
+        logger.error(f"Error formatting timestamp {timestamp_str}: {e}")
+        return str(timestamp_str)
 
 def format_diagnosis_report_full(user_query_data: dict, doctor_data: dict) -> str:
     """格式化完整診斷報告為HTML顯示"""
@@ -1783,7 +1809,14 @@ def admin_dashboard():
             ORDER BY timestamp DESC 
             LIMIT 10
         ''')
-        recent_queries = cursor.fetchall()
+        raw_recent_queries = cursor.fetchall()
+        
+        # Format timestamps for recent queries
+        recent_queries = []
+        for query in raw_recent_queries:
+            formatted_query = list(query)
+            formatted_query[0] = format_timestamp(query[0])  # Format timestamp
+            recent_queries.append(tuple(formatted_query))
         
         # Get popular specialties
         cursor.execute('''
@@ -1865,7 +1898,14 @@ def admin_analytics():
             ORDER BY timestamp DESC 
             LIMIT 50
         ''')
-        user_queries = cursor.fetchall()
+        raw_queries = cursor.fetchall()
+        
+        # Format timestamps for user queries
+        user_queries = []
+        for query in raw_queries:
+            formatted_query = list(query)
+            formatted_query[1] = format_timestamp(query[1])  # Format timestamp
+            user_queries.append(tuple(formatted_query))
         
         # Get gender statistics for dashboard
         cursor.execute('''
@@ -1897,7 +1937,14 @@ def admin_analytics():
             ORDER BY dc.timestamp DESC 
             LIMIT 50
         ''')
-        doctor_clicks = cursor.fetchall()
+        raw_clicks = cursor.fetchall()
+        
+        # Format timestamps for doctor clicks
+        doctor_clicks = []
+        for click in raw_clicks:
+            formatted_click = list(click)
+            formatted_click[0] = format_timestamp(click[0])  # Format timestamp
+            doctor_clicks.append(tuple(formatted_click))
         
         conn.close()
         
@@ -3144,7 +3191,14 @@ def get_user_details(user_ip):
             ORDER BY timestamp DESC 
             LIMIT 5
         ''', (user_ip,))
-        recent_queries = cursor.fetchall()
+        raw_recent_queries = cursor.fetchall()
+        
+        # Format timestamps for recent queries
+        recent_queries = []
+        for query in raw_recent_queries:
+            formatted_query = list(query)
+            formatted_query[0] = format_timestamp(query[0])  # Format timestamp
+            recent_queries.append(tuple(formatted_query))
         
         conn.close()
         
