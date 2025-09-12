@@ -3821,21 +3821,46 @@ def cleanup_old_diagnosis_reports():
 def submit_bug_report():
     """Handle bug report submissions and send to WhatsApp"""
     try:
-        data = request.get_json()
-        
-        if not data or not data.get('description'):
-            return jsonify({'error': '問題描述不能為空'}), 400
-        
+        # Handle both JSON and form data
+        if request.content_type and 'multipart/form-data' in request.content_type:
+            description = request.form.get('description', '').strip()
+            contact_info = request.form.get('contact_info', '').strip()
+            url = request.form.get('url', '')
+            user_agent = request.form.get('user_agent', '')
+            image_file = request.files.get('image')
+        elif request.content_type and 'application/json' in request.content_type:
+            data = request.get_json()
+            description = data.get('description', '').strip()
+            contact_info = data.get('contact_info', '').strip()
+            url = data.get('url', '')
+            user_agent = data.get('user_agent', '')
+            image_file = None
+        else:
+            # Fallback for other content types
+            try:
+                data = request.get_json(force=True)
+                description = data.get('description', '').strip()
+                contact_info = data.get('contact_info', '').strip()
+                url = data.get('url', '')
+                user_agent = data.get('user_agent', '')
+                image_file = None
+            except:
+                description = request.form.get('description', '').strip()
+                contact_info = request.form.get('contact_info', '').strip()
+                url = request.form.get('url', '')
+                user_agent = request.form.get('user_agent', '')
+                image_file = request.files.get('image')
+
         # Format bug report message
         bug_message = f"""🐛 **系統問題回報**
 
 📝 **問題描述:**
-{data['description']}
+{description}
 
-📞 **聯絡方式:** {data.get('contact', '未提供')}
-🕐 **回報時間:** {data.get('timestamp', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))}
-🌐 **頁面:** {data.get('url', '未知')}
-💻 **瀏覽器:** {data.get('userAgent', '未知')[:100]}...
+📞 **聯絡方式:** {contact_info}
+🕐 **回報時間:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+🌐 **頁面:** {url}
+💻 **瀏覽器:** {user_agent[:100]}...
 
 ---
 此問題由 Doctor AI 系統自動轉發"""
