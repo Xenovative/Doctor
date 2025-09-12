@@ -2102,7 +2102,15 @@ def admin_analytics():
     except Exception as e:
         print(f"Analytics error: {e}")
         flash('載入分析數據時發生錯誤', 'error')
-        return render_template('admin/analytics.html')
+        return render_template('admin/analytics.html', 
+                             event_stats=[],
+                             queries=[],
+                             detailed_events=[],
+                             total_queries=0,
+                             total_events=0,
+                             gender_stats=[],
+                             location_stats=[],
+                             doctor_clicks=[])
 
 @app.route('/admin/config', methods=['GET', 'POST'])
 @login_required

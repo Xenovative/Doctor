@@ -260,28 +260,36 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {% for query in user_queries %}
-                                            <tr>
-                                                <td>{{ query[0] }}</td>
-                                                <td>{{ query[1] }}</td>
-                                                <td>{{ query[2] }}歲</td>
-                                                <td>
-                                                    <span class="badge bg-{{ 'info' if query[3] == '男性' else 'warning' if query[3] == '女性' else 'secondary' }}">
-                                                        {{ query[3] or '未提供' }}
-                                                    </span>
-                                                </td>
-                                                <td title="{{ query[4] }}">
-                                                    {{ query[4][:30] }}{% if query[4]|length > 30 %}...{% endif %}
-                                                </td>
-                                                <td>{{ query[5] }}</td>
-                                                <td>{{ query[6] }}</td>
-                                                <td>
-                                                    <span class="badge bg-primary">{{ query[7] }}</span>
-                                                </td>
-                                                <td>{{ query[8] }}</td>
-                                                <td>{{ query[9] }}</td>
-                                            </tr>
-                                            {% endfor %}
+                                            {% if queries %}
+                                                {% for query in queries %}
+                                                <tr>
+                                                    <td>{{ query[0] }}</td>
+                                                    <td>{{ query[1] }}</td>
+                                                    <td>{{ query[2] }}歲</td>
+                                                    <td>
+                                                        <span class="badge bg-{{ 'info' if query[3] == '男性' else 'warning' if query[3] == '女性' else 'secondary' }}">
+                                                            {{ query[3] or '未提供' }}
+                                                        </span>
+                                                    </td>
+                                                    <td title="{{ query[4] }}">
+                                                        {{ query[4][:30] }}{% if query[4]|length > 30 %}...{% endif %}
+                                                    </td>
+                                                    <td>{{ query[5] }}</td>
+                                                    <td>{{ query[6] }}</td>
+                                                    <td>
+                                                        <span class="badge bg-primary">{{ query[7] }}</span>
+                                                    </td>
+                                                    <td>{{ query[8] }}</td>
+                                                    <td>{{ query[9] }}</td>
+                                                </tr>
+                                                {% endfor %}
+                                            {% else %}
+                                                <tr>
+                                                    <td colspan="10" class="text-center text-muted py-4">
+                                                        <i class="fas fa-info-circle me-2"></i>暫無用戶查詢記錄
+                                                    </td>
+                                                </tr>
+                                            {% endif %}
                                         </tbody>
                                     </table>
                                 </div>
