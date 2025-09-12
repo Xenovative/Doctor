@@ -3585,13 +3585,14 @@ def admin_bug_reports():
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
                 url TEXT,
                 user_agent TEXT,
-                status TEXT DEFAULT 'new'
+                status TEXT DEFAULT 'new',
+                image_path TEXT
             )
         ''')
         
         # Get all bug reports
         cursor.execute('''
-            SELECT id, description, contact_info, timestamp, url, user_agent, status
+            SELECT id, description, contact_info, timestamp, url, user_agent, status, image_path
             FROM bug_reports 
             ORDER BY timestamp DESC
         ''')
@@ -3607,7 +3608,8 @@ def admin_bug_reports():
                 'timestamp': report[3],
                 'url': report[4],
                 'user_agent': report[5],
-                'status': report[6] or 'new'
+                'status': report[6],
+                'image_path': report[7] if len(report) > 7 else None
             })
         
         # Get stats
@@ -3854,39 +3856,57 @@ def submit_bug_report():
             except Exception as whatsapp_error:
                 logger.error(f"Failed to send bug report to WhatsApp: {whatsapp_error}")
         
-        # Store in database for admin reference
+        # Connect to database
+        conn = sqlite3.connect('admin_data.db')
+        cursor = conn.cursor()
+        
+        # Create bug_reports table if it doesn't exist
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS bug_reports (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                description TEXT NOT NULL,
+                contact_info TEXT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                url TEXT,
+                user_agent TEXT,
+                status TEXT DEFAULT 'new',
+                image_path TEXT
+            )
+        ''')
+        
+        # Insert bug report
+        cursor.execute('''
+            INSERT INTO bug_reports (description, contact_info, url, user_agent, image_path)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (description, contact_info, url, user_agent, image_path))
+        
+        report_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        
+        # Send to WhatsApp
         try:
-            conn = sqlite3.connect('admin_data.db')
-            cursor = conn.cursor()
-            
-            # Create bug_reports table if it doesn't exist
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS bug_reports (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    description TEXT NOT NULL,
-                    contact_info TEXT,
-                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    url TEXT,
-                    user_agent TEXT,
-                    status TEXT DEFAULT 'new'
-                )
-            ''')
-            
-            cursor.execute('''
-                INSERT INTO bug_reports (description, contact_info, url, user_agent)
-                VALUES (?, ?, ?, ?)
-            ''', (
-                data['description'],
-                data.get('contact', ''),
-                data.get('url', ''),
-                data.get('userAgent', '')
-            ))
-            
-            conn.commit()
-            conn.close()
-            
-        except Exception as db_error:
-            logger.error(f"Failed to store bug report in database: {db_error}")
+            if whatsapp_client and whatsapp_client.connected:
+                target_number = WHATSAPP_CONFIG.get('notification_number')
+                if target_number:
+                    bug_message = f"🐛 新問題回報 #{report_id}\n\n描述: {description}\n"
+                    if contact_info:
+                        bug_message += f"聯絡方式: {contact_info}\n"
+                    if url:
+                        bug_message += f"頁面: {url}\n"
+                    if image_path:
+                        bug_message += f"附件: 已上傳圖片\n"
+                    bug_message += f"時間: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                    
+                    whatsapp_client.emit('send_message', {
+                        'to': target_number,
+                        'message': bug_message
+                    })
+                    logger.info(f"Bug report sent to WhatsApp: {target_number}")
+                else:
+                    logger.warning("No WhatsApp target number configured for bug reports")
+        except Exception as whatsapp_error:
+            logger.error(f"Failed to send bug report to WhatsApp: {whatsapp_error}")
         
         return jsonify({'success': True, 'message': '問題回報已成功提交'})
         

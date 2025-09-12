@@ -255,11 +255,24 @@
                                 </div>
                                 {% endif %}
                                 
-                                {% if report.url %}
-                                <div class="mb-2">
-                                    <i class="fas fa-link me-1"></i>
-                                    <strong>頁面：</strong> 
-                                    <a href="{{ report.url }}" target="_blank" class="text-decoration-none">{{ report.url }}</a>
+                                <div class="bug-report-meta">
+                                    <small class="text-muted">
+                                        <i class="fas fa-clock me-1"></i>{{ report.timestamp }}
+                                        {% if report.url %}
+                                        <br><i class="fas fa-link me-1"></i><a href="{{ report.url }}" target="_blank" class="text-decoration-none">{{ report.url[:50] }}...</a>
+                                        {% endif %}
+                                        {% if report.image_path %}
+                                        <br><i class="fas fa-image me-1"></i>附件圖片
+                                        {% endif %}
+                                    </small>
+                                </div>
+                                {% if report.image_path %}
+                                <div class="bug-report-image mt-2">
+                                    <img src="{{ url_for('static', filename=report.image_path) }}" 
+                                         alt="Bug report attachment" 
+                                         class="img-thumbnail" 
+                                         style="max-width: 200px; max-height: 150px; cursor: pointer;"
+                                         onclick="window.open('{{ url_for('static', filename=report.image_path) }}', '_blank')">
                                 </div>
                                 {% endif %}
                                 

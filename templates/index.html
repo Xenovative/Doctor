@@ -378,6 +378,21 @@
                                data-translate-placeholder="contact_info_placeholder" 
                                placeholder="電郵或電話號碼 (如需回覆)">
                     </div>
+                    <div class="form-group">
+                        <label for="bugImage">
+                            <i class="fas fa-image"></i>
+                            <span data-translate="bug_image">附加圖片</span>
+                            <span class="optional-note" data-translate="optional">(可選)</span>
+                        </label>
+                        <input type="file" id="bugImage" name="bugImage" accept="image/*" class="file-input">
+                        <div class="file-input-hint" data-translate="image_hint">支援 JPG, PNG, GIF 格式，最大 5MB</div>
+                        <div id="imagePreview" class="image-preview" style="display: none;">
+                            <img id="previewImg" src="" alt="預覽圖片">
+                            <button type="button" id="removeImage" class="remove-image-btn">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
                     <div class="modal-actions">
                         <button type="button" class="btn-secondary" id="cancelBugReport" data-translate="cancel">取消</button>
                         <button type="submit" class="btn-primary">

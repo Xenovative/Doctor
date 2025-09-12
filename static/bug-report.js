@@ -5,6 +5,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const closeBugModal = document.getElementById('closeBugModal');
     const cancelBugReport = document.getElementById('cancelBugReport');
     const bugReportForm = document.getElementById('bugReportForm');
+    const bugImage = document.getElementById('bugImage');
+    const imagePreview = document.getElementById('imagePreview');
+    const previewImg = document.getElementById('previewImg');
+    const removeImage = document.getElementById('removeImage');
 
     // Open modal
     bugReportBtn.addEventListener('click', function() {
@@ -17,7 +21,45 @@ document.addEventListener('DOMContentLoaded', function() {
         bugReportModal.style.display = 'none';
         document.body.style.overflow = 'auto'; // Restore scrolling
         bugReportForm.reset(); // Clear form
+        clearImagePreview();
     }
+
+    // Image preview functionality
+    function clearImagePreview() {
+        imagePreview.style.display = 'none';
+        previewImg.src = '';
+        bugImage.value = '';
+    }
+
+    bugImage.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            // Validate file size (5MB limit)
+            if (file.size > 5 * 1024 * 1024) {
+                alert('圖片檔案大小不能超過 5MB');
+                clearImagePreview();
+                return;
+            }
+
+            // Validate file type
+            if (!file.type.startsWith('image/')) {
+                alert('請選擇有效的圖片檔案');
+                clearImagePreview();
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewImg.src = e.target.result;
+                imagePreview.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        } else {
+            clearImagePreview();
+        }
+    });
+
+    removeImage.addEventListener('click', clearImagePreview);
 
     closeBugModal.addEventListener('click', closeModal);
     cancelBugReport.addEventListener('click', closeModal);
@@ -29,53 +71,59 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Handle form submission
-    bugReportForm.addEventListener('submit', async function(e) {
+    // Form submission
+    bugReportForm.addEventListener('submit', function(e) {
         e.preventDefault();
         
-        const submitBtn = bugReportForm.querySelector('button[type="submit"]');
-        const originalText = submitBtn.innerHTML;
+        const description = document.getElementById('bugDescription').value.trim();
+        const contactInfo = document.getElementById('contactInfo').value.trim();
+        const imageFile = bugImage.files[0];
+        
+        if (!description) {
+            showNotification('請填寫問題描述', 'error');
+            return;
+        }
         
         // Show loading state
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span data-translate="sending">發送中...</span>';
+        const submitBtn = bugReportForm.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 發送中...';
         submitBtn.disabled = true;
-
-        const formData = new FormData(bugReportForm);
-        const bugData = {
-            description: formData.get('bugDescription'),
-            contact: formData.get('contactInfo') || '未提供',
-            timestamp: new Date().toLocaleString('zh-HK'),
-            userAgent: navigator.userAgent,
-            url: window.location.href
-        };
-
-        try {
-            const response = await fetch('/submit-bug-report', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(bugData)
-            });
-
-            const result = await response.json();
-
-            if (response.ok) {
-                // Success
+        
+        // Prepare form data
+        const formData = new FormData();
+        formData.append('description', description);
+        formData.append('contact_info', contactInfo);
+        formData.append('url', window.location.href);
+        formData.append('user_agent', navigator.userAgent);
+        
+        if (imageFile) {
+            formData.append('image', imageFile);
+        }
+        
+        // Submit bug report
+        fetch('/submit-bug-report', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
                 showNotification('問題回報已成功發送！我們會盡快處理。', 'success');
                 closeModal();
             } else {
-                // Error
-                showNotification(result.error || '發送失敗，請稍後再試。', 'error');
+                showNotification(data.error || '發送失敗，請稍後再試', 'error');
             }
-        } catch (error) {
-            console.error('Error submitting bug report:', error);
-            showNotification('網絡錯誤，請檢查連接後重試。', 'error');
-        } finally {
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('發送失敗，請稍後再試', 'error');
+        })
+        .finally(() => {
             // Restore button state
             submitBtn.innerHTML = originalText;
             submitBtn.disabled = false;
-        }
+        });
     });
 
     // Notification system
