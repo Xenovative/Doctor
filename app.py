@@ -907,6 +907,95 @@ def get_available_specialties() -> List[str]:
         print(f"Error fetching specialties: {e}")
         return ['內科', '外科', '小兒科', '婦產科', '骨科', '皮膚科', '眼科', '耳鼻喉科', '精神科', '神經科', '心臟科', '急診科']
 
+def validate_symptoms_with_llm(symptoms: str, user_language: str = 'zh-TW') -> Dict[str, Any]:
+    """使用LLM驗證症狀描述是否有效"""
+    try:
+        api_key = os.getenv('OPENAI_API_KEY')
+        if not api_key:
+            return {'valid': True, 'message': '症狀驗證服務不可用，將繼續處理'}
+        
+        # Get translations for the prompt
+        t = lambda key: get_translation(key, user_language)
+        
+        prompt = f"""
+你是一個醫療症狀驗證專家。請分析以下症狀描述，判斷是否為有效的醫療症狀。
+
+症狀描述：{symptoms}
+
+請評估：
+1. 這些是否為真實的醫療症狀？
+2. 描述是否合理和具體？
+3. 是否包含不相關或無意義的內容？
+
+無效症狀的例子：
+- 測試、test、123、隨便寫的
+- 非醫療相關的詞語（如：開心、工作、吃飯）
+- 明顯的垃圾文字或無意義字符
+- 過於簡單或不具體的描述（如：不舒服、有問題）
+
+請以JSON格式回應：
+{{
+    "valid": true/false,
+    "confidence": 0.0-1.0,
+    "issues": ["問題列表"],
+    "suggestions": ["改善建議"]
+}}
+"""
+        
+        headers = {
+            'Authorization': f'Bearer {api_key}',
+            'Content-Type': 'application/json'
+        }
+        
+        data = {
+            'model': 'gpt-3.5-turbo',
+            'messages': [
+                {'role': 'system', 'content': '你是一個專業的醫療症狀驗證助手。請仔細分析症狀描述的有效性。'},
+                {'role': 'user', 'content': prompt}
+            ],
+            'max_tokens': 500,
+            'temperature': 0.3
+        }
+        
+        response = requests.post(
+            'https://api.openai.com/v1/chat/completions',
+            headers=headers,
+            json=data,
+            timeout=15
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            content = result['choices'][0]['message']['content'].strip()
+            
+            try:
+                # Parse JSON response
+                validation_result = json.loads(content)
+                return {
+                    'valid': validation_result.get('valid', True),
+                    'confidence': validation_result.get('confidence', 0.5),
+                    'issues': validation_result.get('issues', []),
+                    'suggestions': validation_result.get('suggestions', []),
+                    'message': '症狀驗證完成'
+                }
+            except json.JSONDecodeError:
+                # Fallback if JSON parsing fails
+                is_valid = 'true' in content.lower() and 'valid' in content.lower()
+                return {
+                    'valid': is_valid,
+                    'confidence': 0.7,
+                    'issues': [],
+                    'suggestions': [],
+                    'message': '症狀驗證完成（簡化結果）'
+                }
+        else:
+            logger.error(f"Symptom validation API error: {response.status_code}")
+            return {'valid': True, 'message': '症狀驗證服務暫時不可用，將繼續處理'}
+            
+    except Exception as e:
+        logger.error(f"Error validating symptoms: {e}")
+        return {'valid': True, 'message': '症狀驗證過程中出現錯誤，將繼續處理'}
+
 def diagnose_symptoms(age: int, gender: str, symptoms: str, chronic_conditions: str = '', detailed_health_info: Dict = None, user_language: str = 'zh-TW') -> Dict[str, str]:
     """使用AI診斷症狀"""
     
@@ -1044,7 +1133,24 @@ def analyze_symptoms_and_match(age: int, gender: str, symptoms: str, chronic_con
     # Get user's language from session or use the language parameter passed in
     user_language = session.get('language', language if language else 'zh-TW')
     
-    # 第一步：AI診斷 (pass user language)
+    # 第一步：驗證症狀有效性
+    symptom_validation = validate_symptoms_with_llm(symptoms, user_language)
+    
+    if not symptom_validation.get('valid', True):
+        return {
+            'diagnosis': '症狀驗證失敗',
+            'recommended_specialty': '無',
+            'doctors': [],
+            'user_summary': user_summary,
+            'emergency_needed': False,
+            'severity_level': 'low',
+            'validation_error': True,
+            'validation_issues': symptom_validation.get('issues', []),
+            'validation_suggestions': symptom_validation.get('suggestions', []),
+            'validation_message': '您輸入的症狀描述似乎無效或不完整。請提供真實、具體的醫療症狀描述。'
+        }
+    
+    # 第二步：AI診斷 (pass user language)
     diagnosis_result = diagnose_symptoms(age, gender, symptoms, chronic_conditions, detailed_health_info, user_language)
     
     # 第二步：檢查是否需要緊急醫療處理

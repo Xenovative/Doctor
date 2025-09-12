@@ -639,6 +639,12 @@ document.addEventListener('DOMContentLoaded', function() {
             // 隱藏載入動畫
             loading.style.display = 'none';
             
+            // 檢查是否有症狀驗證錯誤
+            if (data.validation_error) {
+                showValidationError(data);
+                return;
+            }
+            
             // 顯示結果
             displayResults(data);
             
@@ -661,6 +667,105 @@ document.addEventListener('DOMContentLoaded', function() {
             results.scrollIntoView({ behavior: 'smooth' });
         }
     });
+
+    function showValidationError(data) {
+        results.style.display = 'block';
+        doctorList.innerHTML = '';
+        
+        // Create validation error card
+        const errorCard = document.createElement('div');
+        errorCard.className = 'validation-error-card';
+        errorCard.style.cssText = `
+            background: linear-gradient(135deg, #fff5f5, #fed7d7);
+            border: 2px solid #fc8181;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 20px 0;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(252, 129, 129, 0.2);
+        `;
+        
+        let issuesHtml = '';
+        if (data.validation_issues && data.validation_issues.length > 0) {
+            issuesHtml = `
+                <div style="margin: 15px 0; text-align: left;">
+                    <h5 style="color: #c53030; margin-bottom: 10px;">
+                        <i class="fas fa-exclamation-triangle"></i> 發現的問題：
+                    </h5>
+                    <ul style="color: #742a2a; margin-left: 20px;">
+                        ${data.validation_issues.map(issue => `<li>${issue}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+        
+        let suggestionsHtml = '';
+        if (data.validation_suggestions && data.validation_suggestions.length > 0) {
+            suggestionsHtml = `
+                <div style="margin: 15px 0; text-align: left;">
+                    <h5 style="color: #2d3748; margin-bottom: 10px;">
+                        <i class="fas fa-lightbulb"></i> 改善建議：
+                    </h5>
+                    <ul style="color: #4a5568; margin-left: 20px;">
+                        ${data.validation_suggestions.map(suggestion => `<li>${suggestion}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+        
+        errorCard.innerHTML = `
+            <div style="font-size: 3rem; color: #fc8181; margin-bottom: 15px;">
+                <i class="fas fa-exclamation-circle"></i>
+            </div>
+            <h3 style="color: #c53030; margin-bottom: 15px;">症狀描述無效</h3>
+            <p style="color: #742a2a; font-size: 1.1rem; margin-bottom: 20px;">
+                ${data.validation_message || '您輸入的症狀描述似乎無效或不完整。'}
+            </p>
+            ${issuesHtml}
+            ${suggestionsHtml}
+            <div style="margin-top: 25px; padding: 15px; background: rgba(255,255,255,0.7); border-radius: 8px;">
+                <h5 style="color: #2d3748; margin-bottom: 10px;">
+                    <i class="fas fa-info-circle"></i> 請提供有效的症狀描述：
+                </h5>
+                <ul style="color: #4a5568; text-align: left; margin-left: 20px;">
+                    <li>具體的身體不適感受（如：頭痛、發燒、咳嗽）</li>
+                    <li>症狀的持續時間和嚴重程度</li>
+                    <li>避免使用測試文字或無關內容</li>
+                    <li>至少描述3個不同的症狀</li>
+                </ul>
+            </div>
+            <button onclick="scrollToSymptoms()" style="
+                background: linear-gradient(135deg, #805ad5, #9f7aea);
+                color: white;
+                border: none;
+                padding: 12px 24px;
+                border-radius: 25px;
+                font-size: 1rem;
+                font-weight: 600;
+                cursor: pointer;
+                margin-top: 20px;
+                transition: all 0.3s ease;
+            " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(128, 90, 213, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                <i class="fas fa-edit"></i> 重新輸入症狀
+            </button>
+        `;
+        
+        doctorList.appendChild(errorCard);
+        results.scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    // Function to scroll back to symptom input
+    window.scrollToSymptoms = function() {
+        const symptomContainer = document.querySelector('.symptom-input-container');
+        if (symptomContainer) {
+            symptomContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Focus on symptom input
+            const symptomInput = document.getElementById('symptomInput');
+            if (symptomInput) {
+                setTimeout(() => symptomInput.focus(), 500);
+            }
+        }
+    };
 
     // Global variables for pagination
     let allDoctors = [];
