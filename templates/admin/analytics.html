@@ -126,8 +126,11 @@
                     <!-- Event Statistics -->
                     <div class="col-md-6">
                         <div class="card">
-                            <div class="card-header">
+                            <div class="card-header d-flex justify-content-between align-items-center">
                                 <h6 class="m-0 font-weight-bold text-primary">事件統計</h6>
+                                <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#detailedEventsCollapse">
+                                    <i class="fas fa-eye me-1"></i>查看詳細
+                                </button>
                             </div>
                             <div class="card-body">
                                 <div class="row">
@@ -141,6 +144,47 @@
                                         </div>
                                     </div>
                                     {% endfor %}
+                                </div>
+                                
+                                <!-- Detailed Events Collapse -->
+                                <div class="collapse mt-3" id="detailedEventsCollapse">
+                                    <hr>
+                                    <h6 class="text-muted mb-3">最近事件詳細 (最新100條)</h6>
+                                    <div class="detailed-events-container" style="max-height: 400px; overflow-y: auto;">
+                                        {% for event in detailed_events %}
+                                        <div class="event-detail-item mb-2 p-2 border rounded">
+                                            <div class="d-flex justify-content-between align-items-start">
+                                                <div class="flex-grow-1">
+                                                    <span class="badge bg-{{ event.color }} me-2">{{ event.display_name }}</span>
+                                                    <small class="text-muted">{{ event.timestamp }}</small>
+                                                    <div class="mt-1">
+                                                        <small class="text-muted">IP: {{ event.user_ip }}</small>
+                                                    </div>
+                                                </div>
+                                                {% if event.data %}
+                                                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#eventData{{ loop.index }}">
+                                                    <i class="fas fa-info-circle"></i>
+                                                </button>
+                                                {% endif %}
+                                            </div>
+                                            {% if event.data %}
+                                            <div class="collapse mt-2" id="eventData{{ loop.index }}">
+                                                <div class="bg-light p-2 rounded">
+                                                    <small class="font-monospace">
+                                                        {% for key, value in event.data.items() %}
+                                                        <strong>{{ key }}:</strong> {{ value }}<br>
+                                                        {% endfor %}
+                                                    </small>
+                                                    {% if event.user_agent %}
+                                                    <hr class="my-1">
+                                                    <small class="text-muted">User Agent: {{ event.user_agent }}</small>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                        {% endfor %}
+                                    </div>
                                 </div>
                             </div>
                         </div>

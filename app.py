@@ -1991,7 +1991,7 @@ def admin_analytics():
         conn = sqlite3.connect('admin_data.db')
         cursor = conn.cursor()
         
-        # Get analytics data
+        # Get analytics data with detailed events
         cursor.execute('''
             SELECT event_type, COUNT(*) as count
             FROM analytics 
@@ -2003,6 +2003,29 @@ def admin_analytics():
         # Convert to display-friendly format with color info
         event_stats = [(get_event_display_info(event_type), count) 
                       for event_type, count in raw_event_stats]
+        
+        # Get detailed recent events for expandable view
+        cursor.execute('''
+            SELECT event_type, data, timestamp, user_ip, user_agent
+            FROM analytics 
+            ORDER BY timestamp DESC
+            LIMIT 100
+        ''')
+        recent_events = cursor.fetchall()
+        
+        # Format recent events with display info
+        detailed_events = []
+        for event_type, data, timestamp, user_ip, user_agent in recent_events:
+            event_info = get_event_display_info(event_type)
+            detailed_events.append({
+                'type': event_type,
+                'display_name': event_info['name'],
+                'color': event_info['color'],
+                'data': json.loads(data) if data else {},
+                'timestamp': timestamp,
+                'user_ip': user_ip,
+                'user_agent': user_agent
+            })
         
         # Get user queries with details
         cursor.execute('''
@@ -2062,11 +2085,12 @@ def admin_analytics():
         
         conn.close()
         
-        return render_template('admin/analytics.html',
+        return render_template('admin/analytics.html', 
                              event_stats=event_stats,
-                             user_queries=user_queries,
-                             doctor_clicks=doctor_clicks,
-                             gender_stats=gender_stats,
+                             queries=queries,
+                             detailed_events=detailed_events,
+                             total_queries=len(raw_queries),
+                             total_events=sum(count for _, count in raw_event_stats),
                              location_stats=location_stats)
     except Exception as e:
         print(f"Analytics error: {e}")
