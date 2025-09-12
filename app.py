@@ -575,9 +575,9 @@ def log_analytics(event_type: str, data: Dict, user_ip: str, user_agent: str, se
             cursor = conn.cursor()
         
         cursor.execute('''
-            INSERT INTO analytics (event_type, user_ip, user_agent, data, session_id)
-            VALUES (?, ?, ?, ?, ?)
-        ''', (event_type, user_ip, user_agent, json.dumps(data), session_id))
+            INSERT INTO analytics (event_type, user_ip, user_agent, data, session_id, timestamp)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (event_type, user_ip, user_agent, json.dumps(data), session_id, get_current_time().isoformat()))
         conn.commit()
         conn.close()
     except Exception as e:
@@ -1621,12 +1621,12 @@ def find_doctor():
             cursor.execute('''
                 INSERT INTO user_queries 
                 (age, gender, symptoms, chronic_conditions, language, location, detailed_health_info, 
-                 ai_diagnosis, recommended_specialty, matched_doctors_count, user_ip, session_id, diagnosis_report)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 ai_diagnosis, recommended_specialty, matched_doctors_count, user_ip, session_id, diagnosis_report, timestamp)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (age, gender_safe, symptoms, chronic_conditions, language, location, 
                   json.dumps(detailed_health_info), result['diagnosis'], 
                   result['recommended_specialty'], len(result['doctors']), 
-                  get_real_ip(), session_id, result['diagnosis']))
+                  get_real_ip(), session_id, result['diagnosis'], get_current_time().isoformat()))
             query_id = cursor.lastrowid
             session['last_query_id'] = query_id
             conn.commit()
@@ -1953,7 +1953,7 @@ def get_database_stats():
         cursor = conn.cursor()
         
         # Get today's queries
-        today = datetime.now().strftime('%Y-%m-%d')
+        today = get_current_time().strftime('%Y-%m-%d')
         try:
             cursor.execute('SELECT COUNT(*) FROM user_queries WHERE DATE(timestamp) = ?', (today,))
             queries_today = cursor.fetchone()[0]
@@ -2334,7 +2334,7 @@ def export_doctors_database():
         csv_content = '\ufeff' + output.getvalue()  # Add UTF-8 BOM
         response = make_response(csv_content.encode('utf-8'))
         response.headers['Content-Type'] = 'text/csv; charset=utf-8'
-        response.headers['Content-Disposition'] = f'attachment; filename=doctors_database_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+        response.headers['Content-Disposition'] = f'attachment; filename=doctors_database_{get_current_time().strftime("%Y%m%d_%H%M%S")}.csv'
         
         log_analytics('database_export', {'type': 'doctors', 'count': len(DOCTORS_DATA)}, 
                      get_real_ip(), request.user_agent.string)
@@ -2667,7 +2667,7 @@ def export_analytics_database():
         if 'clicks' in export_types:
             filename_parts.append('clicks')
         
-        filename = f"analytics_{'_'.join(filename_parts)}_{date_range}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        filename = f"analytics_{'_'.join(filename_parts)}_{date_range}_{get_current_time().strftime('%Y%m%d_%H%M%S')}.csv"
         
         # Create response with UTF-8 BOM for better Excel compatibility
         csv_content = '\ufeff' + output.getvalue()  # Add UTF-8 BOM
