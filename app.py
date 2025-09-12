@@ -109,7 +109,7 @@ WHATSAPP_CONFIG = {
     'enabled': os.getenv('WHATSAPP_ENABLED', 'false').lower() == 'true',
     'socket_url': os.getenv('WHATSAPP_SOCKET_URL', 'http://localhost:8086'),
     'api_key': os.getenv('WHATSAPP_API_KEY', ''),
-    'target_number': os.getenv('WHATSAPP_TARGET_NUMBER', ''),  # Format: 852XXXXXXXX@c.us
+    'target_number': os.getenv('WHATSAPP_TARGET_NUMBER', ''),  # Format: 852XXXXXXXX (for wa.me links)
     'session_name': os.getenv('WHATSAPP_SESSION_NAME', 'default')
 }
 
@@ -3199,7 +3199,7 @@ def get_whatsapp_url():
                 
                 # URL encode the message for WhatsApp web
                 from urllib.parse import quote
-                encoded_message = quote(message)
+                encoded_message = quote(message, safe='')
                 whatsapp_url = f"https://wa.me/{whatsapp_number}?text={encoded_message}"
         
         conn.close()
