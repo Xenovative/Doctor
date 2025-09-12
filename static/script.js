@@ -564,7 +564,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return conditions.join('、');
         })();
         
-        // 驗證症狀數量
+        // 驗證症狀數量 - 使用新的tag系統
         if (!validateSymptoms(symptoms)) {
             alert('請至少輸入3個症狀，以便 AI 進行準確分析。');
             return;
@@ -1254,9 +1254,15 @@ document.addEventListener('DOMContentLoaded', function() {
             return false;
         }
         
-        // 簡單的症狀數量檢查：使用常見分隔符
+        // 如果使用新的tag系統，檢查symptomInput實例
+        if (window.symptomInput && window.symptomInput.getSymptoms) {
+            const symptomTags = window.symptomInput.getSymptoms();
+            return symptomTags.length >= 3;
+        }
+        
+        // 回退到舊的驗證方法（向後兼容）
         const separators = ['、', ',', '，', ';', '；', '和', '及', '還有', '以及', '\n', '。'];
-        let symptomCount = 1; // 至少有1個症狀
+        let symptomCount = 1;
         
         for (const separator of separators) {
             const parts = symptoms.split(separator);
@@ -1265,7 +1271,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        // 檢查是否有至少3個非空白的部分
         return symptomCount >= 3;
     }
 

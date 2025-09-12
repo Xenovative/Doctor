@@ -125,8 +125,15 @@
                             <i class="fas fa-stethoscope"></i>
                             <span data-translate="symptoms">症狀描述</span> <span class="required-note" data-translate="symptoms_note">(至少需要3個症狀)</span>
                         </label>
-                        <textarea id="symptoms" name="symptoms" required data-translate-placeholder="symptoms_placeholder" placeholder="請詳細描述您的症狀，例如：頭痛、發燒、咳嗽、疲勞等（至少3個症狀以便AI準確分析）"></textarea>
-                        <div class="input-hint" data-translate="symptoms_hint">請盡量詳細描述症狀，包括持續時間、嚴重程度等</div>
+                        <div class="symptom-input-container">
+                            <div class="symptom-tags" id="symptomTags"></div>
+                            <div class="symptom-input-wrapper">
+                                <input type="text" id="symptomInput" placeholder="輸入症狀並按Enter添加..." autocomplete="off">
+                                <div class="symptom-suggestions" id="symptomSuggestions"></div>
+                            </div>
+                        </div>
+                        <textarea id="symptoms" name="symptoms" required style="display: none;"></textarea>
+                        <div class="input-hint" data-translate="symptoms_hint">選擇或輸入症狀，至少需要3個症狀以便AI準確分析</div>
                     </div>
 
                     <div class="form-group">
@@ -344,6 +351,7 @@
     </footer>
     
     <script src="static/language.js"></script>
+    <script src="static/symptom-input.js"></script>
     <script src="static/script.js"></script>
 </body>
 </html>
