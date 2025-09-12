@@ -1966,6 +1966,7 @@ def get_event_display_info(event_type: str) -> dict:
     event_mapping = {
         'page_visit': {'name': '頁面訪問', 'color': 'primary'},
         'doctor_search': {'name': '醫生搜尋', 'color': 'success'},
+        'doctor_click': {'name': '醫生點擊', 'color': 'info'},
         'admin_login': {'name': '管理員登入', 'color': 'info'},
         'admin_logout': {'name': '管理員登出', 'color': 'secondary'},
         'admin_login_failed': {'name': '登入失敗', 'color': 'danger'},
@@ -1974,6 +1975,10 @@ def get_event_display_info(event_type: str) -> dict:
         'admin_user_created': {'name': '新增管理員', 'color': 'success'},
         'database_export': {'name': '數據庫匯出', 'color': 'primary'},
         'database_import': {'name': '數據庫匯入', 'color': 'warning'},
+        'analytics_export': {'name': '分析數據匯出', 'color': 'primary'},
+        'doctor_update': {'name': '醫生資料更新', 'color': 'warning'},
+        'doctor_add': {'name': '新增醫生', 'color': 'success'},
+        'doctor_delete': {'name': '刪除醫生', 'color': 'danger'},
         'bug_report_submitted': {'name': '問題回報', 'color': 'danger'}
     }
     return event_mapping.get(event_type, {'name': event_type, 'color': 'secondary'})
