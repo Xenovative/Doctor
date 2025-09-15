@@ -80,18 +80,23 @@
         // Auto-focus on token input
         document.getElementById('totp_token').focus();
         
-        // Format input for backup codes (add dash after 4 digits)
+        // Handle input formatting and auto-submit
         document.getElementById('totp_token').addEventListener('input', function(e) {
-            let value = this.value.replace(/[^0-9]/g, '');
-            if (value.length > 4 && value.length <= 8) {
-                value = value.substring(0, 4) + '-' + value.substring(4);
+            let value = this.value.replace(/[^0-9-]/g, ''); // Allow numbers and dashes
+            
+            // If user is typing a backup code (more than 6 digits), format with dash
+            if (value.replace(/[^0-9]/g, '').length > 6) {
+                let numbers = value.replace(/[^0-9]/g, '');
+                if (numbers.length <= 8) {
+                    value = numbers.substring(0, 4) + '-' + numbers.substring(4);
+                }
             }
+            
             this.value = value;
-        });
-
-        // Auto-submit when 6 digits entered (TOTP)
-        document.getElementById('totp_token').addEventListener('input', function(e) {
-            if (this.value.replace(/[^0-9]/g, '').length === 6 && !this.value.includes('-')) {
+            
+            // Auto-submit when 6 digits entered (TOTP) without dash
+            let numbersOnly = value.replace(/[^0-9]/g, '');
+            if (numbersOnly.length === 6 && !value.includes('-')) {
                 setTimeout(() => {
                     document.querySelector('form').submit();
                 }, 500);
