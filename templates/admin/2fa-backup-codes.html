@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>備用代碼 - Doctor AI Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-light">
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card shadow">
+                    <div class="card-header bg-success text-white">
+                        <h4 class="mb-0"><i class="fas fa-check-circle me-2"></i>雙重認證設置完成</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>重要：</strong>請將以下備用代碼保存在安全的地方。當您無法使用認證應用程式時，可以使用這些代碼登入。
+                            每個代碼只能使用一次。
+                        </div>
+
+                        <div class="row">
+                            <div class="col-12">
+                                <h5 class="mb-3">備用代碼</h5>
+                                <div class="backup-codes-container p-3 bg-light border rounded">
+                                    <div class="row">
+                                        {% for code in backup_codes %}
+                                        <div class="col-md-6 mb-2">
+                                            <code class="backup-code">{{ code }}</code>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4">
+                            <h6>安全提醒：</h6>
+                            <ul class="text-muted">
+                                <li>請將這些代碼保存在安全的地方，例如密碼管理器或安全的筆記本</li>
+                                <li>不要將代碼截圖或保存在不安全的地方</li>
+                                <li>每個代碼只能使用一次，使用後將自動失效</li>
+                                <li>如果代碼用完或遺失，請聯繫系統管理員重新生成</li>
+                            </ul>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                            <button type="button" class="btn btn-outline-primary me-md-2" onclick="printCodes()">
+                                <i class="fas fa-print me-2"></i>列印代碼
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary me-md-2" onclick="copyCodes()">
+                                <i class="fas fa-copy me-2"></i>複製代碼
+                            </button>
+                            <a href="{{ url_for('admin_config') }}" class="btn btn-success">
+                                <i class="fas fa-check me-2"></i>我已保存，繼續
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <style>
+        .backup-code {
+            font-size: 1.1em;
+            font-weight: bold;
+            background: #f8f9fa;
+            padding: 8px 12px;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            display: block;
+            text-align: center;
+        }
+        
+        @media print {
+            .btn, .alert {
+                display: none !important;
+            }
+            .backup-codes-container {
+                border: 2px solid #000 !important;
+            }
+        }
+    </style>
+    <script>
+        function copyCodes() {
+            const codes = [
+                {% for code in backup_codes %}
+                "{{ code }}"{% if not loop.last %},{% endif %}
+                {% endfor %}
+            ];
+            
+            const text = "Doctor AI Admin 雙重認證備用代碼：\n\n" + codes.join('\n') + 
+                        "\n\n請妥善保管這些代碼，每個代碼只能使用一次。";
+            
+            navigator.clipboard.writeText(text).then(function() {
+                alert('備用代碼已複製到剪貼板');
+            }).catch(function() {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert('備用代碼已複製到剪貼板');
+            });
+        }
+        
+        function printCodes() {
+            window.print();
+        }
+    </script>
+</body>
+</html>

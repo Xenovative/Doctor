@@ -7,26 +7,28 @@ if sys.version_info >= (3, 12):
     print("Please use Python 3.8 - 3.11 to run this service.")
     sys.exit(1)
 
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for, flash
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for, flash, make_response
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from translations import get_translation, get_available_languages, TRANSLATIONS
 import pandas as pd
-import requests
-import json
-import os
-import re
 import sqlite3
-from datetime import datetime, timedelta
-import pytz
-from functools import wraps
-from typing import List, Dict, Any
+import json
 import hashlib
 import secrets
-import asyncio
+import os
+from datetime import datetime, timedelta
+import pytz
+from dotenv import load_dotenv
+import pandas as pd
+import requests
+import schedule
+import time
 import threading
-import logging
-from dotenv import load_dotenv, set_key
-from pathlib import Path
+import pyotp
+import qrcode
+import io
+import base64
+from functools import wraps
 import schedule
 import time
 
@@ -333,6 +335,9 @@ def init_db():
                 last_login DATETIME,
                 is_active BOOLEAN DEFAULT 1,
                 created_by INTEGER,
+                totp_secret TEXT,
+                totp_enabled BOOLEAN DEFAULT 0,
+                backup_codes TEXT,
                 FOREIGN KEY (created_by) REFERENCES admin_users (id)
             )
         ''')
@@ -489,6 +494,43 @@ def get_current_time():
     """Get current time in Hong Kong timezone"""
     hk_tz = pytz.timezone('Asia/Hong_Kong')
     return datetime.now(hk_tz)
+
+# 2FA Helper Functions
+def generate_totp_secret():
+    """Generate a new TOTP secret"""
+    return pyotp.random_base32()
+
+def generate_qr_code(username, secret, issuer="Doctor AI Admin"):
+    """Generate QR code for TOTP setup"""
+    totp_uri = pyotp.totp.TOTP(secret).provisioning_uri(
+        name=username,
+        issuer_name=issuer
+    )
+    
+    qr = qrcode.QRCode(version=1, box_size=10, border=5)
+    qr.add_data(totp_uri)
+    qr.make(fit=True)
+    
+    img = qr.make_image(fill_color="black", back_color="white")
+    img_buffer = io.BytesIO()
+    img.save(img_buffer, format='PNG')
+    img_buffer.seek(0)
+    
+    img_base64 = base64.b64encode(img_buffer.getvalue()).decode()
+    return f"data:image/png;base64,{img_base64}"
+
+def verify_totp_token(secret, token):
+    """Verify TOTP token"""
+    totp = pyotp.TOTP(secret)
+    return totp.verify(token, valid_window=1)
+
+def generate_backup_codes():
+    """Generate backup codes for 2FA"""
+    codes = []
+    for _ in range(10):
+        code = ''.join([str(secrets.randbelow(10)) for _ in range(8)])
+        codes.append(f"{code[:4]}-{code[4:]}")
+    return codes
 
 def format_timestamp(timestamp_str):
     """Format timestamp string to clean readable format"""
@@ -1837,13 +1879,64 @@ def admin_login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
+        totp_token = request.form.get('totp_token')
         
         # Check database first, then fallback to environment variables
         user = get_admin_user(username)
         password_hash = hashlib.sha256(password.encode()).hexdigest()
         
         if user and user[2] == password_hash:
-            # Database user login
+            # Check if 2FA is enabled for this user
+            conn = sqlite3.connect('admin_data.db')
+            cursor = conn.cursor()
+            cursor.execute('SELECT totp_enabled, totp_secret, backup_codes FROM admin_users WHERE username = ?', (username,))
+            totp_data = cursor.fetchone()
+            conn.close()
+            
+            if totp_data and totp_data[0]:  # 2FA enabled
+                if not totp_token:
+                    # First step: password correct, now need 2FA
+                    session['pending_2fa_user'] = username
+                    session['pending_2fa_user_data'] = user
+                    return render_template('admin/login-2fa.html', username=username)
+                
+                # Verify 2FA token
+                secret = totp_data[1]
+                backup_codes = json.loads(totp_data[2]) if totp_data[2] else []
+                
+                token_valid = False
+                used_backup = False
+                
+                # Check TOTP token first
+                if verify_totp_token(secret, totp_token):
+                    token_valid = True
+                # Check backup codes
+                elif totp_token in backup_codes:
+                    token_valid = True
+                    used_backup = True
+                    # Remove used backup code
+                    backup_codes.remove(totp_token)
+                    conn = sqlite3.connect('admin_data.db')
+                    cursor = conn.cursor()
+                    cursor.execute('UPDATE admin_users SET backup_codes = ? WHERE username = ?', 
+                                 (json.dumps(backup_codes), username))
+                    conn.commit()
+                    conn.close()
+                
+                if not token_valid:
+                    session.pop('pending_2fa_user', None)
+                    session.pop('pending_2fa_user_data', None)
+                    log_analytics('admin_login_2fa_failed', {'username': username}, 
+                                 get_real_ip(), request.user_agent.string)
+                    flash('雙重認證碼錯誤', 'error')
+                    return render_template('admin/login-2fa.html', username=username)
+                
+                if used_backup:
+                    flash(f'使用備用代碼登入成功。剩餘備用代碼: {len(backup_codes)}', 'warning')
+            
+            # Complete login
+            session.pop('pending_2fa_user', None)
+            session.pop('pending_2fa_user_data', None)
             session['admin_logged_in'] = True
             session['admin_username'] = username
             session['admin_user_id'] = user[0]
@@ -1860,17 +1953,61 @@ def admin_login():
             except Exception as e:
                 print(f"Error updating last login: {e}")
             
-            log_analytics('admin_login', {'username': username, 'role': user[3]}, 
+            log_analytics('admin_login', {'username': username, 'role': user[3], '2fa_used': totp_data and totp_data[0]}, 
                          get_real_ip(), request.user_agent.string)
             flash('登入成功', 'success')
             return redirect(url_for('admin_dashboard'))
+            
         elif (username == ADMIN_USERNAME and password_hash == ADMIN_PASSWORD_HASH):
-            # Fallback to environment variables
+            # Super admin fallback - check 2FA
+            conn = sqlite3.connect('admin_data.db')
+            cursor = conn.cursor()
+            cursor.execute('SELECT totp_enabled, totp_secret, backup_codes FROM admin_users WHERE username = ?', (ADMIN_USERNAME,))
+            totp_data = cursor.fetchone()
+            conn.close()
+            
+            if totp_data and totp_data[0]:  # 2FA enabled for super admin
+                if not totp_token:
+                    session['pending_2fa_user'] = username
+                    return render_template('admin/login-2fa.html', username=username)
+                
+                # Verify 2FA token
+                secret = totp_data[1]
+                backup_codes = json.loads(totp_data[2]) if totp_data[2] else []
+                
+                token_valid = False
+                used_backup = False
+                
+                if verify_totp_token(secret, totp_token):
+                    token_valid = True
+                elif totp_token in backup_codes:
+                    token_valid = True
+                    used_backup = True
+                    backup_codes.remove(totp_token)
+                    conn = sqlite3.connect('admin_data.db')
+                    cursor = conn.cursor()
+                    cursor.execute('UPDATE admin_users SET backup_codes = ? WHERE username = ?', 
+                                 (json.dumps(backup_codes), ADMIN_USERNAME))
+                    conn.commit()
+                    conn.close()
+                
+                if not token_valid:
+                    session.pop('pending_2fa_user', None)
+                    log_analytics('admin_login_2fa_failed', {'username': username}, 
+                                 get_real_ip(), request.user_agent.string)
+                    flash('雙重認證碼錯誤', 'error')
+                    return render_template('admin/login-2fa.html', username=username)
+                
+                if used_backup:
+                    flash(f'使用備用代碼登入成功。剩餘備用代碼: {len(backup_codes)}', 'warning')
+            
+            # Complete super admin login
+            session.pop('pending_2fa_user', None)
             session['admin_logged_in'] = True
             session['admin_username'] = username
             session['admin_role'] = 'super_admin'
             session['admin_permissions'] = {'all': True}
-            log_analytics('admin_login', {'username': username, 'role': 'super_admin'}, 
+            log_analytics('admin_login', {'username': username, 'role': 'super_admin', '2fa_used': totp_data and totp_data[0]}, 
                          get_real_ip(), request.user_agent.string)
             flash('登入成功', 'success')
             return redirect(url_for('admin_dashboard'))
@@ -2116,10 +2253,25 @@ def admin_analytics():
 @login_required
 def admin_config():
     """Admin configuration page"""
+    # Check 2FA status for super admin
+    admin_2fa_status = False
+    if session.get('admin_username') == ADMIN_USERNAME:
+        try:
+            conn = sqlite3.connect('admin_data.db')
+            cursor = conn.cursor()
+            cursor.execute('SELECT totp_enabled FROM admin_users WHERE username = ?', (ADMIN_USERNAME,))
+            result = cursor.fetchone()
+            if result:
+                admin_2fa_status = bool(result[0])
+            conn.close()
+        except Exception as e:
+            print(f"Error checking 2FA status: {e}")
+    
     return render_template('admin/config.html', 
                          ai_config=AI_CONFIG,
                          whatsapp_config=WHATSAPP_CONFIG,
-                         timezone_config=TIMEZONE_CONFIG)
+                         timezone_config=TIMEZONE_CONFIG,
+                         admin_2fa_status=admin_2fa_status)
 
 @app.route('/admin/update-timezone', methods=['POST'])
 @login_required
@@ -2361,6 +2513,114 @@ def update_ai_config():
         logger.error(f"AI config update error: {e}")
         flash(f'更新AI配置時發生錯誤: {str(e)}', 'error')
     
+    return redirect(url_for('admin_config'))
+
+@app.route('/admin/setup-2fa', methods=['GET', 'POST'])
+@require_admin
+def setup_2fa():
+    """Setup 2FA for super admin"""
+    if request.method == 'GET':
+        # Only allow super admin to setup 2FA
+        if session.get('admin_username') != ADMIN_USERNAME:
+            flash('只有超級管理員可以設置雙重認證', 'error')
+            return redirect(url_for('admin_config'))
+        
+        # Check if 2FA is already enabled
+        conn = sqlite3.connect('admin_data.db')
+        cursor = conn.cursor()
+        cursor.execute('SELECT totp_enabled FROM admin_users WHERE username = ?', (ADMIN_USERNAME,))
+        result = cursor.fetchone()
+        conn.close()
+        
+        if result and result[0]:
+            flash('雙重認證已啟用', 'info')
+            return redirect(url_for('admin_config'))
+        
+        # Generate new secret and QR code
+        secret = generate_totp_secret()
+        qr_code = generate_qr_code(ADMIN_USERNAME, secret)
+        
+        # Store secret in session temporarily
+        session['temp_totp_secret'] = secret
+        
+        return render_template('admin/setup-2fa.html', 
+                             qr_code=qr_code, 
+                             secret=secret,
+                             username=ADMIN_USERNAME)
+    
+    elif request.method == 'POST':
+        token = request.form.get('token')
+        secret = session.get('temp_totp_secret')
+        
+        if not secret or not token:
+            flash('無效的請求', 'error')
+            return redirect(url_for('setup_2fa'))
+        
+        # Verify the token
+        if verify_totp_token(secret, token):
+            # Generate backup codes
+            backup_codes = generate_backup_codes()
+            
+            # Save to database
+            conn = sqlite3.connect('admin_data.db')
+            cursor = conn.cursor()
+            cursor.execute('''
+                UPDATE admin_users 
+                SET totp_secret = ?, totp_enabled = 1, backup_codes = ?
+                WHERE username = ?
+            ''', (secret, json.dumps(backup_codes), ADMIN_USERNAME))
+            conn.commit()
+            conn.close()
+            
+            # Clear temp secret
+            session.pop('temp_totp_secret', None)
+            
+            # Log the setup
+            log_analytics('2fa_setup', {'username': ADMIN_USERNAME}, 
+                         get_real_ip(), request.user_agent.string)
+            
+            flash('雙重認證設置成功！請保存備用代碼', 'success')
+            return render_template('admin/2fa-backup-codes.html', 
+                                 backup_codes=backup_codes)
+        else:
+            flash('驗證碼錯誤，請重試', 'error')
+            return redirect(url_for('setup_2fa'))
+
+@app.route('/admin/disable-2fa', methods=['POST'])
+@require_admin
+def disable_2fa():
+    """Disable 2FA for super admin"""
+    if session.get('admin_username') != ADMIN_USERNAME:
+        flash('只有超級管理員可以停用雙重認證', 'error')
+        return redirect(url_for('admin_config'))
+    
+    password = request.form.get('password')
+    if not password:
+        flash('請輸入密碼確認', 'error')
+        return redirect(url_for('admin_config'))
+    
+    # Verify password
+    password_hash = hashlib.sha256(password.encode()).hexdigest()
+    if password_hash != ADMIN_PASSWORD_HASH:
+        flash('密碼錯誤', 'error')
+        return redirect(url_for('admin_config'))
+    
+    # Disable 2FA
+    conn = sqlite3.connect('admin_data.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+        UPDATE admin_users 
+        SET totp_secret = NULL, totp_enabled = 0, backup_codes = NULL
+        WHERE username = ?
+    ''', (ADMIN_USERNAME,))
+    conn.commit()
+    conn.close()
+    
+    # Log the disable
+    log_analytics('2fa_disabled', {'username': ADMIN_USERNAME}, 
+                 get_real_ip(), request.user_agent.string)
+    
+    flash('雙重認證已停用', 'success')
     return redirect(url_for('admin_config'))
 
 @app.route('/admin/config/password', methods=['POST'])
