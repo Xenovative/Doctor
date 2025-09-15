@@ -522,8 +522,17 @@ def generate_qr_code(username, secret, issuer="Doctor AI Admin"):
 
 def verify_totp_token(secret, token):
     """Verify TOTP token"""
-    totp = pyotp.TOTP(secret)
-    return totp.verify(token, valid_window=1)
+    try:
+        totp = pyotp.TOTP(secret)
+        # Clean the token - remove any spaces or dashes
+        clean_token = str(token).replace('-', '').replace(' ', '').strip()
+        print(f"DEBUG - Verifying token: '{clean_token}' against secret")
+        result = totp.verify(clean_token, valid_window=1)
+        print(f"DEBUG - Token verification result: {result}")
+        return result
+    except Exception as e:
+        print(f"DEBUG - Token verification error: {e}")
+        return False
 
 def generate_backup_codes():
     """Generate backup codes for 2FA"""
