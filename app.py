@@ -3069,6 +3069,17 @@ def update_user_permissions():
         print(f"Error updating user permissions: {e}")
         return jsonify({'error': 'Failed to update permissions'}), 500
 
+@app.route('/admin/api/specialties')
+@require_admin
+def get_specialties_api():
+    """Get available medical specialties for admin interface"""
+    try:
+        specialties = get_available_specialties()
+        return jsonify({'specialties': specialties})
+    except Exception as e:
+        print(f"Error fetching specialties: {e}")
+        return jsonify({'error': 'Failed to fetch specialties'}), 500
+
 @app.route('/admin/config/users/<int:user_id>/toggle', methods=['POST'])
 @require_permission('user_management')
 def toggle_admin_user(user_id):
