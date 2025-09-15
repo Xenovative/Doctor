@@ -976,7 +976,7 @@
                                                     ${user.is_active ? '啟用' : '停用'}
                                                 </span>
                                             </td>
-                                            <td>${user.created_at && user.created_at !== '0' && user.created_at !== 0 ? new Date(user.created_at).toLocaleDateString('zh-TW') : '未知'}</td>
+                                            <td>${formatCreatedDate(user.created_at)}</td>
                                             <td>
                                                 <div class="btn-group" role="group">
                                                     <button class="btn btn-sm btn-outline-${user.is_active ? 'danger' : 'success'}" 
@@ -1122,6 +1122,22 @@
                 loadUserPermissions();
             }
         });
+
+        function formatCreatedDate(dateStr) {
+            if (!dateStr || dateStr === '0' || dateStr === 0 || dateStr === null) {
+                return '未知';
+            }
+            
+            try {
+                const date = new Date(dateStr);
+                if (isNaN(date.getTime())) {
+                    return '未知';
+                }
+                return date.toLocaleDateString('zh-TW');
+            } catch (e) {
+                return '未知';
+            }
+        }
 
         function loadUserPermissions() {
             const loading = document.getElementById('permissionsLoading');
