@@ -6,6 +6,9 @@
 *.db
 *.sqlite
 *.sqlite3
+*.db.backup*
+admin_data.db.backup_*
+doctors.db.backup_*
 # Python cache
 __pycache__/
 *.py[cod]
