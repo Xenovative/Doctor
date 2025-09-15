@@ -1116,29 +1116,32 @@
             }
         });
 
-        // Load user permissions on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            if (document.getElementById('permissionsLoading')) {
-                loadUserPermissions();
-            }
-        });
-
+        // Function to format creation date
         function formatCreatedDate(dateStr) {
+            // Debug logging
+            console.log('formatCreatedDate called with:', dateStr, 'type:', typeof dateStr);
+            
             if (!dateStr || dateStr === '0' || dateStr === 0 || dateStr === null) {
+                console.log('Returning 未知 due to invalid dateStr');
                 return '未知';
             }
             
             try {
                 const date = new Date(dateStr);
+                console.log('Parsed date:', date, 'isValid:', !isNaN(date.getTime()));
                 if (isNaN(date.getTime())) {
                     return '未知';
                 }
-                return date.toLocaleDateString('zh-TW');
+                const formatted = date.toLocaleDateString('zh-TW');
+                console.log('Formatted date:', formatted);
+                return formatted;
             } catch (e) {
+                console.log('Date parsing error:', e);
                 return '未知';
             }
         }
 
+        // Function to load and display user permissions
         function loadUserPermissions() {
             const loading = document.getElementById('permissionsLoading');
             const content = document.getElementById('permissionsContent');
