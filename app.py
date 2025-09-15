@@ -1897,6 +1897,67 @@ def admin_login():
         
         print(f"DEBUG - Form data: username='{username}', password='{password}', totp_token='{totp_token}'")
         
+        # Handle 2FA verification from session
+        if password == 'verified' and totp_token and session.get('pending_2fa_user') == username:
+            print(f"DEBUG - Processing 2FA verification for user: {username}")
+            user_data = session.get('pending_2fa_user_data')
+            if user_data:
+                # Get 2FA data
+                conn = sqlite3.connect('admin_data.db')
+                cursor = conn.cursor()
+                cursor.execute('SELECT totp_enabled, totp_secret, backup_codes FROM admin_users WHERE username = ?', (username,))
+                totp_data = cursor.fetchone()
+                conn.close()
+                
+                if totp_data and totp_data[0] and totp_data[1]:
+                    secret = totp_data[1]
+                    backup_codes = json.loads(totp_data[2]) if totp_data[2] else []
+                    
+                    print(f"DEBUG - Verifying token '{totp_token}' with secret")
+                    token_valid = False
+                    used_backup = False
+                    
+                    if verify_totp_token(secret, totp_token):
+                        token_valid = True
+                        print(f"DEBUG - TOTP token valid")
+                    elif totp_token in backup_codes:
+                        token_valid = True
+                        used_backup = True
+                        print(f"DEBUG - Backup code valid")
+                        # Remove used backup code
+                        backup_codes.remove(totp_token)
+                        conn = sqlite3.connect('admin_data.db')
+                        cursor = conn.cursor()
+                        cursor.execute('UPDATE admin_users SET backup_codes = ? WHERE username = ?', 
+                                     (json.dumps(backup_codes), username))
+                        conn.commit()
+                        conn.close()
+                    else:
+                        print(f"DEBUG - Token verification failed")
+                    
+                    if token_valid:
+                        # Complete login
+                        session.pop('pending_2fa_user', None)
+                        session.pop('pending_2fa_user_data', None)
+                        session['admin_logged_in'] = True
+                        session['admin_username'] = username
+                        session['admin_role'] = user_data[3]
+                        
+                        if used_backup:
+                            flash(f'使用備用代碼登入成功。剩餘備用代碼: {len(backup_codes)}', 'warning')
+                        
+                        log_analytics('admin_login', {'username': username, 'role': user_data[3], '2fa_used': True}, 
+                                     get_real_ip(), request.user_agent.string)
+                        flash('登入成功', 'success')
+                        return redirect(url_for('admin_dashboard'))
+                    else:
+                        session.pop('pending_2fa_user', None)
+                        session.pop('pending_2fa_user_data', None)
+                        log_analytics('admin_login_2fa_failed', {'username': username}, 
+                                     get_real_ip(), request.user_agent.string)
+                        flash('雙重認證碼錯誤', 'error')
+                        return render_template('admin/login-2fa.html', username=username)
+        
         # Check database first, then fallback to environment variables
         user = get_admin_user(username)
         password_hash = hashlib.sha256(password.encode()).hexdigest()
