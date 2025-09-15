@@ -1976,7 +1976,7 @@ def admin_login():
             totp_data = cursor.fetchone()
             conn.close()
             
-            if totp_data and totp_data[0]:  # 2FA enabled for super admin
+            if totp_data and totp_data[0] and totp_data[1]:  # 2FA enabled AND secret exists
                 if not totp_token:
                     session['pending_2fa_user'] = username
                     return render_template('admin/login-2fa.html', username=username)
@@ -2005,7 +2005,7 @@ def admin_login():
                     session.pop('pending_2fa_user', None)
                     log_analytics('admin_login_2fa_failed', {'username': username}, 
                                  get_real_ip(), request.user_agent.string)
-
+                    flash('雙重認證碼錯誤', 'error')
                     return render_template('admin/login-2fa.html', username=username)
                 
                 if used_backup:
