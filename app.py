@@ -631,7 +631,7 @@ def get_real_ip():
         # Fallback to remote_addr
         return request.remote_addr
 
-def log_analytics(event_type: str, data: Dict, user_ip: str, user_agent: str, session_id: str = None):
+def log_analytics(event_type: str, data: dict, user_ip: str, user_agent: str, session_id: str = None):
     """Log analytics data to database"""
     try:
         conn = sqlite3.connect('admin_data.db')
