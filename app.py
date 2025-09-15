@@ -2654,6 +2654,12 @@ def get_admin_users_api():
         
         users = []
         for row in cursor.fetchall():
+            print(f"DEBUG /admin/api/users - Row: {row}")  # Debug logging
+            print(f"DEBUG /admin/api/users - Columns: {select_columns}")  # Debug logging
+            
+            # Find the correct index for created_at
+            created_at_index = select_columns.index('created_at') if 'created_at' in select_columns else -1
+            
             user = {
                 'id': row[0],
                 'username': row[1],
@@ -2661,8 +2667,9 @@ def get_admin_users_api():
                 'email': row[3] if len(row) > 3 and 'email' in select_columns else None,
                 'display_name': row[4] if len(row) > 4 and 'display_name' in select_columns else None,
                 'is_active': bool(row[5]) if len(row) > 5 and 'is_active' in select_columns else True,
-                'created_at': row[6] if len(row) > 6 and 'created_at' in select_columns else None
+                'created_at': row[created_at_index] if created_at_index != -1 and len(row) > created_at_index else None
             }
+            print(f"DEBUG /admin/api/users - User object: {user}")  # Debug logging
             users.append(user)
         
         conn.close()

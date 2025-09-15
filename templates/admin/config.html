@@ -940,9 +940,10 @@
         }
 
         function loadAdminUsers() {
-            fetch('/admin/api/users')
+            fetch('/admin/api/users?t=' + Date.now())
             .then(response => response.json())
             .then(data => {
+                console.log('loadAdminUsers API Response:', data); // Debug logging
                 const usersContainer = document.getElementById('adminUsersList');
                 if (data.success && data.users.length > 0) {
                     usersContainer.innerHTML = `
