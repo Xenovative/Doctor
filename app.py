@@ -2984,8 +2984,8 @@ def disable_2fa():
 
 @app.route('/admin/config/password', methods=['POST'])
 @require_admin
-def change_admin_password():
-    """Change admin password"""
+def change_admin_password_legacy():
+    """Change admin password (legacy endpoint)"""
     try:
         current_password = request.form.get('current_password')
         new_password = request.form.get('new_password')
