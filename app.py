@@ -3046,9 +3046,8 @@ def get_user_permissions():
         cursor = conn.cursor()
         
         cursor.execute('''
-            SELECT id, username, role, tab_permissions 
+            SELECT id, username, role, tab_permissions, created_at, is_active
             FROM admin_users 
-            WHERE is_active = 1
             ORDER BY username
         ''')
         
@@ -3067,7 +3066,9 @@ def get_user_permissions():
                 'id': row[0],
                 'username': row[1],
                 'role': row[2],
-                'tab_permissions': tab_perms
+                'tab_permissions': tab_perms,
+                'created_at': row[4],
+                'is_active': bool(row[5])
             })
         
         conn.close()
