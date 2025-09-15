@@ -722,7 +722,7 @@ def require_permission(permission):
         return decorated_function
     return decorator
 
-def generate_user_summary(age: int, gender: str, symptoms: str, chronic_conditions: str, detailed_health_info: Dict) -> str:
+def generate_user_summary(age: int, gender: str, symptoms: str, chronic_conditions: str, detailed_health_info: dict) -> str:
     """生成用戶輸入數據摘要"""
     summary_parts = []
     
@@ -952,7 +952,7 @@ def get_available_specialties() -> List[str]:
         print(f"Error fetching specialties: {e}")
         return ['內科', '外科', '小兒科', '婦產科', '骨科', '皮膚科', '眼科', '耳鼻喉科', '精神科', '神經科', '心臟科', '急診科']
 
-def validate_symptoms_with_llm(symptoms: str, user_language: str = 'zh-TW') -> Dict[str, Any]:
+def validate_symptoms_with_llm(symptoms: str, user_language: str = 'zh-TW') -> dict:
     """使用LLM驗證症狀描述是否有效"""
     try:
         api_key = os.getenv('OPENAI_API_KEY')
@@ -1041,7 +1041,7 @@ def validate_symptoms_with_llm(symptoms: str, user_language: str = 'zh-TW') -> D
         logger.error(f"Error validating symptoms: {e}")
         return {'valid': True, 'message': '症狀驗證過程中出現錯誤，將繼續處理'}
 
-def diagnose_symptoms(age: int, gender: str, symptoms: str, chronic_conditions: str = '', detailed_health_info: Dict = None, user_language: str = 'zh-TW') -> Dict[str, str]:
+def diagnose_symptoms(age: int, gender: str, symptoms: str, chronic_conditions: str = '', detailed_health_info: dict = None, user_language: str = 'zh-TW') -> dict:
     """使用AI診斷症狀"""
     
     if detailed_health_info is None:
@@ -1166,7 +1166,7 @@ def diagnose_symptoms(age: int, gender: str, symptoms: str, chronic_conditions: 
         'emergency_needed': emergency_needed
     }
 
-def analyze_symptoms_and_match(age: int, gender: str, symptoms: str, chronic_conditions: str, language: str, location: str, detailed_health_info: Dict = None, location_details: Dict = None) -> Dict[str, Any]:
+def analyze_symptoms_and_match(age: int, gender: str, symptoms: str, chronic_conditions: str, language: str, location: str, detailed_health_info: dict = None, location_details: dict = None) -> dict:
     """使用AI分析症狀並配對醫生"""
     
     if detailed_health_info is None:
@@ -1590,7 +1590,7 @@ def safe_str_check(value, search_term):
         return False
     return search_term in str(value)
 
-def filter_doctors(recommended_specialty: str, language: str, location: str, symptoms: str, ai_analysis: str, location_details: Dict = None) -> List[Dict[str, Any]]:
+def filter_doctors(recommended_specialty: str, language: str, location: str, symptoms: str, ai_analysis: str, location_details: dict = None) -> list:
     """根據條件篩選醫生"""
     matched_doctors = []
     
