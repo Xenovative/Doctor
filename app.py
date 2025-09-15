@@ -1901,6 +1901,7 @@ def admin_login():
         if password == 'verified' and totp_token and session.get('pending_2fa_user') == username:
             print(f"DEBUG - Processing 2FA verification for user: {username}")
             user_data = session.get('pending_2fa_user_data')
+            print(f"DEBUG - Session user_data: {user_data}")
             if user_data:
                 # Get 2FA data
                 conn = sqlite3.connect('admin_data.db')
@@ -1957,6 +1958,9 @@ def admin_login():
                                      get_real_ip(), request.user_agent.string)
                         flash('雙重認證碼錯誤', 'error')
                         return render_template('admin/login-2fa.html', username=username)
+            else:
+                print(f"DEBUG - No user_data in session, redirecting to login")
+                return render_template('admin/login.html')
         
         # Check database first, then fallback to environment variables
         user = get_admin_user(username)
