@@ -976,7 +976,7 @@
                                                     ${user.is_active ? '啟用' : '停用'}
                                                 </span>
                                             </td>
-                                            <td>${new Date(user.created_at).toLocaleDateString('zh-TW')}</td>
+                                            <td>${user.created_at && user.created_at !== '0' && user.created_at !== 0 ? new Date(user.created_at).toLocaleDateString('zh-TW') : '未知'}</td>
                                             <td>
                                                 <div class="btn-group" role="group">
                                                     <button class="btn btn-sm btn-outline-${user.is_active ? 'danger' : 'success'}" 
