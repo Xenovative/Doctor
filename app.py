@@ -2018,13 +2018,47 @@ def admin_login():
                         session.pop('pending_2fa_user_data', None)
                         session['admin_logged_in'] = True
                         session['admin_username'] = username
+                        session['admin_user_id'] = user_data[0]
                         session['admin_role'] = user_data[3]
+                        session['admin_permissions'] = json.loads(user_data[4]) if user_data[4] else {}
+                        
+                        # Load tab permissions for 2FA users
+                        conn = sqlite3.connect('admin_data.db')
+                        cursor = conn.cursor()
+                        cursor.execute('SELECT tab_permissions FROM admin_users WHERE id = ?', (user_data[0],))
+                        tab_perms = cursor.fetchone()
+                        conn.close()
+                        
+                        if tab_perms and tab_perms[0]:
+                            session['admin_tab_permissions'] = json.loads(tab_perms[0])
+                        else:
+                            session['admin_tab_permissions'] = {
+                                "dashboard": True,
+                                "analytics": True,
+                                "config": True,
+                                "doctors": True,
+                                "users": True,
+                                "bug_reports": True
+                            }
+                        
+                        # Handle remember me for 2FA
+                        if remember_me:
+                            session.permanent = True
+                            app.permanent_session_lifetime = timedelta(days=30)
+                        else:
+                            session.permanent = False
+                        
+                        session.modified = True
                         
                         if used_backup:
                             flash(f'使用備用代碼登入成功。剩餘備用代碼: {len(backup_codes)}', 'warning')
                         
-                        log_analytics('admin_login', {'username': username, 'role': user_data[3], '2fa_used': True}, 
-                                     get_real_ip(), request.user_agent.string)
+                        log_analytics('admin_login', {
+                            'username': username, 
+                            'role': user_data[3], 
+                            '2fa_used': True,
+                            'remember_me': bool(remember_me)
+                        }, get_real_ip(), request.user_agent.string)
                         flash('登入成功', 'success')
                         return redirect(url_for('admin_dashboard'))
                     else:
@@ -2129,6 +2163,9 @@ def admin_login():
                 # Session expires when browser closes
                 session.permanent = False
             
+            # Ensure session is saved
+            session.modified = True
+            
             # Update last login
             try:
                 conn = sqlite3.connect('admin_data.db')
@@ -2221,6 +2258,9 @@ def admin_login():
                 app.permanent_session_lifetime = timedelta(days=30)
             else:
                 session.permanent = False
+            
+            # Ensure session is saved
+            session.modified = True
             
             log_analytics('admin_login', {
                 'username': username, 
