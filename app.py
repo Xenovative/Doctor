@@ -29,7 +29,6 @@ import qrcode
 import io
 import base64
 from functools import wraps
-from typing import Dict
 import schedule
 import time
 import logging
