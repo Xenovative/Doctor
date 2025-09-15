@@ -1969,6 +1969,7 @@ def admin_login():
         username = request.form.get('username')
         password = request.form.get('password')
         totp_token = request.form.get('totp_token')
+        remember_me = request.form.get('remember_me')
         
         print(f"DEBUG - Form data: username='{username}', password='{password}', totp_token='{totp_token}'")
         
@@ -2119,6 +2120,15 @@ def admin_login():
                     "bug_reports": True
                 }
             
+            # Handle remember me functionality
+            if remember_me:
+                # Set session to be permanent (30 days)
+                session.permanent = True
+                app.permanent_session_lifetime = timedelta(days=30)
+            else:
+                # Session expires when browser closes
+                session.permanent = False
+            
             # Update last login
             try:
                 conn = sqlite3.connect('admin_data.db')
@@ -2129,8 +2139,12 @@ def admin_login():
             except Exception as e:
                 print(f"Error updating last login: {e}")
             
-            log_analytics('admin_login', {'username': username, 'role': user[3], '2fa_used': totp_data and totp_data[0]}, 
-                         get_real_ip(), request.user_agent.string)
+            log_analytics('admin_login', {
+                'username': username, 
+                'role': user[3], 
+                '2fa_used': totp_data and totp_data[0],
+                'remember_me': bool(remember_me)
+            }, get_real_ip(), request.user_agent.string)
             flash('登入成功', 'success')
             return redirect(url_for('admin_dashboard'))
             
@@ -2200,8 +2214,20 @@ def admin_login():
                 "users": True,
                 "bug_reports": True
             }
-            log_analytics('admin_login', {'username': username, 'role': 'super_admin', '2fa_used': totp_data and totp_data[0]}, 
-                         get_real_ip(), request.user_agent.string)
+            
+            # Handle remember me functionality for super admin
+            if remember_me:
+                session.permanent = True
+                app.permanent_session_lifetime = timedelta(days=30)
+            else:
+                session.permanent = False
+            
+            log_analytics('admin_login', {
+                'username': username, 
+                'role': 'super_admin', 
+                '2fa_used': totp_data and totp_data[0],
+                'remember_me': bool(remember_me)
+            }, get_real_ip(), request.user_agent.string)
             flash('登入成功', 'success')
             return redirect(url_for('admin_dashboard'))
         else:
