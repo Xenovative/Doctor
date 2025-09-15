@@ -3086,21 +3086,30 @@ def toggle_admin_user(user_id):
     """Toggle admin user active status"""
     try:
         if user_id == session.get('admin_user_id'):
-            flash('不能停用自己的帳戶', 'error')
-            return redirect(url_for('admin_config'))
+            return jsonify({'success': False, 'error': '不能停用自己的帳戶'}), 400
         
         conn = sqlite3.connect('admin_data.db')
         cursor = conn.cursor()
-        cursor.execute('UPDATE admin_users SET is_active = NOT is_active WHERE id = ?', (user_id,))
+        
+        # Get current status first
+        cursor.execute('SELECT is_active FROM admin_users WHERE id = ?', (user_id,))
+        result = cursor.fetchone()
+        if not result:
+            return jsonify({'success': False, 'error': '用戶不存在'}), 404
+        
+        current_status = result[0]
+        new_status = 0 if current_status else 1
+        
+        cursor.execute('UPDATE admin_users SET is_active = ? WHERE id = ?', (new_status, user_id))
         conn.commit()
         conn.close()
         
-        flash('用戶狀態已更新', 'success')
+        action = '啟用' if new_status else '停用'
+        return jsonify({'success': True, 'message': f'用戶已{action}'})
+        
     except Exception as e:
         print(f"Error toggling user: {e}")
-        flash('更新用戶狀態時發生錯誤', 'error')
-    
-    return redirect(url_for('admin_config'))
+        return jsonify({'success': False, 'error': '更新用戶狀態時發生錯誤'}), 500
 
 @app.route('/admin/database/export-doctors')
 @require_permission('config')
