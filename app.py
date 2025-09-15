@@ -526,8 +526,12 @@ def verify_totp_token(secret, token):
         totp = pyotp.TOTP(secret)
         # Clean the token - remove any spaces or dashes
         clean_token = str(token).replace('-', '').replace(' ', '').strip()
-        print(f"DEBUG - Verifying token: '{clean_token}' against secret")
-        result = totp.verify(clean_token, valid_window=1)
+        
+        # Generate current expected token for debugging
+        current_token = totp.now()
+        print(f"DEBUG - Input token: '{clean_token}', Expected: '{current_token}', Secret exists: {bool(secret)}")
+        
+        result = totp.verify(clean_token, valid_window=2)  # Increased window for time sync issues
         print(f"DEBUG - Token verification result: {result}")
         return result
     except Exception as e:
