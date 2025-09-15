@@ -1895,6 +1895,8 @@ def admin_login():
         password = request.form.get('password')
         totp_token = request.form.get('totp_token')
         
+        print(f"DEBUG - Form data: username='{username}', password='{password}', totp_token='{totp_token}'")
+        
         # Check database first, then fallback to environment variables
         user = get_admin_user(username)
         password_hash = hashlib.sha256(password.encode()).hexdigest()
