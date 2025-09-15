@@ -872,7 +872,7 @@ def call_ollama_api(prompt: str) -> str:
     except Exception as e:
         return "AI分析服務暫時不可用，請稍後再試"
 
-def get_openai_models(api_key: str = None) -> List[str]:
+def get_openai_models(api_key: str = None) -> list:
     """獲取OpenAI可用模型列表"""
     try:
         # Use provided API key or fall back to config
@@ -924,7 +924,7 @@ def call_ai_api(prompt: str) -> str:
     else:
         return f"不支援的AI提供商: {provider}"
 
-def get_available_specialties() -> List[str]:
+def get_available_specialties() -> list:
     """獲取資料庫中所有可用的專科"""
     try:
         conn = sqlite3.connect('doctors.db')
@@ -1285,7 +1285,7 @@ def analyze_symptoms_and_match(age: int, gender: str, symptoms: str, chronic_con
         'doctors': matched_doctors
     }
 
-def extract_specialties_from_diagnosis(diagnosis_text: str) -> List[str]:
+def extract_specialties_from_diagnosis(diagnosis_text: str) -> list:
     """從診斷文本中提取推薦的專科"""
     if not diagnosis_text:
         return ['內科']
