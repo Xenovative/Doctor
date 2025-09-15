@@ -733,8 +733,49 @@ def tab_permission_required(tab_name):
             if session.get('admin_role') == 'super_admin':
                 return f(*args, **kwargs)
             
-            # Check tab permissions
-            tab_permissions = session.get('admin_tab_permissions', {})
+            # Check tab permissions - if not loaded, load them now
+            tab_permissions = session.get('admin_tab_permissions')
+            if tab_permissions is None:
+                # Load permissions from database
+                user_id = session.get('admin_user_id')
+                if user_id:
+                    try:
+                        conn = sqlite3.connect('admin_data.db')
+                        cursor = conn.cursor()
+                        cursor.execute('SELECT tab_permissions FROM admin_users WHERE id = ?', (user_id,))
+                        tab_perms = cursor.fetchone()
+                        conn.close()
+                        
+                        if tab_perms and tab_perms[0]:
+                            tab_permissions = json.loads(tab_perms[0])
+                        else:
+                            # Default permissions for all tabs
+                            tab_permissions = {
+                                "dashboard": True,
+                                "analytics": True,
+                                "config": True,
+                                "doctors": True,
+                                "users": True,
+                                "bug_reports": True
+                            }
+                        session['admin_tab_permissions'] = tab_permissions
+                    except Exception as e:
+                        print(f"Error loading tab permissions: {e}")
+                        # Default to all permissions on error
+                        tab_permissions = {
+                            "dashboard": True,
+                            "analytics": True,
+                            "config": True,
+                            "doctors": True,
+                            "users": True,
+                            "bug_reports": True
+                        }
+                        session['admin_tab_permissions'] = tab_permissions
+                else:
+                    # No user ID, deny access
+                    flash('會話已過期，請重新登入', 'error')
+                    return redirect(url_for('admin_login'))
+            
             if not tab_permissions.get(tab_name, False):
                 flash('您沒有權限訪問此頁面', 'error')
                 return redirect(url_for('admin_dashboard'))
