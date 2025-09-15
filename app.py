@@ -721,6 +721,40 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+def tab_permission_required(tab_name):
+    """Decorator to check if user has permission for specific tab"""
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if not session.get('admin_logged_in'):
+                return redirect(url_for('admin_login'))
+            
+            # Super admin has all permissions
+            if session.get('admin_role') == 'super_admin':
+                return f(*args, **kwargs)
+            
+            # Check tab permissions
+            tab_permissions = session.get('admin_tab_permissions', {})
+            if not tab_permissions.get(tab_name, False):
+                flash('您沒有權限訪問此頁面', 'error')
+                return redirect(url_for('admin_dashboard'))
+            
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+def has_tab_permission(tab_name):
+    """Helper function to check if current user has permission for a tab"""
+    if not session.get('admin_logged_in'):
+        return False
+    
+    # Super admin has all permissions
+    if session.get('admin_role') == 'super_admin':
+        return True
+    
+    tab_permissions = session.get('admin_tab_permissions', {})
+    return tab_permissions.get(tab_name, False)
+
 def require_permission(permission):
     """Decorator to require specific permission"""
     def decorator(f):
@@ -2024,6 +2058,26 @@ def admin_login():
             session['admin_role'] = user[3]
             session['admin_permissions'] = json.loads(user[4]) if user[4] else {}
             
+            # Load tab permissions (new column)
+            conn = sqlite3.connect('admin_data.db')
+            cursor = conn.cursor()
+            cursor.execute('SELECT tab_permissions FROM admin_users WHERE id = ?', (user[0],))
+            tab_perms = cursor.fetchone()
+            conn.close()
+            
+            if tab_perms and tab_perms[0]:
+                session['admin_tab_permissions'] = json.loads(tab_perms[0])
+            else:
+                # Default permissions for all tabs
+                session['admin_tab_permissions'] = {
+                    "dashboard": True,
+                    "analytics": True,
+                    "config": True,
+                    "doctors": True,
+                    "users": True,
+                    "bug_reports": True
+                }
+            
             # Update last login
             try:
                 conn = sqlite3.connect('admin_data.db')
@@ -2097,6 +2151,14 @@ def admin_login():
             session['admin_username'] = username
             session['admin_role'] = 'super_admin'
             session['admin_permissions'] = {'all': True}
+            session['admin_tab_permissions'] = {
+                "dashboard": True,
+                "analytics": True,
+                "config": True,
+                "doctors": True,
+                "users": True,
+                "bug_reports": True
+            }
             log_analytics('admin_login', {'username': username, 'role': 'super_admin', '2fa_used': totp_data and totp_data[0]}, 
                          get_real_ip(), request.user_agent.string)
             flash('登入成功', 'success')
@@ -2211,7 +2273,7 @@ def get_event_display_info(event_type: str) -> dict:
     return event_mapping.get(event_type, {'name': event_type, 'color': 'secondary'})
 
 @app.route('/admin/analytics')
-@require_admin
+@tab_permission_required('analytics')
 def admin_analytics():
     """Analytics page"""
     try:
@@ -2340,7 +2402,7 @@ def admin_analytics():
                              doctor_clicks=[])
 
 @app.route('/admin/config', methods=['GET', 'POST'])
-@login_required
+@tab_permission_required('config')
 def admin_config():
     """Admin configuration page"""
     # Check 2FA status for super admin
@@ -2830,27 +2892,131 @@ def get_admin_users():
     try:
         conn = sqlite3.connect('admin_data.db')
         cursor = conn.cursor()
+        
         cursor.execute('''
-            SELECT id, username, role, created_at, last_login, is_active
+            SELECT id, username, role, is_active, created_at, last_login 
             FROM admin_users 
             ORDER BY created_at DESC
         ''')
-        users = cursor.fetchall()
-        conn.close()
         
-        return jsonify({
-            'users': [{
-                'id': user[0],
-                'username': user[1],
-                'role': user[2],
-                'created_at': user[3],
-                'last_login': user[4],
-                'is_active': bool(user[5])
-            } for user in users]
-        })
+        users = []
+        for row in cursor.fetchall():
+            users.append({
+                'id': row[0],
+                'username': row[1],
+                'role': row[2],
+                'is_active': bool(row[3]),
+                'created_at': row[4],
+                'last_login': row[5]
+            })
+        
+        conn.close()
+        return jsonify({'users': users})
+        
     except Exception as e:
         print(f"Error fetching admin users: {e}")
         return jsonify({'error': 'Failed to fetch users'}), 500
+
+@app.route('/admin/api/user-permissions')
+@require_admin
+def get_user_permissions():
+    """Get user tab permissions for management"""
+    if session.get('admin_role') != 'super_admin':
+        return jsonify({'error': 'Only super admin can manage permissions'}), 403
+    
+    try:
+        conn = sqlite3.connect('admin_data.db')
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT id, username, role, tab_permissions 
+            FROM admin_users 
+            WHERE is_active = 1
+            ORDER BY username
+        ''')
+        
+        users = []
+        for row in cursor.fetchall():
+            tab_perms = json.loads(row[3]) if row[3] else {
+                "dashboard": True,
+                "analytics": True,
+                "config": True,
+                "doctors": True,
+                "users": True,
+                "bug_reports": True
+            }
+            
+            users.append({
+                'id': row[0],
+                'username': row[1],
+                'role': row[2],
+                'permissions': tab_perms
+            })
+        
+        conn.close()
+        return jsonify({'users': users})
+        
+    except Exception as e:
+        print(f"Error fetching user permissions: {e}")
+        return jsonify({'error': 'Failed to fetch permissions'}), 500
+
+@app.route('/admin/api/user-permissions/update', methods=['POST'])
+@require_admin
+def update_user_permissions():
+    """Update user tab permissions"""
+    if session.get('admin_role') != 'super_admin':
+        return jsonify({'error': 'Only super admin can manage permissions'}), 403
+    
+    try:
+        data = request.get_json()
+        user_id = data.get('user_id')
+        permission = data.get('permission')
+        enabled = data.get('enabled')
+        
+        if not all([user_id, permission]):
+            return jsonify({'error': 'Missing required parameters'}), 400
+        
+        # Valid permissions
+        valid_permissions = ['dashboard', 'analytics', 'config', 'doctors', 'users', 'bug_reports']
+        if permission not in valid_permissions:
+            return jsonify({'error': 'Invalid permission'}), 400
+        
+        conn = sqlite3.connect('admin_data.db')
+        cursor = conn.cursor()
+        
+        # Get current permissions
+        cursor.execute('SELECT tab_permissions FROM admin_users WHERE id = ?', (user_id,))
+        result = cursor.fetchone()
+        
+        if not result:
+            return jsonify({'error': 'User not found'}), 404
+        
+        current_perms = json.loads(result[0]) if result[0] else {}
+        current_perms[permission] = enabled
+        
+        # Update permissions
+        cursor.execute('''
+            UPDATE admin_users 
+            SET tab_permissions = ? 
+            WHERE id = ?
+        ''', (json.dumps(current_perms), user_id))
+        
+        conn.commit()
+        conn.close()
+        
+        # Log the permission change
+        log_analytics('admin_permission_update', {
+            'target_user_id': user_id,
+            'permission': permission,
+            'enabled': enabled,
+            'updated_by': session.get('admin_username')
+        }, get_real_ip(), request.user_agent.string)
+        
+        return jsonify({'success': True, 'message': 'Permission updated successfully'})
+        
+    except Exception as e:
+        print(f"Error updating user permissions: {e}")
+        return jsonify({'error': 'Failed to update permissions'}), 500
 
 @app.route('/admin/config/users/<int:user_id>/toggle', methods=['POST'])
 @require_permission('user_management')
@@ -3264,7 +3430,7 @@ def export_analytics_database():
         return redirect(url_for('admin_analytics'))
 
 @app.route('/admin/doctors')
-@require_permission('config')
+@tab_permission_required('doctors')
 def admin_doctors():
     """醫生資料庫管理頁面"""
     try:
@@ -3631,7 +3797,7 @@ def delete_doctor(doctor_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/admin/users')
-@require_admin
+@tab_permission_required('users')
 def admin_users():
     """User management page"""
     try:
@@ -3964,7 +4130,7 @@ def get_whatsapp_status():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/admin/bug-reports')
-@require_admin
+@tab_permission_required('bug_reports')
 def admin_bug_reports():
     """Bug reports management page"""
     try:

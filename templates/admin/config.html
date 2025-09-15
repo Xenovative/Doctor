@@ -1044,6 +1044,125 @@
                 });
             }
         });
+
+        // Load user permissions on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            if (document.getElementById('permissionsLoading')) {
+                loadUserPermissions();
+            }
+        });
+
+        function loadUserPermissions() {
+            const loading = document.getElementById('permissionsLoading');
+            const content = document.getElementById('permissionsContent');
+            const error = document.getElementById('permissionsError');
+            
+            fetch('/admin/api/user-permissions')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.users) {
+                        renderPermissionsTable(data.users);
+                        loading.style.display = 'none';
+                        content.style.display = 'block';
+                        error.style.display = 'none';
+                    } else {
+                        throw new Error(data.error || 'Failed to load permissions');
+                    }
+                })
+                .catch(err => {
+                    console.error('Error loading permissions:', err);
+                    loading.style.display = 'none';
+                    error.style.display = 'block';
+                    content.style.display = 'none';
+                });
+        }
+
+        function renderPermissionsTable(users) {
+            const tbody = document.getElementById('permissionsTableBody');
+            tbody.innerHTML = '';
+            
+            users.forEach(user => {
+                const row = document.createElement('tr');
+                
+                // User info
+                row.innerHTML = `
+                    <td>
+                        <strong>${user.username}</strong>
+                        ${user.role === 'super_admin' ? '<span class="badge bg-warning ms-2">超級管理員</span>' : ''}
+                    </td>
+                    <td>
+                        <span class="badge ${user.role === 'super_admin' ? 'bg-warning' : 'bg-secondary'}">${user.role}</span>
+                    </td>
+                `;
+                
+                // Permission checkboxes
+                const permissions = ['dashboard', 'analytics', 'config', 'doctors', 'users', 'bug_reports'];
+                permissions.forEach(perm => {
+                    const cell = document.createElement('td');
+                    const isChecked = user.permissions[perm] || false;
+                    const isDisabled = user.role === 'super_admin';
+                    
+                    cell.innerHTML = `
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" 
+                                   ${isChecked ? 'checked' : ''} 
+                                   ${isDisabled ? 'disabled' : ''}
+                                   onchange="updatePermission(${user.id}, '${perm}', this.checked)">
+                        </div>
+                    `;
+                    row.appendChild(cell);
+                });
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        function updatePermission(userId, permission, enabled) {
+            fetch('/admin/api/user-permissions/update', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    user_id: userId,
+                    permission: permission,
+                    enabled: enabled
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('權限更新成功', 'success');
+                } else {
+                    throw new Error(data.error || 'Failed to update permission');
+                }
+            })
+            .catch(error => {
+                console.error('Error updating permission:', error);
+                showToast('權限更新失敗: ' + error.message, 'error');
+                // Reload permissions to reset checkbox state
+                loadUserPermissions();
+            });
+        }
+
+        function showToast(message, type) {
+            const toast = document.createElement('div');
+            toast.className = `alert alert-${type === 'success' ? 'success' : 'danger'} position-fixed`;
+            toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+            toast.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
+                ${message}
+                <button type="button" class="btn-close ms-auto" onclick="this.parentElement.remove()"></button>
+            `;
+            document.body.appendChild(toast);
+            
+            // Auto remove after 3 seconds
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.remove();
+                }
+            }, 3000);
+        }
     </script>
 </body>
 </html>
