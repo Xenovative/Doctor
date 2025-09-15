@@ -966,11 +966,18 @@
                                             </td>
                                             <td>${new Date(user.created_at).toLocaleDateString('zh-TW')}</td>
                                             <td>
-                                                <button class="btn btn-sm btn-outline-${user.is_active ? 'danger' : 'success'}" 
-                                                        onclick="toggleUser(${user.id}, ${user.is_active})">
-                                                    <i class="fas fa-${user.is_active ? 'ban' : 'check'} me-1"></i>
-                                                    ${user.is_active ? '停用' : '啟用'}
-                                                </button>
+                                                <div class="btn-group" role="group">
+                                                    <button class="btn btn-sm btn-outline-${user.is_active ? 'danger' : 'success'}" 
+                                                            onclick="toggleUser(${user.id}, ${user.is_active})">
+                                                        <i class="fas fa-${user.is_active ? 'ban' : 'check'} me-1"></i>
+                                                        ${user.is_active ? '停用' : '啟用'}
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-danger" 
+                                                            onclick="deleteUser(${user.id}, '${user.username}')"
+                                                            title="永久刪除用戶">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     `).join('')}
@@ -1018,7 +1025,39 @@
                 }
             })
             .catch(error => {
+                console.error('Error:', error);
                 alert('操作失敗：' + error.message);
+            });
+        }
+
+        function deleteUser(userId, username) {
+            if (!confirm(`確定要永久刪除用戶 "${username}" 嗎？\n\n此操作無法撤銷！`)) {
+                return;
+            }
+
+            // Double confirmation for safety
+            if (!confirm(`最後確認：真的要刪除用戶 "${username}" 嗎？`)) {
+                return;
+            }
+
+            fetch(`/admin/config/users/${userId}/delete`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    loadAdminUsers(); // Reload the user list
+                    showToast(data.message, 'success');
+                } else {
+                    showToast('刪除失敗：' + data.error, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('刪除失敗：' + error.message, 'error');
             });
         }
 

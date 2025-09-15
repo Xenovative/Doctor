@@ -3111,6 +3111,47 @@ def toggle_admin_user(user_id):
         print(f"Error toggling user: {e}")
         return jsonify({'success': False, 'error': '更新用戶狀態時發生錯誤'}), 500
 
+@app.route('/admin/config/users/<int:user_id>/delete', methods=['DELETE'])
+@require_permission('user_management')
+def delete_admin_user(user_id):
+    """Delete admin user permanently"""
+    try:
+        if user_id == session.get('admin_user_id'):
+            return jsonify({'success': False, 'error': '不能刪除自己的帳戶'}), 400
+        
+        conn = sqlite3.connect('admin_data.db')
+        cursor = conn.cursor()
+        
+        # Check if user exists and get username for logging
+        cursor.execute('SELECT username FROM admin_users WHERE id = ?', (user_id,))
+        result = cursor.fetchone()
+        if not result:
+            return jsonify({'success': False, 'error': '用戶不存在'}), 404
+        
+        username = result[0]
+        
+        # Delete the user
+        cursor.execute('DELETE FROM admin_users WHERE id = ?', (user_id,))
+        
+        if cursor.rowcount == 0:
+            return jsonify({'success': False, 'error': '刪除失敗'}), 500
+        
+        conn.commit()
+        conn.close()
+        
+        # Log the deletion
+        log_analytics('admin_user_delete', {
+            'deleted_user_id': user_id,
+            'deleted_username': username,
+            'deleted_by': session.get('admin_username')
+        }, get_real_ip(), request.user_agent.string)
+        
+        return jsonify({'success': True, 'message': f'用戶 {username} 已刪除'})
+        
+    except Exception as e:
+        print(f"Error deleting user: {e}")
+        return jsonify({'success': False, 'error': '刪除用戶時發生錯誤'}), 500
+
 @app.route('/admin/database/export-doctors')
 @require_permission('config')
 def export_doctors_database():
