@@ -1973,6 +1973,7 @@ def admin_login():
             return redirect(url_for('admin_dashboard'))
             
         elif (username == ADMIN_USERNAME and password_hash == ADMIN_PASSWORD_HASH):
+            print(f"DEBUG - Super admin login attempt, username: {username}")
             # Super admin fallback - check 2FA
             conn = sqlite3.connect('admin_data.db')
             cursor = conn.cursor()
@@ -1980,7 +1981,11 @@ def admin_login():
             totp_data = cursor.fetchone()
             conn.close()
             
+            print(f"DEBUG - TOTP data: enabled={totp_data[0] if totp_data else None}, secret_exists={bool(totp_data[1]) if totp_data else None}")
+            print(f"DEBUG - Full totp_data: {totp_data}")
+            
             if totp_data and totp_data[0] and totp_data[1]:  # 2FA enabled AND secret exists
+                print(f"DEBUG - 2FA is enabled, token received: '{totp_token}'")
                 if not totp_token:
                     session['pending_2fa_user'] = username
                     return render_template('admin/login-2fa.html', username=username)
@@ -1989,6 +1994,7 @@ def admin_login():
                 secret = totp_data[1]
                 backup_codes = json.loads(totp_data[2]) if totp_data[2] else []
                 
+                print(f"DEBUG - About to verify token with secret length: {len(secret) if secret else 0}")
                 token_valid = False
                 used_backup = False
                 
