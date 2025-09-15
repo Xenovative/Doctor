@@ -55,36 +55,48 @@
                     </div>
                     
                     <ul class="nav flex-column">
+                        {% if session.admin_role == 'super_admin' or session.admin_tab_permissions.get('dashboard', False) %}
                         <li class="nav-item">
                             <a class="nav-link active" href="{{ url_for('admin_dashboard') }}">
                                 <i class="fas fa-tachometer-alt me-2"></i>儀表板
                             </a>
                         </li>
+                        {% endif %}
+                        {% if session.admin_role == 'super_admin' or session.admin_tab_permissions.get('analytics', False) %}
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('admin_analytics') }}">
                                 <i class="fas fa-chart-bar me-2"></i>分析報告
                             </a>
                         </li>
+                        {% endif %}
+                        {% if session.admin_role == 'super_admin' or session.admin_tab_permissions.get('config', False) %}
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('admin_config') }}">
                                 <i class="fas fa-cogs me-2"></i>系統配置
                             </a>
                         </li>
+                        {% endif %}
+                        {% if session.admin_role == 'super_admin' or session.admin_tab_permissions.get('doctors', False) %}
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('admin_doctors') }}">
                                 <i class="fas fa-user-md me-2"></i>醫生資料庫
                             </a>
                         </li>
+                        {% endif %}
+                        {% if session.admin_role == 'super_admin' or session.admin_tab_permissions.get('users', False) %}
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('admin_users') }}">
                                 <i class="fas fa-users me-2"></i>用戶管理
                             </a>
                         </li>
+                        {% endif %}
+                        {% if session.admin_role == 'super_admin' or session.admin_tab_permissions.get('bug_reports', False) %}
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('admin_bug_reports') }}">
                                 <i class="fas fa-bug me-2"></i>問題回報
                             </a>
                         </li>
+                        {% endif %}
                         <li class="nav-item mt-3">
                             <a class="nav-link" href="/" target="_blank">
                                 <i class="fas fa-external-link-alt me-2"></i>查看網站
