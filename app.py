@@ -2508,6 +2508,99 @@ def admin_analytics():
                              location_stats=[],
                              doctor_clicks=[])
 
+@app.route('/admin/profile')
+@require_admin
+def admin_profile():
+    """Admin profile/account settings page - accessible to all admin users"""
+    return render_template('admin/profile.html')
+
+@app.route('/admin/profile/update', methods=['POST'])
+@require_admin
+def update_admin_profile():
+    """Update admin user profile information"""
+    try:
+        display_name = request.form.get('display_name', '').strip()
+        email = request.form.get('email', '').strip()
+        
+        conn = sqlite3.connect('admin_data.db')
+        cursor = conn.cursor()
+        
+        # Update profile information
+        cursor.execute('''
+            UPDATE admin_users 
+            SET display_name = ?, email = ?
+            WHERE username = ?
+        ''', (display_name if display_name else None, 
+              email if email else None, 
+              session.get('admin_username')))
+        
+        conn.commit()
+        conn.close()
+        
+        flash('個人資料已更新', 'success')
+        
+    except Exception as e:
+        print(f"Profile update error: {e}")
+        flash('更新個人資料時發生錯誤', 'error')
+    
+    return redirect(url_for('admin_profile'))
+
+@app.route('/admin/profile/change-password', methods=['POST'])
+@require_admin
+def change_admin_password():
+    """Change admin user password"""
+    try:
+        current_password = request.form.get('current_password')
+        new_password = request.form.get('new_password')
+        confirm_password = request.form.get('confirm_password')
+        
+        if not all([current_password, new_password, confirm_password]):
+            flash('請填寫所有密碼欄位', 'error')
+            return redirect(url_for('admin_profile'))
+        
+        if new_password != confirm_password:
+            flash('新密碼與確認密碼不符', 'error')
+            return redirect(url_for('admin_profile'))
+        
+        if len(new_password) < 8:
+            flash('密碼長度至少需要8個字符', 'error')
+            return redirect(url_for('admin_profile'))
+        
+        # Verify current password
+        conn = sqlite3.connect('admin_data.db')
+        cursor = conn.cursor()
+        
+        cursor.execute('SELECT password_hash FROM admin_users WHERE username = ?', 
+                      (session.get('admin_username'),))
+        result = cursor.fetchone()
+        
+        if not result:
+            flash('用戶不存在', 'error')
+            conn.close()
+            return redirect(url_for('admin_profile'))
+        
+        current_hash = hashlib.sha256(current_password.encode()).hexdigest()
+        if current_hash != result[0]:
+            flash('目前密碼錯誤', 'error')
+            conn.close()
+            return redirect(url_for('admin_profile'))
+        
+        # Update password
+        new_hash = hashlib.sha256(new_password.encode()).hexdigest()
+        cursor.execute('UPDATE admin_users SET password_hash = ? WHERE username = ?',
+                      (new_hash, session.get('admin_username')))
+        
+        conn.commit()
+        conn.close()
+        
+        flash('密碼已成功修改', 'success')
+        
+    except Exception as e:
+        print(f"Password change error: {e}")
+        flash('修改密碼時發生錯誤', 'error')
+    
+    return redirect(url_for('admin_profile'))
+
 @app.route('/admin/config', methods=['GET', 'POST'])
 @tab_permission_required('config')
 def admin_config():
