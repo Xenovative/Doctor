@@ -1147,10 +1147,12 @@
             const content = document.getElementById('permissionsContent');
             const error = document.getElementById('permissionsError');
             
-            fetch('/admin/api/user-permissions')
+            fetch('/admin/api/user-permissions?t=' + Date.now())
                 .then(response => response.json())
                 .then(data => {
+                    console.log('API Response:', data); // Debug logging
                     if (data.users) {
+                        console.log('Users data:', data.users); // Debug logging
                         renderPermissionsTable(data.users);
                         loading.style.display = 'none';
                         content.style.display = 'block';
