@@ -3053,6 +3053,7 @@ def get_user_permissions():
         
         users = []
         for row in cursor.fetchall():
+            print(f"DEBUG - Row data: {row}")  # Debug logging
             tab_perms = json.loads(row[3]) if row[3] else {
                 "dashboard": True,
                 "analytics": True,
@@ -3062,14 +3063,16 @@ def get_user_permissions():
                 "bug_reports": True
             }
             
-            users.append({
+            user_data = {
                 'id': row[0],
                 'username': row[1],
                 'role': row[2],
                 'tab_permissions': tab_perms,
                 'created_at': row[4],
                 'is_active': bool(row[5])
-            })
+            }
+            print(f"DEBUG - User data: {user_data}")  # Debug logging
+            users.append(user_data)
         
         conn.close()
         return jsonify({'users': users})
