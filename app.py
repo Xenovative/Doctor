@@ -2903,11 +2903,21 @@ def create_admin_user():
         conn = sqlite3.connect('admin_data.db')
         cursor = conn.cursor()
         
+        # Set default tab permissions for new user
+        default_tab_permissions = {
+            "dashboard": True,
+            "analytics": True,
+            "config": True,
+            "doctors": True,
+            "users": True,
+            "bug_reports": True
+        }
+        
         try:
             cursor.execute('''
-                INSERT INTO admin_users (username, password_hash, role, permissions, created_by)
-                VALUES (?, ?, ?, ?, ?)
-            ''', (username, password_hash, role, json.dumps(perm_obj), created_by))
+                INSERT INTO admin_users (username, password_hash, role, permissions, created_by, tab_permissions)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (username, password_hash, role, json.dumps(perm_obj), created_by, json.dumps(default_tab_permissions)))
             conn.commit()
             
             log_analytics('admin_user_created', {
