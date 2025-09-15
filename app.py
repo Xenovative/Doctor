@@ -3532,7 +3532,7 @@ def admin_doctors():
         return redirect(url_for('admin_dashboard'))
 
 @app.route('/admin/doctors/paginated')
-@require_permission('config')
+@tab_permission_required('doctors')
 def admin_doctors_paginated():
     """DataTables AJAX endpoint for paginated doctor data"""
     try:
