@@ -6,7 +6,7 @@ flask-login
 pandas
 python-dotenv
 openpyxl
-pytz==1.0.0
+pytz==2024.2
 python-socketio>=5.0.0
 websocket-client>=1.0.0
 schedule
