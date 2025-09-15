@@ -629,6 +629,25 @@
 
                             <hr>
 
+                            <!-- Tab Permissions Management (Super Admin Only) -->
+                            {% if session.admin_role == 'super_admin' %}
+                            <div class="mb-4">
+                                <h6 class="fw-bold mb-3">用戶標籤頁權限管理</h6>
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    管理每個用戶可以訪問的管理面板標籤頁
+                                </div>
+                                <div id="tabPermissionsList">
+                                    <div class="text-center">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">載入權限中...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <hr>
+                            {% endif %}
+
                             <!-- Admin Users List -->
                             <div class="mb-4">
                                 <h6 class="fw-bold mb-3">現有管理員用戶</h6>
@@ -677,6 +696,7 @@
             // Load data on page load
             loadDatabaseStats();
             loadAdminUsers();
+            loadTabPermissions();
             checkAIStatus();
             checkWhatsAppStatus();
         });
@@ -1142,6 +1162,105 @@
                 showToast('權限更新失敗: ' + error.message, 'error');
                 // Reload permissions to reset checkbox state
                 loadUserPermissions();
+            });
+        }
+
+        function loadTabPermissions() {
+            {% if session.admin_role == 'super_admin' %}
+            fetch('/admin/api/user-permissions')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayTabPermissions(data.users);
+                } else {
+                    document.getElementById('tabPermissionsList').innerHTML = 
+                        '<div class="alert alert-danger">載入權限失敗: ' + data.error + '</div>';
+                }
+            })
+            .catch(error => {
+                console.error('Error loading tab permissions:', error);
+                document.getElementById('tabPermissionsList').innerHTML = 
+                    '<div class="alert alert-danger">載入權限時發生錯誤</div>';
+            });
+            {% else %}
+            // Hide tab permissions section for non-super admins
+            const permissionsSection = document.getElementById('tabPermissionsList');
+            if (permissionsSection && permissionsSection.parentElement) {
+                permissionsSection.parentElement.style.display = 'none';
+            }
+            {% endif %}
+        }
+
+        function displayTabPermissions(users) {
+            const container = document.getElementById('tabPermissionsList');
+            if (!users || users.length === 0) {
+                container.innerHTML = '<div class="alert alert-info">沒有找到用戶</div>';
+                return;
+            }
+
+            const tabNames = {
+                'dashboard': '儀表板',
+                'analytics': '分析',
+                'config': '配置',
+                'doctors': '醫生管理',
+                'users': '用戶管理',
+                'bug_reports': '錯誤報告'
+            };
+
+            let html = '<div class="table-responsive"><table class="table table-bordered table-sm">';
+            html += '<thead class="table-dark"><tr><th>用戶</th><th>角色</th>';
+            
+            // Add tab headers
+            Object.values(tabNames).forEach(tabName => {
+                html += `<th class="text-center">${tabName}</th>`;
+            });
+            html += '</tr></thead><tbody>';
+
+            users.forEach(user => {
+                html += `<tr><td><strong>${user.username}</strong></td><td><span class="badge bg-primary">${user.role}</span></td>`;
+                
+                Object.keys(tabNames).forEach(tabKey => {
+                    const isChecked = user.tab_permissions && user.tab_permissions[tabKey];
+                    const isDisabled = user.role === 'super_admin' ? 'disabled' : '';
+                    html += `<td class="text-center">
+                        <input type="checkbox" class="form-check-input" 
+                               ${isChecked ? 'checked' : ''} ${isDisabled}
+                               onchange="updateTabPermission(${user.id}, '${tabKey}', this.checked)">
+                    </td>`;
+                });
+                html += '</tr>';
+            });
+
+            html += '</tbody></table></div>';
+            html += '<div class="mt-2"><small class="text-muted"><i class="fas fa-info-circle me-1"></i>超級管理員自動擁有所有權限</small></div>';
+            container.innerHTML = html;
+        }
+
+        function updateTabPermission(userId, permission, enabled) {
+            fetch('/admin/api/user-permissions/update', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    user_id: userId,
+                    permission: permission,
+                    enabled: enabled
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('權限更新成功', 'success');
+                } else {
+                    throw new Error(data.error || 'Failed to update permission');
+                }
+            })
+            .catch(error => {
+                console.error('Error updating permission:', error);
+                showToast('權限更新失敗: ' + error.message, 'error');
+                // Reload permissions to reset checkbox state
+                loadTabPermissions();
             });
         }
 
