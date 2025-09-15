@@ -2054,7 +2054,10 @@ def admin_login():
             if totp_data and totp_data[0] and totp_data[1]:  # 2FA enabled AND secret exists
                 print(f"DEBUG - 2FA is enabled, token received: '{totp_token}'")
                 if not totp_token:
+                    # Create fake user data for super admin
+                    super_admin_data = (1, ADMIN_USERNAME, ADMIN_PASSWORD_HASH, 'super_admin', '{}', None, None, True, None)
                     session['pending_2fa_user'] = username
+                    session['pending_2fa_user_data'] = super_admin_data
                     return render_template('admin/login-2fa.html', username=username)
                 
                 # Verify 2FA token
