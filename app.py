@@ -3001,7 +3001,7 @@ def get_user_permissions():
                 'id': row[0],
                 'username': row[1],
                 'role': row[2],
-                'permissions': tab_perms
+                'tab_permissions': tab_perms
             })
         
         conn.close()

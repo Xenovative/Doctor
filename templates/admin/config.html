@@ -1166,29 +1166,32 @@
         }
 
         function loadTabPermissions() {
-            {% if session.admin_role == 'super_admin' %}
-            fetch('/admin/api/user-permissions')
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    displayTabPermissions(data.users);
-                } else {
+            // Check if user is super admin
+            const isSuperAdmin = '{{ session.admin_role }}' === 'super_admin';
+            
+            if (isSuperAdmin) {
+                fetch('/admin/api/user-permissions')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.users) {
+                        displayTabPermissions(data.users);
+                    } else {
+                        document.getElementById('tabPermissionsList').innerHTML = 
+                            '<div class="alert alert-danger">載入權限失敗: ' + (data.error || 'Unknown error') + '</div>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading tab permissions:', error);
                     document.getElementById('tabPermissionsList').innerHTML = 
-                        '<div class="alert alert-danger">載入權限失敗: ' + data.error + '</div>';
+                        '<div class="alert alert-danger">載入權限時發生錯誤</div>';
+                });
+            } else {
+                // Hide tab permissions section for non-super admins
+                const permissionsSection = document.getElementById('tabPermissionsList');
+                if (permissionsSection && permissionsSection.parentElement) {
+                    permissionsSection.parentElement.style.display = 'none';
                 }
-            })
-            .catch(error => {
-                console.error('Error loading tab permissions:', error);
-                document.getElementById('tabPermissionsList').innerHTML = 
-                    '<div class="alert alert-danger">載入權限時發生錯誤</div>';
-            });
-            {% else %}
-            // Hide tab permissions section for non-super admins
-            const permissionsSection = document.getElementById('tabPermissionsList');
-            if (permissionsSection && permissionsSection.parentElement) {
-                permissionsSection.parentElement.style.display = 'none';
             }
-            {% endif %}
         }
 
         function displayTabPermissions(users) {
