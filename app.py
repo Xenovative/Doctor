@@ -2005,7 +2005,7 @@ def admin_login():
                     session.pop('pending_2fa_user', None)
                     log_analytics('admin_login_2fa_failed', {'username': username}, 
                                  get_real_ip(), request.user_agent.string)
-                    flash(f'雙重認證碼錯誤 (輸入: {totp_token})', 'error')
+
                     return render_template('admin/login-2fa.html', username=username)
                 
                 if used_backup:
