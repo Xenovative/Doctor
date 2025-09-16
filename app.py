@@ -1774,17 +1774,18 @@ def filter_doctors(recommended_specialty: str, language: str, location: str, sym
                     match_reasons.append("Chinese-speaking doctor (Chinese preference)")
         # 3層地區匹配系統
         location_matched = False  # 初始化變量
+        
+        # 獲取3層位置信息 (移到外層以便後續使用)
+        if location_details is None:
+            location_details = {}
+        
+        user_region = location_details.get('region', '')
+        user_district = location_details.get('district', '')
+        user_area = location_details.get('area', '')
+        
         doctor_address = doctor.get('clinic_addresses', '')
         if doctor_address and not pd.isna(doctor_address):
             doctor_address = str(doctor_address)
-            
-            # 獲取3層位置信息
-            if location_details is None:
-                location_details = {}
-            
-            user_region = location_details.get('region', '')
-            user_district = location_details.get('district', '')
-            user_area = location_details.get('area', '')
             
             # 定義各區的關鍵詞匹配
             district_keywords = {
