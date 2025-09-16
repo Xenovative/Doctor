@@ -1898,8 +1898,146 @@ def filter_doctors(recommended_specialty: str, language: str, location: str, sym
     # 按匹配分數排序 (優先級已包含在分數中)
     matched_doctors.sort(key=lambda x: x['match_score'], reverse=True)
     
+    # 如果找到的醫生少於5個，或者沒有找到專科醫生，添加該地區的普通科/內科醫生作為後備
+    if len(matched_doctors) < 5 or not any(doctor['match_score'] >= 50 for doctor in matched_doctors):
+        print(f"DEBUG - Adding GP/internist fallback. Current matches: {len(matched_doctors)}")
+        fallback_doctors = get_regional_gp_fallback(location_details, location, recommended_specialty)
+        
+        # 避免重複添加已存在的醫生
+        existing_names = {doctor.get('name_zh', '') for doctor in matched_doctors}
+        for fallback_doctor in fallback_doctors:
+            if fallback_doctor.get('name_zh', '') not in existing_names:
+                matched_doctors.append(fallback_doctor)
+        
+        # 重新排序
+        matched_doctors.sort(key=lambda x: x['match_score'], reverse=True)
+    
     # 返回前20名供分頁使用
     return matched_doctors[:20]
+
+def get_regional_gp_fallback(location_details: dict, location: str, original_specialty: str) -> list:
+    """獲取該地區的普通科/內科醫生作為後備推薦"""
+    fallback_doctors = []
+    
+    if location_details is None:
+        location_details = {}
+    
+    user_region = location_details.get('region', '')
+    user_district = location_details.get('district', '')
+    user_area = location_details.get('area', '')
+    
+    print(f"DEBUG - Looking for GP/internist fallback in region: {user_region}, district: {user_district}")
+    
+    # 定義各區的關鍵詞匹配
+    district_keywords = {
+        # 香港島
+        '中西區': ['中環', '上環', '西環', '金鐘', '堅尼地城', '石塘咀', '西營盤'],
+        '東區': ['銅鑼灣', '天后', '炮台山', '北角', '鰂魚涌', '西灣河', '筲箕灣', '柴灣', '小西灣'],
+        '南區': ['香港仔', '鴨脷洲', '黃竹坑', '深水灣', '淺水灣', '赤柱', '石澳'],
+        '灣仔區': ['灣仔', '跑馬地', '大坑', '渣甸山', '寶馬山'],
+        
+        # 九龍
+        '九龍城區': ['九龍城', '土瓜灣', '馬頭角', '馬頭圍', '啟德', '紅磡', '何文田'],
+        '觀塘區': ['觀塘', '牛頭角', '九龍灣', '彩虹', '坪石', '秀茂坪', '藍田', '油塘'],
+        '深水埗區': ['深水埗', '長沙灣', '荔枝角', '美孚', '石硤尾', '又一村'],
+        '黃大仙區': ['黃大仙', '新蒲崗', '樂富', '橫頭磡', '東頭', '竹園', '慈雲山', '鑽石山'],
+        '油尖旺區': ['油麻地', '尖沙咀', '旺角', '大角咀', '太子', '佐敦'],
+        
+        # 新界
+        '離島區': ['長洲', '南丫島', '坪洲', '大嶼山', '東涌', '愉景灣'],
+        '葵青區': ['葵涌', '青衣', '葵芳', '荔景'],
+        '北區': ['上水', '粉嶺', '打鼓嶺', '沙頭角', '鹿頸'],
+        '西貢區': ['西貢', '將軍澳', '坑口', '調景嶺', '寶林', '康盛花園'],
+        '沙田區': ['沙田', '大圍', '火炭', '馬鞍山', '烏溪沙'],
+        '大埔區': ['大埔', '太和', '大埔墟', '林村', '汀角'],
+        '荃灣區': ['荃灣', '梨木樹', '象山', '城門'],
+        '屯門區': ['屯門', '友愛', '安定', '山景', '大興', '良景', '建生'],
+        '元朗區': ['元朗', '天水圍', '洪水橋', '流浮山', '錦田', '八鄉']
+    }
+    
+    for doctor in DOCTORS_DATA:
+        doctor_specialty = doctor.get('specialty', '')
+        if not doctor_specialty or pd.isna(doctor_specialty):
+            continue
+            
+        doctor_specialty = str(doctor_specialty)
+        
+        # 只查找普通科或內科醫生
+        if not (safe_str_check(doctor_specialty, '普通科') or safe_str_check(doctor_specialty, '內科') or 
+                safe_str_check(doctor_specialty, 'General Practitioner') or safe_str_check(doctor_specialty, 'Internal Medicine')):
+            continue
+        
+        doctor_address = doctor.get('clinic_addresses', '')
+        if not doctor_address or pd.isna(doctor_address):
+            continue
+            
+        doctor_address = str(doctor_address)
+        score = 25  # 基礎分數較低，因為是後備選項
+        match_reasons = [f"地區後備推薦：{doctor_specialty}"]
+        location_matched = False
+        
+        # 地區匹配邏輯（與主要函數相同）
+        if user_area and safe_str_check(doctor_address, user_area):
+            score += 30
+            match_reasons.append(f"精確位置匹配：{user_area}")
+            location_matched = True
+        elif user_district and user_district in district_keywords:
+            keywords = district_keywords[user_district]
+            for keyword in keywords:
+                if safe_str_check(doctor_address, keyword):
+                    score += 20
+                    match_reasons.append(f"地區匹配：{user_district}")
+                    location_matched = True
+                    break
+        
+        # 大區匹配
+        if not location_matched and user_region:
+            if user_region == '香港島' and any(safe_str_check(doctor_address, keyword) for keyword in ['香港', '中環', '灣仔', '銅鑼灣', '上環', '西環', '天后', '北角', '鰂魚涌', '柴灣', '筲箕灣', '香港仔']):
+                score += 10
+                match_reasons.append("大區匹配：香港島")
+                location_matched = True
+            elif user_region == '九龍' and any(safe_str_check(doctor_address, keyword) for keyword in ['九龍', '旺角', '尖沙咀', '油麻地', '佐敦', '深水埗', '觀塘', '黃大仙', '土瓜灣', '紅磡', '藍田', '彩虹', '牛頭角']):
+                score += 10
+                match_reasons.append("大區匹配：九龍")
+                location_matched = True
+            elif user_region == '新界' and any(safe_str_check(doctor_address, keyword) for keyword in ['新界', '沙田', '大埔', '元朗', '屯門', '荃灣', '將軍澳', '粉嶺', '上水', '葵涌', '青衣', '馬鞍山', '天水圍']):
+                score += 10
+                match_reasons.append("大區匹配：新界")
+                location_matched = True
+        
+        # 向後兼容：如果沒有location_details，使用舊的location匹配
+        if not location_matched and not user_region and location:
+            if location in district_keywords:
+                keywords = district_keywords[location]
+                for keyword in keywords:
+                    if safe_str_check(doctor_address, keyword):
+                        score += 15
+                        match_reasons.append(f"地區匹配：{location}")
+                        location_matched = True
+                        break
+            elif safe_str_check(doctor_address, location):
+                score += 10
+                match_reasons.append(f"位置關鍵詞匹配：{location}")
+                location_matched = True
+        
+        # 只添加有地區匹配的醫生
+        if location_matched:
+            doctor_copy = {}
+            for key, value in doctor.items():
+                if pd.isna(value) or value is None:
+                    doctor_copy[key] = ''
+                else:
+                    doctor_copy[key] = str(value)
+            
+            doctor_copy['match_score'] = score
+            doctor_copy['match_reasons'] = match_reasons
+            doctor_copy['ai_analysis'] = f"由於該地區缺乏{original_specialty}專科醫生，推薦{doctor_specialty}作為替代選擇"
+            fallback_doctors.append(doctor_copy)
+    
+    # 按分數排序，返回前10個
+    fallback_doctors.sort(key=lambda x: x['match_score'], reverse=True)
+    print(f"DEBUG - Found {len(fallback_doctors)} GP/internist fallback doctors")
+    return fallback_doctors[:10]
 
 @app.route('/')
 def index():
