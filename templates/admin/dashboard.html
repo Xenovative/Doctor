@@ -237,8 +237,11 @@
                     </div>
                     <div class="col-md-6">
                         <div class="card">
-                            <div class="card-header">
+                            <div class="card-header d-flex justify-content-between align-items-center">
                                 <h6 class="m-0 font-weight-bold text-primary">系統狀態</h6>
+                                <button class="btn btn-sm btn-outline-success" id="run-health-check-btn">
+                                    <i class="fas fa-play"></i> 執行檢查
+                                </button>
                             </div>
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-center mb-2">
@@ -297,6 +300,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ url_for('static', filename='admin-mobile.js') }}"></script>
+    <script src="{{ url_for('static', filename='admin-health-check.js') }}"></script>
     <script>
         // Simple health status update
         document.addEventListener('DOMContentLoaded', function() {

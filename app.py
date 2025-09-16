@@ -1823,20 +1823,23 @@ def filter_doctors(recommended_specialty: str, language: str, location: str, sym
             
             # 第3層：大區匹配 (最低分)
             if not location_matched and user_region:
-                # 香港島大區
-                if user_region == '香港島' and (safe_str_check(doctor_address, '香港') or safe_str_check(doctor_address, '中環')):
+                # 香港島大區 - 擴展關鍵詞
+                if user_region == '香港島' and any(safe_str_check(doctor_address, keyword) for keyword in ['香港', '中環', '灣仔', '銅鑼灣', '上環', '西環', '天后', '北角', '鰂魚涌', '柴灣', '筲箕灣', '香港仔']):
                     score += 15
                     match_reasons.append("大區匹配：香港島")
+                    location_matched = True
                 
-                # 九龍大區
-                elif user_region == '九龍' and safe_str_check(doctor_address, '九龍'):
+                # 九龍大區 - 擴展關鍵詞
+                elif user_region == '九龍' and any(safe_str_check(doctor_address, keyword) for keyword in ['九龍', '旺角', '尖沙咀', '油麻地', '佐敦', '深水埗', '觀塘', '黃大仙', '土瓜灣', '紅磡', '藍田', '彩虹', '牛頭角']):
                     score += 15
                     match_reasons.append("大區匹配：九龍")
+                    location_matched = True
                 
-                # 新界大區
-                elif user_region == '新界' and safe_str_check(doctor_address, '新界'):
+                # 新界大區 - 擴展關鍵詞
+                elif user_region == '新界' and any(safe_str_check(doctor_address, keyword) for keyword in ['新界', '沙田', '大埔', '元朗', '屯門', '荃灣', '將軍澳', '粉嶺', '上水', '葵涌', '青衣', '馬鞍山', '天水圍']):
                     score += 15
                     match_reasons.append("大區匹配：新界")
+                    location_matched = True
             
             # 向後兼容：如果沒有location_details，使用舊的location匹配
             if not location_matched and not user_region and location:
@@ -1846,7 +1849,15 @@ def filter_doctors(recommended_specialty: str, language: str, location: str, sym
                         if safe_str_check(doctor_address, keyword):
                             score += 25
                             match_reasons.append(f"地區匹配：{location}")
+                            location_matched = True
                             break
+            
+            # 如果仍然沒有匹配到位置，嘗試使用location字符串直接匹配
+            if not location_matched and location:
+                if safe_str_check(doctor_address, location):
+                    score += 20
+                    match_reasons.append(f"位置關鍵詞匹配：{location}")
+                    location_matched = True
         
         # 加入優先級別到匹配分數
         priority_flag = doctor.get('priority_flag', 0)
