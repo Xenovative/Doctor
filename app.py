@@ -1939,8 +1939,8 @@ def filter_doctors(recommended_specialty: str, language: str, location: str, sym
     # 重新排序 (地理相關性優先)
     matched_doctors.sort(key=lambda x: (x.get('location_priority', 0), x['match_score']), reverse=True)
     
-    # 返回前20名供分頁使用
-    return matched_doctors[:20]
+    # 返回前50名供分頁使用
+    return matched_doctors[:50]
 
 def get_regional_gp_fallback(location_details: dict, location: str, original_specialty: str) -> list:
     """獲取該地區的普通科/內科醫生作為後備推薦"""
@@ -1989,9 +1989,11 @@ def get_regional_gp_fallback(location_details: dict, location: str, original_spe
             
         doctor_specialty = str(doctor_specialty)
         
-        # 只查找普通科或內科醫生
+        # 查找普通科、內科、家庭醫學科醫生
         if not (safe_str_check(doctor_specialty, '普通科') or safe_str_check(doctor_specialty, '內科') or 
-                safe_str_check(doctor_specialty, 'General Practitioner') or safe_str_check(doctor_specialty, 'Internal Medicine')):
+                safe_str_check(doctor_specialty, '家庭醫學') or safe_str_check(doctor_specialty, '全科') or
+                safe_str_check(doctor_specialty, 'General Practitioner') or safe_str_check(doctor_specialty, 'Internal Medicine') or
+                safe_str_check(doctor_specialty, 'Family Medicine')):
             continue
         
         doctor_address = doctor.get('clinic_addresses', '')
@@ -2047,8 +2049,8 @@ def get_regional_gp_fallback(location_details: dict, location: str, original_spe
                 match_reasons.append(f"位置關鍵詞匹配：{location}")
                 location_matched = True
         
-        # 只添加有地區匹配的醫生
-        if location_matched:
+        # 降低門檻，允許更多GP/內科醫生進入後備列表
+        if location_matched or score >= 20:
             doctor_copy = {}
             for key, value in doctor.items():
                 if pd.isna(value) or value is None:
@@ -2059,6 +2061,7 @@ def get_regional_gp_fallback(location_details: dict, location: str, original_spe
             doctor_copy['match_score'] = score
             doctor_copy['match_reasons'] = match_reasons
             doctor_copy['ai_analysis'] = f"地區{doctor_specialty}推薦 - 可處理多種常見症狀，也可提供轉介服務"
+            doctor_copy['location_priority'] = 1 if location_matched else 0  # 添加地理優先級
             fallback_doctors.append(doctor_copy)
     
     # 按分數排序，返回前10個
