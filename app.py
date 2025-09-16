@@ -1783,12 +1783,8 @@ def filter_doctors(recommended_specialty: str, language: str, location: str, sym
         user_district = location_details.get('district', '')
         user_area = location_details.get('area', '')
         
-        doctor_address = doctor.get('clinic_addresses', '')
-        if doctor_address and not pd.isna(doctor_address):
-            doctor_address = str(doctor_address)
-            
-            # 定義各區的關鍵詞匹配
-            district_keywords = {
+        # 定義各區的關鍵詞匹配 (移到外層以便後續使用)
+        district_keywords = {
                 # 香港島
                 '中西區': ['中環', '上環', '西環', '金鐘', '堅尼地城', '石塘咀', '西營盤'],
                 '東區': ['銅鑼灣', '天后', '炮台山', '北角', '鰂魚涌', '西灣河', '筲箕灣', '柴灣', '小西灣'],
@@ -1813,8 +1809,10 @@ def filter_doctors(recommended_specialty: str, language: str, location: str, sym
                 '屯門區': ['屯門', '友愛', '安定', '山景', '大興', '良景', '建生'],
                 '元朗區': ['元朗', '天水圍', '洪水橋', '流浮山', '錦田', '八鄉']
             }
-            
-            location_matched = False
+        
+        doctor_address = doctor.get('clinic_addresses', '')
+        if doctor_address and not pd.isna(doctor_address):
+            doctor_address = str(doctor_address)
             
             # Limit debug output to first 5 doctors to avoid spam
             if len(matched_doctors) < 5:
