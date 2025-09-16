@@ -1,4 +1,5 @@
 import sys
+import re
 
 # Check Python version compatibility
 if sys.version_info >= (3, 12):
