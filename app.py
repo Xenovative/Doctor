@@ -1727,7 +1727,11 @@ def filter_doctors(recommended_specialty: str, language: str, location: str, sym
     print(f"  location_details: {location_details}")
     print(f"  recommended_specialty: {recommended_specialty}")
     
+    total_processed = 0
+    total_matched = 0
+    
     for doctor in DOCTORS_DATA:
+        total_processed += 1
         score = 0
         match_reasons = []
         
@@ -1881,8 +1885,9 @@ def filter_doctors(recommended_specialty: str, language: str, location: str, sym
             if priority_bonus > 0:
                 match_reasons.append(f"優先醫生 (級別 {priority_flag})")
         
-        # 只保留有地區匹配的醫生 (提高門檻，優先地區)
-        if location_matched and score >= 25:
+        # 優先保留有地區匹配的醫生，但也允許高分醫生
+        if location_matched or score >= 30:
+            total_matched += 1
             # 清理醫生數據，確保所有字段都是字符串
             doctor_copy = {}
             for key, value in doctor.items():
@@ -1895,6 +1900,8 @@ def filter_doctors(recommended_specialty: str, language: str, location: str, sym
             doctor_copy['match_reasons'] = match_reasons
             doctor_copy['ai_analysis'] = ai_analysis
             matched_doctors.append(doctor_copy)
+    
+    print(f"DEBUG - Processed {total_processed} doctors, matched {total_matched} doctors")
     
     # 按匹配分數排序 (優先級已包含在分數中)
     matched_doctors.sort(key=lambda x: x['match_score'], reverse=True)
