@@ -1900,7 +1900,7 @@ def filter_doctors(recommended_specialty: str, language: str, location: str, sym
             doctor_copy['match_reasons'] = match_reasons
             doctor_copy['ai_analysis'] = ai_analysis
             
-            # 添加地理相關性排序權重
+            # 添加地理相關性排序權重 (使用已定義的變量)
             location_priority = 0
             if user_area and safe_str_check(doctor_address, user_area):
                 location_priority = 4  # 最高優先級：精確地區匹配
