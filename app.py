@@ -1731,15 +1731,15 @@ def filter_doctors(recommended_specialty: str, language: str, location: str, sym
         score = 0
         match_reasons = []
         
-        # 專科匹配
+        # 專科匹配 (降低分數，優先考慮地區)
         doctor_specialty = doctor.get('specialty', '')
         if doctor_specialty and not pd.isna(doctor_specialty):
             doctor_specialty = str(doctor_specialty)
             if safe_str_check(doctor_specialty, recommended_specialty):
-                score += 50
+                score += 25  # 從50降到25
                 match_reasons.append(f"專科匹配：{doctor_specialty}")
             elif safe_str_check(doctor_specialty, '普通科') or safe_str_check(doctor_specialty, '內科'):
-                score += 30
+                score += 15  # 從30降到15
                 match_reasons.append("可處理一般症狀")
         
         # 語言匹配
@@ -1815,42 +1815,42 @@ def filter_doctors(recommended_specialty: str, language: str, location: str, sym
                 print(f"DEBUG - Doctor: {doctor.get('name_zh', 'Unknown')}, Address: {doctor_address[:50]}...")
                 print(f"DEBUG - User location: Region={user_region}, District={user_district}, Area={user_area}")
             
-            # 第1層：精確地區匹配 (最高分)
+            # 第1層：精確地區匹配 (大幅提高分數)
             if user_area and safe_str_check(doctor_address, user_area):
-                score += 35
+                score += 60  # 從35提高到60
                 match_reasons.append(f"精確位置匹配：{user_area}")
                 location_matched = True
                 print(f"DEBUG - Exact area match: {user_area}")
             
-            # 第2層：地區匹配
+            # 第2層：地區匹配 (提高分數)
             elif user_district and user_district in district_keywords:
                 keywords = district_keywords[user_district]
                 print(f"DEBUG - Checking district {user_district} keywords: {keywords}")
                 for keyword in keywords:
                     if safe_str_check(doctor_address, keyword):
-                        score += 25
+                        score += 45  # 從25提高到45
                         print(f"DEBUG - District keyword match: {keyword}")
                         match_reasons.append(f"地區匹配：{user_district}")
                         location_matched = True
                         break
             
-            # 第3層：大區匹配 (最低分)
+            # 第3層：大區匹配 (提高分數)
             if not location_matched and user_region:
                 # 香港島大區 - 擴展關鍵詞
                 if user_region == '香港島' and any(safe_str_check(doctor_address, keyword) for keyword in ['香港', '中環', '灣仔', '銅鑼灣', '上環', '西環', '天后', '北角', '鰂魚涌', '柴灣', '筲箕灣', '香港仔']):
-                    score += 15
+                    score += 30  # 從15提高到30
                     match_reasons.append("大區匹配：香港島")
                     location_matched = True
                 
                 # 九龍大區 - 擴展關鍵詞
                 elif user_region == '九龍' and any(safe_str_check(doctor_address, keyword) for keyword in ['九龍', '旺角', '尖沙咀', '油麻地', '佐敦', '深水埗', '觀塘', '黃大仙', '土瓜灣', '紅磡', '藍田', '彩虹', '牛頭角']):
-                    score += 15
+                    score += 30  # 從15提高到30
                     match_reasons.append("大區匹配：九龍")
                     location_matched = True
                 
                 # 新界大區 - 擴展關鍵詞
                 elif user_region == '新界' and any(safe_str_check(doctor_address, keyword) for keyword in ['新界', '沙田', '大埔', '元朗', '屯門', '荃灣', '將軍澳', '粉嶺', '上水', '葵涌', '青衣', '馬鞍山', '天水圍']):
-                    score += 15
+                    score += 30  # 從15提高到30
                     match_reasons.append("大區匹配：新界")
                     location_matched = True
             
@@ -1860,7 +1860,7 @@ def filter_doctors(recommended_specialty: str, language: str, location: str, sym
                     keywords = district_keywords[location]
                     for keyword in keywords:
                         if safe_str_check(doctor_address, keyword):
-                            score += 25
+                            score += 40  # 從25提高到40
                             match_reasons.append(f"地區匹配：{location}")
                             location_matched = True
                             break
@@ -1868,7 +1868,7 @@ def filter_doctors(recommended_specialty: str, language: str, location: str, sym
             # 如果仍然沒有匹配到位置，嘗試使用location字符串直接匹配
             if not location_matched and location:
                 if safe_str_check(doctor_address, location):
-                    score += 20
+                    score += 25  # 從20提高到25
                     match_reasons.append(f"位置關鍵詞匹配：{location}")
                     location_matched = True
         
@@ -1880,8 +1880,8 @@ def filter_doctors(recommended_specialty: str, language: str, location: str, sym
             if priority_bonus > 0:
                 match_reasons.append(f"優先醫生 (級別 {priority_flag})")
         
-        # 只保留有一定匹配度的醫生
-        if score >= 30:
+        # 只保留有地區匹配的醫生 (提高門檻，優先地區)
+        if location_matched and score >= 25:
             # 清理醫生數據，確保所有字段都是字符串
             doctor_copy = {}
             for key, value in doctor.items():
@@ -1899,7 +1899,7 @@ def filter_doctors(recommended_specialty: str, language: str, location: str, sym
     matched_doctors.sort(key=lambda x: x['match_score'], reverse=True)
     
     # 如果找到的醫生少於5個，或者沒有找到專科醫生，添加該地區的普通科/內科醫生作為後備
-    if len(matched_doctors) < 5 or not any(doctor['match_score'] >= 50 for doctor in matched_doctors):
+    if len(matched_doctors) < 5 or not any(doctor['match_score'] >= 40 for doctor in matched_doctors):  # 降低專科門檻從50到40
         print(f"DEBUG - Adding GP/internist fallback. Current matches: {len(matched_doctors)}")
         fallback_doctors = get_regional_gp_fallback(location_details, location, recommended_specialty)
         
