@@ -1899,26 +1899,46 @@ def filter_doctors(recommended_specialty: str, language: str, location: str, sym
             doctor_copy['match_score'] = score
             doctor_copy['match_reasons'] = match_reasons
             doctor_copy['ai_analysis'] = ai_analysis
+            
+            # 添加地理相關性排序權重
+            location_priority = 0
+            if user_area and safe_str_check(doctor_address, user_area):
+                location_priority = 4  # 最高優先級：精確地區匹配
+            elif user_district and user_district in district_keywords:
+                keywords = district_keywords[user_district]
+                for keyword in keywords:
+                    if safe_str_check(doctor_address, keyword):
+                        location_priority = 3  # 第二優先級：地區匹配
+                        break
+            elif user_region:
+                # 大區匹配
+                if ((user_region == '香港島' and any(safe_str_check(doctor_address, keyword) for keyword in ['香港', '中環', '灣仔', '銅鑼灣', '上環', '西環', '天后', '北角', '鰂魚涌', '柴灣', '筲箕灣', '香港仔'])) or
+                    (user_region == '九龍' and any(safe_str_check(doctor_address, keyword) for keyword in ['九龍', '旺角', '尖沙咀', '油麻地', '佐敦', '深水埗', '觀塘', '黃大仙', '土瓜灣', '紅磡', '藍田', '彩虹', '牛頭角'])) or
+                    (user_region == '新界' and any(safe_str_check(doctor_address, keyword) for keyword in ['新界', '沙田', '大埔', '元朗', '屯門', '荃灣', '將軍澳', '粉嶺', '上水', '葵涌', '青衣', '馬鞍山', '天水圍']))):
+                    location_priority = 2  # 第三優先級：大區匹配
+            elif location and safe_str_check(doctor_address, location):
+                location_priority = 1  # 最低優先級：關鍵詞匹配
+            
+            doctor_copy['location_priority'] = location_priority
             matched_doctors.append(doctor_copy)
     
     print(f"DEBUG - Processed {total_processed} doctors, matched {total_matched} doctors")
     
-    # 按匹配分數排序 (優先級已包含在分數中)
-    matched_doctors.sort(key=lambda x: x['match_score'], reverse=True)
+    # 按地理相關性優先排序，然後按匹配分數排序
+    matched_doctors.sort(key=lambda x: (x['location_priority'], x['match_score']), reverse=True)
     
-    # 如果找到的醫生少於5個，或者沒有找到專科醫生，添加該地區的普通科/內科醫生作為後備
-    if len(matched_doctors) < 5 or not any(doctor['match_score'] >= 40 for doctor in matched_doctors):  # 降低專科門檻從50到40
-        print(f"DEBUG - Adding GP/internist fallback. Current matches: {len(matched_doctors)}")
-        fallback_doctors = get_regional_gp_fallback(location_details, location, recommended_specialty)
-        
-        # 避免重複添加已存在的醫生
-        existing_names = {doctor.get('name_zh', '') for doctor in matched_doctors}
-        for fallback_doctor in fallback_doctors:
-            if fallback_doctor.get('name_zh', '') not in existing_names:
-                matched_doctors.append(fallback_doctor)
-        
-        # 重新排序
-        matched_doctors.sort(key=lambda x: x['match_score'], reverse=True)
+    # 總是添加該地區的普通科/內科醫生作為選項，讓用戶有更多選擇
+    print(f"DEBUG - Adding regional GP/internist options. Current matches: {len(matched_doctors)}")
+    fallback_doctors = get_regional_gp_fallback(location_details, location, recommended_specialty)
+    
+    # 避免重複添加已存在的醫生
+    existing_names = {doctor.get('name_zh', '') for doctor in matched_doctors}
+    for fallback_doctor in fallback_doctors:
+        if fallback_doctor.get('name_zh', '') not in existing_names:
+            matched_doctors.append(fallback_doctor)
+    
+    # 重新排序 (地理相關性優先)
+    matched_doctors.sort(key=lambda x: (x.get('location_priority', 0), x['match_score']), reverse=True)
     
     # 返回前20名供分頁使用
     return matched_doctors[:20]
@@ -2039,7 +2059,7 @@ def get_regional_gp_fallback(location_details: dict, location: str, original_spe
             
             doctor_copy['match_score'] = score
             doctor_copy['match_reasons'] = match_reasons
-            doctor_copy['ai_analysis'] = f"由於該地區缺乏{original_specialty}專科醫生，推薦{doctor_specialty}作為替代選擇"
+            doctor_copy['ai_analysis'] = f"地區{doctor_specialty}推薦 - 可處理多種常見症狀，也可提供轉介服務"
             fallback_doctors.append(doctor_copy)
     
     # 按分數排序，返回前10個
