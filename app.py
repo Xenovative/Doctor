@@ -4513,6 +4513,19 @@ def get_system_health():
         conn = sqlite3.connect('admin_data.db')
         cursor = conn.cursor()
         
+        # Create health_checks table if it doesn't exist
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS health_checks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                check_type TEXT NOT NULL,
+                status TEXT NOT NULL,
+                details TEXT,
+                error_message TEXT,
+                response_time_ms INTEGER
+            )
+        ''')
+        
         # Get latest health check for each component
         health_data = {}
         for component in ['ai_diagnosis', 'database', 'whatsapp']:
