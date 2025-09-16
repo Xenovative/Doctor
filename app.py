@@ -821,6 +821,20 @@ def has_tab_permission(tab_name):
     tab_permissions = session.get('admin_tab_permissions', {})
     return tab_permissions.get(tab_name, False)
 
+def get_admin_user_info():
+    """Get current admin user information from session"""
+    if not session.get('admin_logged_in'):
+        return None
+    
+    return {
+        'username': session.get('admin_username'),
+        'user_id': session.get('admin_user_id'),
+        'role': session.get('admin_role'),
+        'is_super_admin': session.get('admin_role') == 'super_admin',
+        'permissions': session.get('admin_permissions', {}),
+        'tab_permissions': session.get('admin_tab_permissions', {})
+    }
+
 def require_permission(permission):
     """Decorator to require specific permission"""
     def decorator(f):
