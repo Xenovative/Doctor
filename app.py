@@ -1721,6 +1721,12 @@ def filter_doctors(recommended_specialty: str, language: str, location: str, sym
     """根據條件篩選醫生"""
     matched_doctors = []
     
+    # Debug logging
+    print(f"DEBUG - filter_doctors called with:")
+    print(f"  location: {location}")
+    print(f"  location_details: {location_details}")
+    print(f"  recommended_specialty: {recommended_specialty}")
+    
     for doctor in DOCTORS_DATA:
         score = 0
         match_reasons = []
@@ -1762,7 +1768,6 @@ def filter_doctors(recommended_specialty: str, language: str, location: str, sym
                 if safe_str_check(doctor_languages, '中文') or safe_str_check(doctor_languages, '國語') or safe_str_check(doctor_languages, '粵語'):
                     score += 10
                     match_reasons.append("Chinese-speaking doctor (Chinese preference)")
-        
         # 3層地區匹配系統
         doctor_address = doctor.get('clinic_addresses', '')
         if doctor_address and not pd.isna(doctor_address):
@@ -1805,18 +1810,26 @@ def filter_doctors(recommended_specialty: str, language: str, location: str, sym
             
             location_matched = False
             
+            # Limit debug output to first 5 doctors to avoid spam
+            if len(matched_doctors) < 5:
+                print(f"DEBUG - Doctor: {doctor.get('name_zh', 'Unknown')}, Address: {doctor_address[:50]}...")
+                print(f"DEBUG - User location: Region={user_region}, District={user_district}, Area={user_area}")
+            
             # 第1層：精確地區匹配 (最高分)
             if user_area and safe_str_check(doctor_address, user_area):
                 score += 35
                 match_reasons.append(f"精確位置匹配：{user_area}")
                 location_matched = True
+                print(f"DEBUG - Exact area match: {user_area}")
             
             # 第2層：地區匹配
             elif user_district and user_district in district_keywords:
                 keywords = district_keywords[user_district]
+                print(f"DEBUG - Checking district {user_district} keywords: {keywords}")
                 for keyword in keywords:
                     if safe_str_check(doctor_address, keyword):
                         score += 25
+                        print(f"DEBUG - District keyword match: {keyword}")
                         match_reasons.append(f"地區匹配：{user_district}")
                         location_matched = True
                         break
