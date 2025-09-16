@@ -2627,7 +2627,7 @@ def change_admin_password():
     return redirect(url_for('admin_config'))
 
 @app.route('/admin/config')
-@admin_required
+@require_admin
 @tab_permission_required('config')
 def admin_config():
     """Admin configuration page"""
@@ -2659,7 +2659,7 @@ def admin_config():
         return redirect(url_for('admin_dashboard'))
 
 @app.route('/admin/api/console-logs')
-@admin_required
+@require_admin
 def get_console_logs():
     """Get console logs for super admin only"""
     try:
@@ -2687,7 +2687,7 @@ def get_console_logs():
         return jsonify({'error': 'Failed to fetch logs'}), 500
 
 @app.route('/admin/api/console-logs/stream')
-@admin_required
+@require_admin
 def stream_console_logs():
     """Stream console logs via Server-Sent Events for super admin only"""
     try:
