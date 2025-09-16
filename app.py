@@ -1769,6 +1769,7 @@ def filter_doctors(recommended_specialty: str, language: str, location: str, sym
                     score += 10
                     match_reasons.append("Chinese-speaking doctor (Chinese preference)")
         # 3層地區匹配系統
+        location_matched = False  # 初始化變量
         doctor_address = doctor.get('clinic_addresses', '')
         if doctor_address and not pd.isna(doctor_address):
             doctor_address = str(doctor_address)
