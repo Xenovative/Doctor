@@ -1816,8 +1816,15 @@ def filter_doctors(recommended_specialty: str, language: str, location: str, sym
             
             # Limit debug output to first 5 doctors to avoid spam
             if len(matched_doctors) < 5:
-                print(f"DEBUG - Doctor: {doctor.get('name_zh', 'Unknown')}, Address: {doctor_address[:50]}...")
+                print(f"DEBUG - Doctor: {doctor.get('name_zh', 'Unknown')}, Address: {doctor_address[:100]}...")
                 print(f"DEBUG - User location: Region={user_region}, District={user_district}, Area={user_area}")
+                print(f"DEBUG - Checking area match: '{user_area}' in '{doctor_address}' = {safe_str_check(doctor_address, user_area) if user_area else False}")
+                if user_district in district_keywords:
+                    keywords = district_keywords[user_district]
+                    print(f"DEBUG - District keywords for {user_district}: {keywords}")
+                    for keyword in keywords:
+                        if safe_str_check(doctor_address, keyword):
+                            print(f"DEBUG - Found district keyword match: '{keyword}' in address")
             
             # 第1層：精確地區匹配 (大幅提高分數)
             if user_area and safe_str_check(doctor_address, user_area):
@@ -1925,6 +1932,8 @@ def filter_doctors(recommended_specialty: str, language: str, location: str, sym
             # Debug: 顯示location priority計算
             if len(matched_doctors) < 3:
                 print(f"DEBUG - Doctor {doctor.get('name_zh', 'Unknown')}: location_matched={location_matched}, location_priority={location_priority}")
+                print(f"DEBUG - Doctor address: '{doctor_address}'")
+                print(f"DEBUG - User location: area='{user_area}', district='{user_district}', region='{user_region}'")
             
             doctor_copy['location_priority'] = location_priority
             matched_doctors.append(doctor_copy)
