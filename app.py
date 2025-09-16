@@ -1810,7 +1810,13 @@ def filter_doctors(recommended_specialty: str, language: str, location: str, sym
                 '元朗區': ['元朗', '天水圍', '洪水橋', '流浮山', '錦田', '八鄉']
             }
         
-        doctor_address = doctor.get('clinic_addresses', '')
+        doctor_address = doctor.get('address', '')
+        
+        # Debug: Check if we're getting the right field name
+        if len(matched_doctors) < 2:
+            print(f"DEBUG - Available doctor fields: {list(doctor.keys())}")
+            print(f"DEBUG - address value: '{doctor_address}'")
+        
         if doctor_address and not pd.isna(doctor_address):
             doctor_address = str(doctor_address)
             
@@ -2018,7 +2024,7 @@ def get_regional_gp_fallback(location_details: dict, location: str, original_spe
                 safe_str_check(doctor_specialty, 'Family Medicine')):
             continue
         
-        doctor_address = doctor.get('clinic_addresses', '')
+        doctor_address = doctor.get('address', '')
         if not doctor_address or pd.isna(doctor_address):
             continue
             
