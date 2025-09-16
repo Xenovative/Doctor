@@ -17,14 +17,18 @@ if "%3"=="" (set AI_PROVIDER=%DEFAULT_AI_PROVIDER%) else (set AI_PROVIDER=%3)
 
 echo.
 echo ========================================================
-echo 🏥 AI Doctor Matching System - Windows Deployment v2.0
+echo 🏥 AI Doctor Matching System - Windows Deployment v3.0
 echo ========================================================
 echo.
-echo New Features:
-echo   - Enhanced AI error handling
-echo   - Selective analytics export
-echo   - Improved admin dashboard
-echo   - UTF-8 support for international data
+echo Latest Features:
+echo   - Complete 2FA system with Google Authenticator
+echo   - Fine-grained admin tab permissions
+echo   - Enhanced bug reporting with image upload
+echo   - Improved WhatsApp integration
+echo   - Advanced analytics and user management
+echo   - Profile management system
+echo   - Database migration tools
+echo   - Python 3.11 compatibility check
 echo.
 echo Configuration:
 echo   Port: %PORT%
@@ -32,13 +36,38 @@ echo   Host: %HOST%
 echo   AI Provider: %AI_PROVIDER%
 echo.
 
-REM Check if Python is installed
+REM Check if Python is installed and version compatibility
 python --version >nul 2>&1
 if errorlevel 1 (
-    echo ❌ Python is not installed. Please install Python 3.8+ first.
+    echo ❌ Python is not installed. Please install Python 3.8-3.11 first.
     pause
     exit /b 1
 )
+
+REM Check Python version compatibility (must be 3.11 or lower)
+for /f "tokens=2" %%i in ('python --version 2^>^&1') do set PYTHON_VERSION=%%i
+echo ✅ Python version: %PYTHON_VERSION%
+
+REM Extract major and minor version numbers
+for /f "tokens=1,2 delims=." %%a in ("%PYTHON_VERSION%") do (
+    set PYTHON_MAJOR=%%a
+    set PYTHON_MINOR=%%b
+)
+
+if %PYTHON_MAJOR% GTR 3 (
+    echo ❌ Python version %PYTHON_VERSION% is not supported. Please use Python 3.8-3.11.
+    pause
+    exit /b 1
+)
+
+if %PYTHON_MAJOR% EQU 3 if %PYTHON_MINOR% GTR 11 (
+    echo ❌ Python version %PYTHON_VERSION% is not supported. Please use Python 3.8-3.11.
+    echo    This application requires Python 3.11 or lower for compatibility.
+    pause
+    exit /b 1
+)
+
+echo ✅ Python version %PYTHON_VERSION% is compatible
 
 REM Check if Node.js is installed (for WhatsApp server)
 node --version >nul 2>&1
@@ -199,8 +228,42 @@ if "%AI_PROVIDER%"=="openrouter" (
 REM Check if doctors data exists
 if exist "assets\finddoc_doctors_detailed 2.csv" (
     echo ✅ Doctors database found
+) else if exist "assets\finddoc_doctors_detailed_full_20250905.csv" (
+    echo ✅ Doctors database found (full version)
 ) else (
-    echo ⚠️ Doctors database not found at assets\finddoc_doctors_detailed 2.csv
+    echo ⚠️ Doctors database not found
+    echo    Expected locations:
+    echo      - assets\finddoc_doctors_detailed 2.csv
+    echo      - assets\finddoc_doctors_detailed_full_20250905.csv
+)
+
+REM Check for database migration scripts
+echo 📊 Checking database migration tools...
+if exist "migrate_2fa_columns.py" (
+    echo ✅ 2FA migration script found
+) else (
+    echo ⚠️ 2FA migration script missing
+)
+
+if exist "add_tab_permissions_column.py" (
+    echo ✅ Tab permissions migration script found
+) else (
+    echo ⚠️ Tab permissions migration script missing
+)
+
+REM Check for static assets
+if exist "static" (
+    echo ✅ Static assets directory found
+) else (
+    echo ⚠️ Static assets directory missing
+)
+
+if exist "templates" (
+    echo ✅ Templates directory found
+) else (
+    echo ❌ Templates directory missing - application will not work
+    pause
+    exit /b 1
 )
 
 REM Check if running as administrator (typical for web servers)
@@ -232,8 +295,16 @@ echo.
 echo 🚀 Starting the application...
 echo    Access URL: http://%HOST%:%PORT%
 echo    Admin Panel: http://%HOST%:%PORT%/admin
+echo    Profile Management: http://%HOST%:%PORT%/admin/profile
+echo    Bug Reports: http://%HOST%:%PORT%/admin/bug-reports
+echo    Analytics: http://%HOST%:%PORT%/admin/analytics
 echo    Health Check: http://%HOST%:%PORT%/health
 echo    AI Config: http://%HOST%:%PORT%/ai-config
+echo.
+echo 🔐 Security Features:
+echo    - 2FA authentication available
+echo    - Tab-based permissions system
+echo    - Secure admin profile management
 echo.
 
 REM Start WhatsApp server if enabled

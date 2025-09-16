@@ -4384,7 +4384,6 @@ def get_whatsapp_url():
         traceback.print_exc()
         return jsonify({'error': f'Failed to generate WhatsApp URL: {str(e)}'}), 500
 
-@app.route('/track_click', methods=['POST'])
 def track_click():
     """Legacy endpoint - now redirects to get_whatsapp_url"""
     return get_whatsapp_url()
@@ -4410,6 +4409,86 @@ def get_whatsapp_status():
             'target_number': WHATSAPP_CONFIG['target_number'] if enabled else None
         })
     except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/admin/api/system-health')
+@login_required
+def get_system_health():
+    """Get current system health status"""
+    try:
+        # Get latest health check results
+        conn = sqlite3.connect('admin_data.db')
+        cursor = conn.cursor()
+        
+        # Get latest health check for each component
+        health_data = {}
+        for component in ['ai_diagnosis', 'database', 'whatsapp']:
+            cursor.execute('''
+                SELECT status, timestamp, error_message, response_time_ms, details
+                FROM health_checks 
+                WHERE check_type = ? 
+                ORDER BY timestamp DESC 
+                LIMIT 1
+            ''', (component,))
+            
+            result = cursor.fetchone()
+            if result:
+                health_data[component] = {
+                    'status': result[0],
+                    'last_check': result[1],
+                    'error': result[2],
+                    'response_time_ms': result[3],
+                    'details': json.loads(result[4]) if result[4] else None
+                }
+            else:
+                health_data[component] = SYSTEM_HEALTH_STATUS.get(component, {
+                    'status': 'unknown',
+                    'last_check': None,
+                    'error': None
+                })
+        
+        # Get health check history (last 7 days)
+        cursor.execute('''
+            SELECT check_type, status, timestamp, response_time_ms
+            FROM health_checks 
+            WHERE timestamp >= datetime('now', '-7 days')
+            ORDER BY timestamp DESC
+        ''')
+        
+        history = []
+        for row in cursor.fetchall():
+            history.append({
+                'component': row[0],
+                'status': row[1],
+                'timestamp': row[2],
+                'response_time_ms': row[3]
+            })
+        
+        conn.close()
+        
+        return jsonify({
+            'current_status': health_data,
+            'history': history,
+            'last_updated': get_current_time().isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting system health: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/admin/api/run-health-check', methods=['POST'])
+@require_admin
+def manual_health_check():
+    """Manually trigger health check"""
+    try:
+        results = run_daily_health_check()
+        return jsonify({
+            'success': True,
+            'results': results,
+            'timestamp': get_current_time().isoformat()
+        })
+    except Exception as e:
+        logger.error(f"Manual health check failed: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/admin/bug-reports')
@@ -4823,11 +4902,318 @@ def submit_bug_report():
         logger.error(f"Error processing bug report: {e}")
         return jsonify({'error': '處理問題回報時發生錯誤'}), 500
 
+# Global variable to store system health status
+SYSTEM_HEALTH_STATUS = {
+    'ai_diagnosis': {'status': 'unknown', 'last_check': None, 'error': None},
+    'database': {'status': 'unknown', 'last_check': None, 'error': None},
+    'whatsapp': {'status': 'unknown', 'last_check': None, 'error': None}
+}
+
+def log_health_check(check_type: str, status: str, details: dict = None, error: str = None):
+    """Log health check results to separate health check table"""
+    try:
+        conn = sqlite3.connect('admin_data.db')
+        cursor = conn.cursor()
+        
+        # Create health_checks table if it doesn't exist
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS health_checks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                check_type TEXT NOT NULL,
+                status TEXT NOT NULL,
+                details TEXT,
+                error_message TEXT,
+                response_time_ms INTEGER
+            )
+        ''')
+        
+        # Insert health check record
+        cursor.execute('''
+            INSERT INTO health_checks (check_type, status, details, error_message, response_time_ms)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (
+            check_type, 
+            status, 
+            json.dumps(details) if details else None,
+            error,
+            details.get('response_time_ms') if details else None
+        ))
+        
+        conn.commit()
+        conn.close()
+        
+        # Update global status
+        SYSTEM_HEALTH_STATUS[check_type] = {
+            'status': status,
+            'last_check': get_current_time().isoformat(),
+            'error': error
+        }
+        
+        logger.info(f"Health check logged: {check_type} = {status}")
+        
+    except Exception as e:
+        logger.error(f"Failed to log health check: {e}")
+
+def test_ai_diagnosis():
+    """Test AI diagnosis system with multiple test cases"""
+    start_time = time.time()
+    
+    # Test cases with different symptom combinations
+    test_cases = [
+        {
+            'symptoms': '頭痛、發燒、咳嗽三天',
+            'age': 30,
+            'gender': '男',
+            'chronic_conditions': '',
+            'language': 'zh-TW'
+        },
+        {
+            'symptoms': '胃痛、噁心、腹瀉兩天',
+            'age': 25,
+            'gender': '女',
+            'chronic_conditions': '',
+            'language': 'zh-TW'
+        },
+        {
+            'symptoms': '胸痛、呼吸困難、心跳加速',
+            'age': 45,
+            'gender': '男',
+            'chronic_conditions': '高血壓',
+            'language': 'zh-TW'
+        }
+    ]
+    
+    try:
+        logger.info("Starting AI diagnosis health check with multiple test cases...")
+        
+        successful_tests = 0
+        total_tests = len(test_cases)
+        all_results = []
+        
+        for i, test_case in enumerate(test_cases, 1):
+            case_start_time = time.time()
+            
+            logger.info(f"Running test case {i}/{total_tests}: {test_case['symptoms']}")
+            
+            try:
+                # Call the AI diagnosis function
+                diagnosis_result = diagnose_symptoms(
+                    age=test_case['age'],
+                    gender=test_case['gender'],
+                    symptoms=test_case['symptoms'],
+                    chronic_conditions=test_case['chronic_conditions'],
+                    detailed_health_info={},
+                    user_language=test_case['language']
+                )
+                
+                case_response_time = int((time.time() - case_start_time) * 1000)
+                
+                # Validate the response
+                if (diagnosis_result and 
+                    'diagnosis' in diagnosis_result and 
+                    'recommended_specialty' in diagnosis_result and
+                    len(diagnosis_result['diagnosis']) > 10):
+                    
+                    successful_tests += 1
+                    all_results.append({
+                        'case': i,
+                        'symptoms': test_case['symptoms'],
+                        'success': True,
+                        'response_time_ms': case_response_time,
+                        'specialty': diagnosis_result['recommended_specialty'],
+                        'diagnosis_length': len(diagnosis_result['diagnosis'])
+                    })
+                    
+                    logger.info(f"Test case {i} PASSED ({case_response_time}ms)")
+                    
+                else:
+                    all_results.append({
+                        'case': i,
+                        'symptoms': test_case['symptoms'],
+                        'success': False,
+                        'response_time_ms': case_response_time,
+                        'error': 'Invalid or incomplete response'
+                    })
+                    
+                    logger.warning(f"Test case {i} FAILED: Invalid response")
+                    
+            except Exception as case_error:
+                case_response_time = int((time.time() - case_start_time) * 1000)
+                all_results.append({
+                    'case': i,
+                    'symptoms': test_case['symptoms'],
+                    'success': False,
+                    'response_time_ms': case_response_time,
+                    'error': str(case_error)
+                })
+                
+                logger.error(f"Test case {i} ERROR: {str(case_error)}")
+        
+        total_response_time_ms = int((time.time() - start_time) * 1000)
+        success_rate = (successful_tests / total_tests) * 100
+        
+        # Consider health check successful if at least 2 out of 3 tests pass (66% success rate)
+        is_healthy = successful_tests >= 2
+        
+        log_health_check('ai_diagnosis', 'healthy' if is_healthy else 'unhealthy', {
+            'total_tests': total_tests,
+            'successful_tests': successful_tests,
+            'success_rate': success_rate,
+            'response_time_ms': total_response_time_ms,
+            'test_results': all_results
+        }, None if is_healthy else f"Only {successful_tests}/{total_tests} tests passed")
+        
+        if is_healthy:
+            logger.info(f"AI diagnosis health check PASSED: {successful_tests}/{total_tests} tests successful ({total_response_time_ms}ms)")
+        else:
+            logger.error(f"AI diagnosis health check FAILED: Only {successful_tests}/{total_tests} tests passed")
+        
+        return is_healthy
+            
+    except Exception as e:
+        total_response_time_ms = int((time.time() - start_time) * 1000)
+        error_msg = f"AI diagnosis health check failed: {str(e)}"
+        
+        log_health_check('ai_diagnosis', 'unhealthy', {
+            'total_tests': len(test_cases),
+            'successful_tests': 0,
+            'response_time_ms': total_response_time_ms
+        }, error_msg)
+        
+        logger.error(f"AI diagnosis health check ERROR: {error_msg}")
+        return False
+
+def test_database_connectivity():
+    """Test database connectivity and basic operations"""
+    start_time = time.time()
+    
+    try:
+        # Test admin database
+        conn = sqlite3.connect('admin_data.db')
+        cursor = conn.cursor()
+        cursor.execute('SELECT COUNT(*) FROM admin_users')
+        admin_count = cursor.fetchone()[0]
+        conn.close()
+        
+        # Test doctors database
+        conn = sqlite3.connect('doctors.db')
+        cursor = conn.cursor()
+        cursor.execute('SELECT COUNT(*) FROM doctors')
+        doctors_count = cursor.fetchone()[0]
+        conn.close()
+        
+        response_time_ms = int((time.time() - start_time) * 1000)
+        
+        log_health_check('database', 'healthy', {
+            'admin_users_count': admin_count,
+            'doctors_count': doctors_count,
+            'response_time_ms': response_time_ms
+        })
+        
+        logger.info(f"Database health check PASSED ({response_time_ms}ms)")
+        return True
+        
+    except Exception as e:
+        response_time_ms = int((time.time() - start_time) * 1000)
+        error_msg = f"Database connectivity test failed: {str(e)}"
+        
+        log_health_check('database', 'unhealthy', {
+            'response_time_ms': response_time_ms
+        }, error_msg)
+        
+        logger.error(f"Database health check ERROR: {error_msg}")
+        return False
+
+def test_whatsapp_connectivity():
+    """Test WhatsApp service connectivity"""
+    start_time = time.time()
+    
+    try:
+        if not WHATSAPP_CONFIG['enabled']:
+            log_health_check('whatsapp', 'disabled', {
+                'response_time_ms': int((time.time() - start_time) * 1000)
+            })
+            return True
+            
+        if not whatsapp_client:
+            error_msg = "WhatsApp client not initialized"
+            log_health_check('whatsapp', 'unhealthy', {
+                'response_time_ms': int((time.time() - start_time) * 1000)
+            }, error_msg)
+            return False
+            
+        # Test connection (without sending message)
+        response_time_ms = int((time.time() - start_time) * 1000)
+        
+        log_health_check('whatsapp', 'healthy', {
+            'target_number': WHATSAPP_CONFIG.get('target_number', 'not_set'),
+            'response_time_ms': response_time_ms
+        })
+        
+        logger.info(f"WhatsApp health check PASSED ({response_time_ms}ms)")
+        return True
+        
+    except Exception as e:
+        response_time_ms = int((time.time() - start_time) * 1000)
+        error_msg = f"WhatsApp connectivity test failed: {str(e)}"
+        
+        log_health_check('whatsapp', 'unhealthy', {
+            'response_time_ms': response_time_ms
+        }, error_msg)
+        
+        logger.error(f"WhatsApp health check ERROR: {error_msg}")
+        return False
+
+def run_daily_health_check():
+    """Run comprehensive daily health check"""
+    logger.info("=== STARTING DAILY HEALTH CHECK ===")
+    
+    results = {
+        'ai_diagnosis': test_ai_diagnosis(),
+        'database': test_database_connectivity(),
+        'whatsapp': test_whatsapp_connectivity()
+    }
+    
+    # Count failures
+    failures = [check for check, passed in results.items() if not passed]
+    
+    if failures:
+        logger.warning(f"Health check FAILED for: {', '.join(failures)}")
+        
+        # Send WhatsApp notification if enabled and WhatsApp itself is working
+        if WHATSAPP_CONFIG['enabled'] and whatsapp_client and 'whatsapp' not in failures:
+            try:
+                failure_message = f"🚨 系統健康檢查警告\n\n以下系統組件出現問題:\n"
+                for failure in failures:
+                    status = SYSTEM_HEALTH_STATUS.get(failure, {})
+                    error = status.get('error', 'Unknown error')
+                    failure_message += f"❌ {failure}: {error}\n"
+                
+                failure_message += f"\n檢查時間: {get_current_time().strftime('%Y-%m-%d %H:%M:%S')}"
+                failure_message += f"\n請檢查系統狀態: http://localhost:8081/admin"
+                
+                whatsapp_client.emit('send_message', {
+                    'to': WHATSAPP_CONFIG.get('target_number'),
+                    'message': failure_message
+                })
+                logger.info("Health check failure notification sent via WhatsApp")
+                
+            except Exception as e:
+                logger.error(f"Failed to send health check notification: {e}")
+    else:
+        logger.info("=== ALL HEALTH CHECKS PASSED ===")
+    
+    return results
+
 def run_scheduled_tasks():
     """Run scheduled maintenance tasks in background thread"""
     def scheduler_thread():
         # Schedule cleanup to run daily at 2 AM
         schedule.every().day.at("02:00").do(cleanup_old_diagnosis_reports)
+        
+        # Schedule daily health check at midnight (12:00 AM)
+        schedule.every().day.at("00:00").do(run_daily_health_check)
         
         while True:
             schedule.run_pending()
@@ -4836,7 +5222,9 @@ def run_scheduled_tasks():
     # Start scheduler in background thread
     scheduler = threading.Thread(target=scheduler_thread, daemon=True)
     scheduler.start()
-    logger.info("Scheduled tasks initialized - diagnosis reports cleanup will run daily at 2 AM")
+    logger.info("Scheduled tasks initialized:")
+    logger.info("- Diagnosis reports cleanup: daily at 2 AM")
+    logger.info("- System health check: daily at 12 AM")
 
 if __name__ == '__main__':
     # Initialize database and load saved config

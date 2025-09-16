@@ -29,8 +29,16 @@ start_foreground() {
     echo -e "${GREEN}🚀 Starting the application...${NC}"
     echo -e "${BLUE}   Access URL: http://$HOST:$PORT${NC}"
     echo -e "${BLUE}   Admin Panel: http://$HOST:$PORT/admin${NC}"
+    echo -e "${BLUE}   Profile Management: http://$HOST:$PORT/admin/profile${NC}"
+    echo -e "${BLUE}   Bug Reports: http://$HOST:$PORT/admin/bug-reports${NC}"
+    echo -e "${BLUE}   Analytics: http://$HOST:$PORT/admin/analytics${NC}"
     echo -e "${BLUE}   Health Check: http://$HOST:$PORT/health${NC}"
     echo -e "${BLUE}   AI Config: http://$HOST:$PORT/ai-config${NC}"
+    echo ""
+    echo -e "${YELLOW}🔐 Security Features:${NC}"
+    echo -e "${YELLOW}   - 2FA authentication available${NC}"
+    echo -e "${YELLOW}   - Tab-based permissions system${NC}"
+    echo -e "${YELLOW}   - Secure admin profile management${NC}"
     echo ""
     
     # Start WhatsApp server if enabled
@@ -171,14 +179,18 @@ EOF
     fi
 }
 
-echo -e "${BLUE}🏥 AI Doctor Matching System - Deployment Script v2.0${NC}"
+echo -e "${BLUE}🏥 AI Doctor Matching System - Deployment Script v3.0${NC}"
 echo -e "${BLUE}======================================================${NC}"
 echo ""
-echo -e "New Features:"
-echo -e "  - Enhanced AI error handling"
-echo -e "  - Selective analytics export"
-echo -e "  - Improved admin dashboard"
-echo -e "  - UTF-8 support for international data"
+echo -e "Latest Features:"
+echo -e "  - Complete 2FA system with Google Authenticator"
+echo -e "  - Fine-grained admin tab permissions"
+echo -e "  - Enhanced bug reporting with image upload"
+echo -e "  - Improved WhatsApp integration"
+echo -e "  - Advanced analytics and user management"
+echo -e "  - Profile management system"
+echo -e "  - Database migration tools"
+echo -e "  - Python 3.11 compatibility check"
 echo ""
 echo -e "Configuration:"
 echo -e "  Port: ${GREEN}$PORT${NC}"
@@ -186,11 +198,27 @@ echo -e "  Host: ${GREEN}$HOST${NC}"
 echo -e "  AI Provider: ${GREEN}$AI_PROVIDER${NC}"
 echo ""
 
-# Check if Python is installed
+# Check if Python is installed and version compatibility
 if ! command -v python3 &> /dev/null; then
-    echo -e "${RED}❌ Python3 is not installed. Please install Python 3.8+ first.${NC}"
+    echo -e "${RED}❌ Python3 is not installed. Please install Python 3.8-3.11 first.${NC}"
     exit 1
 fi
+
+# Check Python version compatibility (must be 3.11 or lower)
+PYTHON_VERSION=$(python3 --version 2>&1 | cut -d' ' -f2)
+echo -e "${GREEN}✅ Python version: $PYTHON_VERSION${NC}"
+
+# Extract major and minor version numbers
+PYTHON_MAJOR=$(echo $PYTHON_VERSION | cut -d'.' -f1)
+PYTHON_MINOR=$(echo $PYTHON_VERSION | cut -d'.' -f2)
+
+if [ "$PYTHON_MAJOR" -gt 3 ] || ([ "$PYTHON_MAJOR" -eq 3 ] && [ "$PYTHON_MINOR" -gt 11 ]); then
+    echo -e "${RED}❌ Python version $PYTHON_VERSION is not supported. Please use Python 3.8-3.11.${NC}"
+    echo -e "${YELLOW}   This application requires Python 3.11 or lower for compatibility.${NC}"
+    exit 1
+fi
+
+echo -e "${GREEN}✅ Python version $PYTHON_VERSION is compatible${NC}"
 
 # Check if Node.js is installed (for WhatsApp server)
 if ! command -v node &> /dev/null; then
@@ -430,8 +458,41 @@ fi
 # Check if doctors data exists
 if [ -f "assets/finddoc_doctors_detailed 2.csv" ]; then
     echo -e "${GREEN}✅ Doctors database found${NC}"
+elif [ -f "assets/finddoc_doctors_detailed_full_20250905.csv" ]; then
+    echo -e "${GREEN}✅ Doctors database found (full version)${NC}"
 else
-    echo -e "${YELLOW}⚠️  Doctors database not found at assets/finddoc_doctors_detailed 2.csv${NC}"
+    echo -e "${YELLOW}⚠️  Doctors database not found${NC}"
+    echo -e "${YELLOW}   Expected locations:${NC}"
+    echo -e "${YELLOW}     - assets/finddoc_doctors_detailed 2.csv${NC}"
+    echo -e "${YELLOW}     - assets/finddoc_doctors_detailed_full_20250905.csv${NC}"
+fi
+
+# Check for database migration scripts
+echo -e "${YELLOW}📊 Checking database migration tools...${NC}"
+if [ -f "migrate_2fa_columns.py" ]; then
+    echo -e "${GREEN}✅ 2FA migration script found${NC}"
+else
+    echo -e "${YELLOW}⚠️  2FA migration script missing${NC}"
+fi
+
+if [ -f "add_tab_permissions_column.py" ]; then
+    echo -e "${GREEN}✅ Tab permissions migration script found${NC}"
+else
+    echo -e "${YELLOW}⚠️  Tab permissions migration script missing${NC}"
+fi
+
+# Check for static assets
+if [ -d "static" ]; then
+    echo -e "${GREEN}✅ Static assets directory found${NC}"
+else
+    echo -e "${YELLOW}⚠️  Static assets directory missing${NC}"
+fi
+
+if [ -d "templates" ]; then
+    echo -e "${GREEN}✅ Templates directory found${NC}"
+else
+    echo -e "${RED}❌ Templates directory missing - application will not work${NC}"
+    exit 1
 fi
 
 # Check if running as root or with sudo (typical for web servers)

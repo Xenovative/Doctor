@@ -1,18 +1,25 @@
 Flask==2.3.3
+Flask-Login==0.6.3
 pandas==2.0.3
-requests
-flask
-flask-login
-pandas
-python-dotenv
-openpyxl
+requests>=2.31.0
+python-dotenv>=1.0.0
+openpyxl>=3.1.0
 pytz==2024.2
 python-socketio>=5.0.0
 websocket-client>=1.0.0
-schedule
+schedule>=1.2.0
 pyotp==2.9.0
 qrcode==7.4.2
 Pillow==10.0.1
+Werkzeug>=2.3.0
+
+# 2FA and security dependencies
+cryptography>=41.0.0
+bcrypt>=4.0.0
+
+# Additional utilities
+uuid>=1.30
+hashlib2>=1.0.1
 
 # Windows service support (optional, only needed for Windows service deployment)
 pywin32==306; sys_platform == "win32"

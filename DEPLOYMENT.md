@@ -1,12 +1,37 @@
-# Deployment Guide - v2.0
+# AI Doctor Matching System - Deployment Guide v3.0
 
-## What's New in v2.0
+## Overview
 
-- **Enhanced AI Error Handling**: Graceful error messages without exposing LLM providers
-- **Selective Analytics Export**: Choose specific data types and date ranges for export
-- **Improved Admin Dashboard**: Better analytics visualization and user management
-- **UTF-8 Support**: Full international character support for Chinese medical data
-- **OpenAI Integration**: Added support for OpenAI API alongside OpenRouter and Ollama
+The AI Doctor Matching System is a Flask-based web application that provides AI-powered doctor recommendations with advanced admin features including 2FA authentication, fine-grained permissions, and comprehensive analytics.
+
+## Latest Features (v3.0)
+
+- **Complete 2FA System**: Google Authenticator integration with backup codes
+- **Fine-grained Admin Permissions**: Tab-based access control system
+- **Enhanced Bug Reporting**: Image upload support and WhatsApp integration
+- **Profile Management**: Secure admin profile and password management
+- **Advanced Analytics**: Comprehensive user tracking and reporting
+- **Database Migration Tools**: Automated schema updates
+- **Python 3.11 Compatibility**: Version checking and compatibility enforcement
+
+## Core Features
+
+- AI-powered symptom analysis and doctor matching
+- Multi-language support (English, Traditional Chinese, Simplified Chinese)
+- Admin dashboard with role-based access control
+- WhatsApp integration for notifications and bug reports
+- Comprehensive logging and error handling
+- Multiple AI provider support (OpenRouter, OpenAI, Ollama)
+- Secure authentication with 2FA support
+- Real-time analytics and user management
+
+## Requirements
+
+- **Python**: 3.8-3.11 (3.12+ not supported due to compatibility issues)
+- **Node.js**: 16+ (for WhatsApp functionality)
+- **Database**: SQLite (auto-created)
+- **Internet**: Required for AI APIs
+- **Storage**: ~100MB for application + database
 
 ## Quick Start
 
@@ -57,6 +82,253 @@ chmod +x deploy.sh
    - Updates environment variables
 
 3. **Health Checks**
+   - Validates Python version (3.8-3.11 required)
+   - Checks Node.js installation
+   - Verifies required files and directories
+   - Tests AI provider connectivity
+   - Validates database migration scripts
+
+4. **Database Setup**
+   - Initializes SQLite databases
+   - Runs migration scripts for 2FA and permissions
+   - Creates default admin user
+   - Sets up analytics tables
+
+5. **Service Configuration**
+   - Configures WhatsApp integration (optional)
+   - Sets up admin credentials
+   - Enables 2FA if requested
+   - Configures tab permissions
+
+6. **Deployment Options**
+   - **Development Mode**: Runs in foreground with console output
+   - **Service Mode**: Creates system service (Windows Service/systemd)
+   - **PM2 Integration**: Manages WhatsApp server process
+
+## Access URLs
+
+After successful deployment, the application will be available at:
+
+- **Main Application**: `http://HOST:PORT/`
+- **Admin Panel**: `http://HOST:PORT/admin`
+- **Profile Management**: `http://HOST:PORT/admin/profile`
+- **Bug Reports**: `http://HOST:PORT/admin/bug-reports`
+- **Analytics Dashboard**: `http://HOST:PORT/admin/analytics`
+- **Health Check**: `http://HOST:PORT/health`
+- **AI Configuration**: `http://HOST:PORT/ai-config`
+
+## Security Features
+
+### Two-Factor Authentication (2FA)
+- Google Authenticator integration
+- Backup codes for recovery
+- Per-user 2FA settings
+- QR code setup process
+
+### Admin Permissions System
+- **Dashboard**: Basic admin access
+- **Analytics**: View user data and reports
+- **Config**: System configuration (super admin only)
+- **Doctors**: Manage doctor database
+- **Users**: User management and reports
+- **Bug Reports**: View and manage bug reports
+
+### Profile Management
+- Secure password changes
+- Profile information updates
+- 2FA setup and management
+- Session management
+
+## AI Provider Configuration
+
+### OpenRouter (Recommended)
+```bash
+# Set in .env file
+OPENROUTER_API_KEY=your_api_key_here
+AI_PROVIDER=openrouter
+```
+
+### OpenAI
+```bash
+# Set in .env file
+OPENAI_API_KEY=your_api_key_here
+AI_PROVIDER=openai
+```
+
+### Ollama (Local)
+```bash
+# Install Ollama first
+curl -fsSL https://ollama.ai/install.sh | sh
+
+# Start Ollama service
+ollama serve
+
+# Pull required model
+ollama pull llama2
+
+# Set in .env file
+AI_PROVIDER=ollama
+```
+
+## WhatsApp Integration
+
+### Setup Requirements
+1. WhatsApp Business API access
+2. Node.js WhatsApp server
+3. PM2 process manager
+
+### Configuration
+```bash
+# Enable WhatsApp in .env
+WHATSAPP_ENABLED=true
+WHATSAPP_TARGET_NUMBER=852XXXXXXXX@c.us
+WHATSAPP_SOCKET_URL=http://localhost:8086
+```
+
+### Features
+- Bug report notifications
+- System alerts
+- User query notifications
+- Diagnosis report sharing
+
+## Database Migration
+
+The system includes automated migration scripts:
+
+### 2FA Migration
+```bash
+python migrate_2fa_columns.py
+```
+
+### Tab Permissions Migration
+```bash
+python add_tab_permissions_column.py
+```
+
+### Manual Database Operations
+```python
+# Connect to admin database
+import sqlite3
+conn = sqlite3.connect('admin_data.db')
+
+# View tables
+cursor = conn.cursor()
+cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+print(cursor.fetchall())
+```
+
+## Troubleshooting
+
+### Common Issues
+
+#### Python Version Error
+```
+Error: This application requires Python 3.11 or lower.
+```
+**Solution**: Install Python 3.8-3.11. Python 3.12+ has compatibility issues.
+
+#### Missing Dependencies
+```
+ModuleNotFoundError: No module named 'flask'
+```
+**Solution**: Ensure virtual environment is activated and run `pip install -r requirements.txt`
+
+#### Database Errors
+```
+sqlite3.OperationalError: no such table: admin_users
+```
+**Solution**: Run database migration scripts or delete databases to recreate.
+
+#### WhatsApp Connection Issues
+```
+Failed to start WhatsApp server with PM2
+```
+**Solution**: 
+1. Check Node.js installation
+2. Install PM2: `npm install -g pm2`
+3. Verify WhatsApp server configuration
+
+#### 2FA Setup Issues
+```
+Invalid TOTP token
+```
+**Solution**:
+1. Check device time synchronization
+2. Regenerate QR code
+3. Use backup codes if available
+
+### Log Files
+
+- **Application Logs**: Console output or service logs
+- **WhatsApp Logs**: `pm2 logs whatsapp-server`
+- **System Logs**: 
+  - Windows: Event Viewer
+  - Linux: `journalctl -u ai-doctor-matching`
+
+### Performance Optimization
+
+#### Database Optimization
+```python
+# Regular cleanup (runs automatically)
+python -c "from app import cleanup_old_diagnosis_reports; cleanup_old_diagnosis_reports()"
+```
+
+#### Memory Management
+- Monitor virtual environment size
+- Clear old log files periodically
+- Optimize doctor database queries
+
+## Production Deployment
+
+### Security Checklist
+- [ ] Change default admin credentials
+- [ ] Enable 2FA for all admin users
+- [ ] Set strong session secrets
+- [ ] Configure HTTPS (reverse proxy)
+- [ ] Set up firewall rules
+- [ ] Regular database backups
+- [ ] Monitor log files
+
+### Scaling Considerations
+- Use reverse proxy (nginx/Apache)
+- Database connection pooling
+- Load balancing for multiple instances
+- CDN for static assets
+- Redis for session storage
+
+### Backup Strategy
+```bash
+# Backup databases
+cp admin_data.db admin_data.db.backup
+cp doctors.db doctors.db.backup
+
+# Backup configuration
+cp .env .env.backup
+
+# Backup uploaded files
+tar -czf uploads_backup.tar.gz static/uploads/
+```
+
+## Support
+
+### Getting Help
+1. Check deployment logs for errors
+2. Review this documentation
+3. Verify all requirements are met
+4. Test with minimal configuration first
+
+### Version Information
+- **Current Version**: 3.0
+- **Python Compatibility**: 3.8-3.11
+- **Last Updated**: September 2024
+- **Breaking Changes**: Python 3.12+ no longer supported
+
+### Migration from v2.0
+1. Update requirements.txt
+2. Run migration scripts
+3. Update .env configuration
+4. Test 2FA functionality
+5. Verify tab permissions
    - Verifies Python installation
    - Checks AI provider setup
    - Validates doctors database
