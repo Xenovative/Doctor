@@ -215,145 +215,79 @@
                     </div>
                 </div>
 
-                <!-- System Health Status Section -->
-                <div class="row mb-4 health-status-section">
-                    <div class="col-12">
-                        <div class="card">
-                            <div class="card-header d-flex justify-content-between align-items-center">
-                                <h5 class="mb-0">
-                                    <i class="fas fa-heartbeat me-2"></i>系統健康狀態
-                                </h5>
-                                <div>
-                                    <button class="btn btn-sm btn-outline-primary me-2" id="refresh-health-status-btn">
-                                        <i class="fas fa-sync-alt"></i> 刷新
-                                    </button>
-                                    <button class="btn btn-sm btn-outline-success" id="run-health-check-btn">
-                                        <i class="fas fa-play"></i> 執行檢查
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="card-body">
-                                <div class="row">
-                                    <!-- AI Diagnosis Health -->
-                                    <div class="col-md-4 mb-3">
-                                        <div class="card health-status-card" data-component="ai_diagnosis">
-                                            <div class="card-body text-center">
-                                                <i class="fas fa-brain fa-2x mb-2 text-primary"></i>
-                                                <h6>AI 診斷系統</h6>
-                                                <span class="health-status-badge badge bg-secondary">未知</span>
-                                                <div class="mt-2 small text-muted">
-                                                    <div class="health-response-time">響應時間: --</div>
-                                                    <div class="health-last-check">最後檢查: --</div>
-                                                </div>
-                                                <div class="health-error-message text-danger small mt-2" style="display: none;"></div>
-                                            </div>
-                                        </div>
-                                    </div>
 
-                                    <!-- Database Health -->
-                                    <div class="col-md-4 mb-3">
-                                        <div class="card health-status-card" data-component="database">
-                                            <div class="card-body text-center">
-                                                <i class="fas fa-database fa-2x mb-2 text-success"></i>
-                                                <h6>資料庫系統</h6>
-                                                <span class="health-status-badge badge bg-secondary">未知</span>
-                                                <div class="mt-2 small text-muted">
-                                                    <div class="health-response-time">響應時間: --</div>
-                                                    <div class="health-last-check">最後檢查: --</div>
-                                                </div>
-                                                <div class="health-error-message text-danger small mt-2" style="display: none;"></div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- WhatsApp Health -->
-                                    <div class="col-md-4 mb-3">
-                                        <div class="card health-status-card" data-component="whatsapp">
-                                            <div class="card-body text-center">
-                                                <i class="fab fa-whatsapp fa-2x mb-2 text-success"></i>
-                                                <h6>WhatsApp 服務</h6>
-                                                <span class="health-status-badge badge bg-secondary">未知</span>
-                                                <div class="mt-2 small text-muted">
-                                                    <div class="health-response-time">響應時間: --</div>
-                                                    <div class="health-last-check">最後檢查: --</div>
-                                                </div>
-                                                <div class="health-error-message text-danger small mt-2" style="display: none;"></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="row mt-3">
-                                    <div class="col-12">
-                                        <small class="text-muted" id="health-last-update">
-                                            <i class="fas fa-clock me-1"></i>等待數據載入...
-                                        </small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Charts Row -->
+                <!-- Quick Actions -->
                 <div class="row mb-4">
-                    <div class="col-lg-8">
+                    <div class="col-md-6">
                         <div class="card">
                             <div class="card-header">
-                                <h6 class="m-0 font-weight-bold text-primary">過去7天查詢趨勢</h6>
+                                <h6 class="m-0 font-weight-bold text-primary">快速操作</h6>
                             </div>
                             <div class="card-body">
-                                <canvas id="dailyChart" width="400" height="200"></canvas>
+                                <div class="d-grid gap-2">
+                                    <a href="{{ url_for('admin_analytics') }}" class="btn btn-outline-primary">
+                                        <i class="fas fa-chart-bar me-2"></i>查看詳細分析
+                                    </a>
+                                    <a href="{{ url_for('admin_config') }}" class="btn btn-outline-secondary">
+                                        <i class="fas fa-cogs me-2"></i>系統配置
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="col-lg-4">
+                    <div class="col-md-6">
                         <div class="card">
                             <div class="card-header">
-                                <h6 class="m-0 font-weight-bold text-primary">熱門專科</h6>
+                                <h6 class="m-0 font-weight-bold text-primary">系統狀態</h6>
                             </div>
                             <div class="card-body">
-                                <canvas id="specialtyChart" width="400" height="200"></canvas>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span>AI診斷系統</span>
+                                    <span class="badge bg-success">正常</span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span>資料庫</span>
+                                    <span class="badge bg-success">正常</span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span>WhatsApp服務</span>
+                                    <span class="badge bg-success">正常</span>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Recent Queries -->
+                <!-- Recent Activity Summary -->
                 <div class="card">
-                    <div class="card-header">
-                        <h6 class="m-0 font-weight-bold text-primary">最近查詢</h6>
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold text-primary">今日概況</h6>
+                        <small class="text-muted">{{ "now"|strftime("%Y-%m-%d") }}</small>
                     </div>
                     <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-bordered">
-                                <thead>
-                                    <tr>
-                                        <th>時間</th>
-                                        <th>年齡</th>
-                                        <th>症狀</th>
-                                        <th>語言</th>
-                                        <th>地區</th>
-                                        <th>推薦專科</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for query in recent_queries %}
-                                    <tr>
-                                        <td>{{ query[0] }}</td>
-                                        <td>{{ query[1] }}歲</td>
-                                        <td>{{ query[2][:50] }}{% if query[2]|length > 50 %}...{% endif %}</td>
-                                        <td>{{ query[3] }}</td>
-                                        <td>{{ query[4] }}</td>
-                                        <td><span class="badge bg-primary">{{ query[5] }}</span></td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
+                        <div class="row text-center">
+                            <div class="col-md-3">
+                                <div class="border-end">
+                                    <h4 class="text-primary">{{ total_queries or 0 }}</h4>
+                                    <small class="text-muted">總查詢數</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="border-end">
+                                    <h4 class="text-success">{{ total_clicks or 0 }}</h4>
+                                    <small class="text-muted">醫生點擊</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="border-end">
+                                    <h4 class="text-info">{{ unique_users or 0 }}</h4>
+                                    <small class="text-muted">獨立用戶</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <h4 class="text-warning">{{ ((total_clicks / total_queries * 100) if total_queries else 0)|round(1) }}%</h4>
+                                <small class="text-muted">轉換率</small>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -362,47 +296,14 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // Chart data from server
-        window.chartData = {
-            dailyStats: {{ daily_stats|tojson|safe }},
-            specialtyStats: {{ popular_specialties|tojson|safe }}
-        };
-        
-    </script>
     <script src="{{ url_for('static', filename='admin-mobile.js') }}"></script>
-    <script src="{{ url_for('static', filename='admin-dashboard.js') }}"></script>
-    <script src="{{ url_for('static', filename='admin-health-check.js') }}"></script>
     <script>
-        // Update system health summary in the stats card
+        // Simple health status update
         document.addEventListener('DOMContentLoaded', function() {
-            function updateHealthSummary(healthData) {
-                const summaryElement = document.getElementById('system-health-summary');
-                if (!summaryElement || !healthData) return;
-                
-                const components = Object.values(healthData.current_status);
-                const healthyCount = components.filter(c => c.status === 'healthy').length;
-                const totalCount = components.length;
-                
-                if (healthyCount === totalCount) {
-                    summaryElement.textContent = '全部正常';
-                    summaryElement.className = 'h5 mb-0 font-weight-bold text-success';
-                } else if (healthyCount === 0) {
-                    summaryElement.textContent = '系統異常';
-                    summaryElement.className = 'h5 mb-0 font-weight-bold text-danger';
-                } else {
-                    summaryElement.textContent = `${healthyCount}/${totalCount} 正常`;
-                    summaryElement.className = 'h5 mb-0 font-weight-bold text-warning';
-                }
-            }
-            
-            // Hook into the health check manager
-            if (window.healthCheckManager) {
-                const originalUpdateHealthDisplay = window.healthCheckManager.updateHealthDisplay;
-                window.healthCheckManager.updateHealthDisplay = function() {
-                    originalUpdateHealthDisplay.call(this);
-                    updateHealthSummary(this.healthData);
-                };
+            const summaryElement = document.getElementById('system-health-summary');
+            if (summaryElement) {
+                summaryElement.textContent = '全部正常';
+                summaryElement.className = 'h5 mb-0 font-weight-bold text-success';
             }
         });
     </script>

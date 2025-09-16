@@ -2658,7 +2658,7 @@ def admin_config():
             try:
                 conn = sqlite3.connect('admin_data.db')
                 cursor = conn.cursor()
-                cursor.execute("SELECT id, username, email, is_super_admin, totp_enabled, tab_permissions FROM admin_users ORDER BY username")
+                cursor.execute("SELECT id, username, role, totp_enabled FROM admin_users ORDER BY username")
                 all_admin_users = cursor.fetchall()
                 conn.close()
             except Exception as e:
