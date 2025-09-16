@@ -33,10 +33,34 @@ from functools import wraps
 import schedule
 import time
 import logging
+import io
+from collections import deque
 
-# Set up logging
+# Set up logging with custom handler for console capture
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+# Console log buffer for admin console (keep last 1000 lines)
+console_log_buffer = deque(maxlen=1000)
+
+class ConsoleLogHandler(logging.Handler):
+    """Custom log handler to capture logs for admin console"""
+    def emit(self, record):
+        try:
+            log_entry = self.format(record)
+            console_log_buffer.append({
+                'timestamp': record.created,
+                'level': record.levelname,
+                'message': log_entry,
+                'logger': record.name
+            })
+        except Exception:
+            self.handleError(record)
+
+# Add console handler to root logger
+console_handler = ConsoleLogHandler()
+console_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+logging.getLogger().addHandler(console_handler)
 
 # Load environment variables
 load_dotenv()
@@ -2597,34 +2621,103 @@ def change_admin_password():
         flash('密碼已成功修改', 'success')
         
     except Exception as e:
-        print(f"Password change error: {e}")
-        flash('修改密碼時發生錯誤', 'error')
+        logger.error(f"Password change error: {e}")
+        flash('密碼修改失敗', 'error')
     
-    return redirect(url_for('admin_profile'))
+    return redirect(url_for('admin_config'))
 
-@app.route('/admin/config', methods=['GET', 'POST'])
+@app.route('/admin/config')
+@admin_required
 @tab_permission_required('config')
 def admin_config():
     """Admin configuration page"""
-    # Check 2FA status for super admin
-    admin_2fa_status = False
-    if session.get('admin_username') == ADMIN_USERNAME:
-        try:
-            conn = sqlite3.connect('admin_data.db')
-            cursor = conn.cursor()
-            cursor.execute('SELECT totp_enabled FROM admin_users WHERE username = ?', (ADMIN_USERNAME,))
-            result = cursor.fetchone()
-            if result:
-                admin_2fa_status = bool(result[0])
-            conn.close()
-        except Exception as e:
-            print(f"Error checking 2FA status: {e}")
-    
-    return render_template('admin/config.html', 
-                         ai_config=AI_CONFIG,
-                         whatsapp_config=WHATSAPP_CONFIG,
-                         timezone_config=TIMEZONE_CONFIG,
-                         admin_2fa_status=admin_2fa_status)
+    try:
+        # Get admin user info
+        admin_user = get_admin_user_info()
+        if not admin_user:
+            flash('管理員資訊獲取失敗', 'error')
+            return redirect(url_for('admin_login'))
+        
+        # Get all admin users for super admin
+        all_admin_users = []
+        if admin_user.get('is_super_admin'):
+            try:
+                cursor = get_db_cursor()
+                cursor.execute("SELECT id, username, email, is_super_admin, totp_enabled, tab_permissions FROM admin_users ORDER BY username")
+                all_admin_users = cursor.fetchall()
+                cursor.close()
+            except Exception as e:
+                logger.error(f"Failed to fetch admin users: {e}")
+                flash('獲取管理員列表失敗', 'error')
+        
+        return render_template('admin/config.html', 
+                             admin_user=admin_user,
+                             all_admin_users=all_admin_users)
+    except Exception as e:
+        logger.error(f"Admin config error: {e}")
+        flash('配置頁面載入失敗', 'error')
+        return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/api/console-logs')
+@admin_required
+def get_console_logs():
+    """Get console logs for super admin only"""
+    try:
+        admin_user = get_admin_user_info()
+        if not admin_user or not admin_user.get('is_super_admin'):
+            return jsonify({'error': 'Unauthorized - Super admin access required'}), 403
+        
+        # Get recent logs from buffer
+        logs = list(console_log_buffer)
+        
+        # Format logs for frontend
+        formatted_logs = []
+        for log in logs[-100:]:  # Get last 100 logs
+            formatted_logs.append({
+                'timestamp': time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(log['timestamp'])),
+                'level': log['level'],
+                'message': log['message'],
+                'logger': log['logger']
+            })
+        
+        return jsonify({'logs': formatted_logs})
+        
+    except Exception as e:
+        logger.error(f"Console logs API error: {e}")
+        return jsonify({'error': 'Failed to fetch logs'}), 500
+
+@app.route('/admin/api/console-logs/stream')
+@admin_required
+def stream_console_logs():
+    """Stream console logs via Server-Sent Events for super admin only"""
+    try:
+        admin_user = get_admin_user_info()
+        if not admin_user or not admin_user.get('is_super_admin'):
+            return jsonify({'error': 'Unauthorized - Super admin access required'}), 403
+        
+        def generate():
+            last_count = len(console_log_buffer)
+            while True:
+                current_count = len(console_log_buffer)
+                if current_count > last_count:
+                    # New logs available
+                    new_logs = list(console_log_buffer)[last_count:]
+                    for log in new_logs:
+                        formatted_log = {
+                            'timestamp': time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(log['timestamp'])),
+                            'level': log['level'],
+                            'message': log['message'],
+                            'logger': log['logger']
+                        }
+                        yield f"data: {json.dumps(formatted_log)}\n\n"
+                    last_count = current_count
+                time.sleep(1)  # Check for new logs every second
+        
+        return Response(generate(), mimetype='text/plain')
+        
+    except Exception as e:
+        logger.error(f"Console logs stream error: {e}")
+        return jsonify({'error': 'Failed to stream logs'}), 500
 
 @app.route('/admin/update-timezone', methods=['POST'])
 @login_required
