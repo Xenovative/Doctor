@@ -2656,17 +2656,53 @@ def admin_config():
         all_admin_users = []
         if admin_user.get('is_super_admin'):
             try:
-                cursor = get_db_cursor()
+                conn = sqlite3.connect('admin_data.db')
+                cursor = conn.cursor()
                 cursor.execute("SELECT id, username, email, is_super_admin, totp_enabled, tab_permissions FROM admin_users ORDER BY username")
                 all_admin_users = cursor.fetchall()
-                cursor.close()
+                conn.close()
             except Exception as e:
                 logger.error(f"Failed to fetch admin users: {e}")
                 flash('獲取管理員列表失敗', 'error')
         
+        # Get AI configuration (placeholder for now)
+        ai_config = {
+            'provider': 'openai',
+            'openai': {'api_key': '', 'model': 'gpt-4o'},
+            'openrouter': {'api_key': '', 'model': 'anthropic/claude-3.5-sonnet'},
+            'ollama': {'model': 'llama3.1:8b', 'base_url': 'http://localhost:11434/api/generate'}
+        }
+        
+        # Get timezone configuration (placeholder for now)
+        timezone_config = {'timezone': 'Asia/Hong_Kong'}
+        
+        # Get WhatsApp configuration (placeholder for now)
+        whatsapp_config = {
+            'target_number': '85294974070',
+            'socket_url': 'http://localhost:3000',
+            'api_key': ''
+        }
+        
+        # Get 2FA status for super admin
+        admin_2fa_status = False
+        if admin_user.get('username') == 'admin':
+            try:
+                conn = sqlite3.connect('admin_data.db')
+                cursor = conn.cursor()
+                cursor.execute("SELECT totp_enabled FROM admin_users WHERE username = ?", ('admin',))
+                result = cursor.fetchone()
+                admin_2fa_status = result[0] if result else False
+                conn.close()
+            except Exception as e:
+                logger.error(f"Failed to get 2FA status: {e}")
+        
         return render_template('admin/config.html', 
                              admin_user=admin_user,
-                             all_admin_users=all_admin_users)
+                             all_admin_users=all_admin_users,
+                             ai_config=ai_config,
+                             timezone_config=timezone_config,
+                             whatsapp_config=whatsapp_config,
+                             admin_2fa_status=admin_2fa_status)
     except Exception as e:
         logger.error(f"Admin config error: {e}")
         flash('配置頁面載入失敗', 'error')
