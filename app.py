@@ -1899,24 +1899,32 @@ def filter_doctors(recommended_specialty: str, language: str, location: str, sym
             doctor_copy['match_reasons'] = match_reasons
             doctor_copy['ai_analysis'] = ai_analysis
             
-            # 添加地理相關性排序權重 (使用已定義的變量)
+            # 添加地理相關性排序權重 (重新計算以確保準確性)
             location_priority = 0
-            if user_area and safe_str_check(doctor_address, user_area):
-                location_priority = 4  # 最高優先級：精確地區匹配
-            elif user_district and user_district in district_keywords:
-                keywords = district_keywords[user_district]
-                for keyword in keywords:
-                    if safe_str_check(doctor_address, keyword):
-                        location_priority = 3  # 第二優先級：地區匹配
-                        break
-            elif user_region:
-                # 大區匹配
-                if ((user_region == '香港島' and any(safe_str_check(doctor_address, keyword) for keyword in ['香港', '中環', '灣仔', '銅鑼灣', '上環', '西環', '天后', '北角', '鰂魚涌', '柴灣', '筲箕灣', '香港仔'])) or
-                    (user_region == '九龍' and any(safe_str_check(doctor_address, keyword) for keyword in ['九龍', '旺角', '尖沙咀', '油麻地', '佐敦', '深水埗', '觀塘', '黃大仙', '土瓜灣', '紅磡', '藍田', '彩虹', '牛頭角'])) or
-                    (user_region == '新界' and any(safe_str_check(doctor_address, keyword) for keyword in ['新界', '沙田', '大埔', '元朗', '屯門', '荃灣', '將軍澳', '粉嶺', '上水', '葵涌', '青衣', '馬鞍山', '天水圍']))):
-                    location_priority = 2  # 第三優先級：大區匹配
-            elif location and safe_str_check(doctor_address, location):
-                location_priority = 1  # 最低優先級：關鍵詞匹配
+            
+            # 檢查是否已經在location matching中匹配到位置
+            if location_matched:
+                # 根據已有的location matching結果設置優先級
+                if user_area and safe_str_check(doctor_address, user_area):
+                    location_priority = 4  # 最高優先級：精確地區匹配
+                elif user_district and user_district in district_keywords:
+                    keywords = district_keywords[user_district]
+                    for keyword in keywords:
+                        if safe_str_check(doctor_address, keyword):
+                            location_priority = 3  # 第二優先級：地區匹配
+                            break
+                elif user_region:
+                    # 大區匹配
+                    if ((user_region == '香港島' and any(safe_str_check(doctor_address, keyword) for keyword in ['香港', '中環', '灣仔', '銅鑼灣', '上環', '西環', '天后', '北角', '鰂魚涌', '柴灣', '筲箕灣', '香港仔'])) or
+                        (user_region == '九龍' and any(safe_str_check(doctor_address, keyword) for keyword in ['九龍', '旺角', '尖沙咀', '油麻地', '佐敦', '深水埗', '觀塘', '黃大仙', '土瓜灣', '紅磡', '藍田', '彩虹', '牛頭角'])) or
+                        (user_region == '新界' and any(safe_str_check(doctor_address, keyword) for keyword in ['新界', '沙田', '大埔', '元朗', '屯門', '荃灣', '將軍澳', '粉嶺', '上水', '葵涌', '青衣', '馬鞍山', '天水圍']))):
+                        location_priority = 2  # 第三優先級：大區匹配
+                elif location and safe_str_check(doctor_address, location):
+                    location_priority = 1  # 最低優先級：關鍵詞匹配
+            
+            # Debug: 顯示location priority計算
+            if len(matched_doctors) < 3:
+                print(f"DEBUG - Doctor {doctor.get('name_zh', 'Unknown')}: location_matched={location_matched}, location_priority={location_priority}")
             
             doctor_copy['location_priority'] = location_priority
             matched_doctors.append(doctor_copy)
@@ -1925,6 +1933,11 @@ def filter_doctors(recommended_specialty: str, language: str, location: str, sym
     
     # 按地理相關性優先排序，然後按匹配分數排序
     matched_doctors.sort(key=lambda x: (x['location_priority'], x['match_score']), reverse=True)
+    
+    # Debug: 顯示前5個醫生的地理優先級和分數
+    print(f"DEBUG - Top 5 doctors after sorting:")
+    for i, doctor in enumerate(matched_doctors[:5]):
+        print(f"  {i+1}. {doctor.get('name_zh', 'Unknown')} - Priority: {doctor.get('location_priority', 0)}, Score: {doctor.get('match_score', 0)}, Address: {doctor.get('clinic_addresses', '')[:50]}...")
     
     # 總是添加該地區的普通科/內科醫生作為選項，讓用戶有更多選擇
     print(f"DEBUG - Adding regional GP/internist options. Current matches: {len(matched_doctors)}")
