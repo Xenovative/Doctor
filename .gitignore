@@ -6,7 +6,12 @@
 *.db
 *.sqlite
 *.sqlite3
+# Database backups (all formats)
+*.db_backup_*
 *.db.backup*
+*_backup_*.db
+admin_data.db_backup_*
+doctors.db_backup_*
 admin_data.db.backup_*
 doctors.db.backup_*
 # Python cache
