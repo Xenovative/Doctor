@@ -638,6 +638,9 @@ document.addEventListener('DOMContentLoaded', function() {
         results.style.display = 'none';
 
         try {
+            // Debug logging
+            console.log('Sending formData:', formData);
+            
             // 發送請求到後端
             const response = await fetch('/find_doctor', {
                 method: 'POST',
@@ -648,7 +651,16 @@ document.addEventListener('DOMContentLoaded', function() {
             });
 
             if (!response.ok) {
-                throw new Error('網絡請求失敗');
+                // Try to get the error message from the server
+                let errorMessage = '網絡請求失敗';
+                try {
+                    const errorData = await response.json();
+                    errorMessage = errorData.error || errorMessage;
+                } catch (e) {
+                    // If we can't parse the error response, use the default message
+                }
+                console.error('Server error:', response.status, errorMessage);
+                throw new Error(errorMessage);
             }
 
             const data = await response.json();

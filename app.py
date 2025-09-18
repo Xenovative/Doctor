@@ -2312,6 +2312,9 @@ def find_doctor():
         data = request.get_json()
         if not data:
             return jsonify({'error': '無效的請求數據'}), 400
+        
+        # Debug logging
+        logger.info(f"Received find_doctor request with data keys: {list(data.keys())}")
             
         age = int(data.get('age', 0))
         gender = data.get('gender', '')
@@ -2324,8 +2327,16 @@ def find_doctor():
         ui_language = data.get('uiLanguage', 'zh-TW')  # Get UI language for diagnosis
         
         # 驗證輸入 - gender is optional for backward compatibility
-        if not all([age, symptoms, language, location]):
-            return jsonify({'error': '請填寫所有必要資料'}), 400
+        if not symptoms or not language or not location or age <= 0:
+            missing_fields = []
+            if age <= 0: missing_fields.append('年齡')
+            if not symptoms: missing_fields.append('症狀')
+            if not language: missing_fields.append('語言')
+            if not location: missing_fields.append('地區')
+            
+            error_msg = f'請填寫所有必要資料: {", ".join(missing_fields)}'
+            logger.warning(f"Validation failed: {error_msg}")
+            return jsonify({'error': error_msg}), 400
         
         # Set session language for diagnosis
         session['language'] = ui_language
