@@ -2,6 +2,17 @@
 """
 Database Structure Fix Script for AI Hong Kong Medical Matching System
 This script fixes all database structure issues in one go.
+
+Recent Updates:
+- Added tab_permissions column to admin_users table with default permissions
+- Added severe_cases table for monitoring critical medical cases
+- Added bug_reports table for issue tracking
+- Added gender and priority columns to user_queries table
+- Added diagnosis_report column to user_queries table
+- Updated all indexes for better performance
+- Includes comprehensive verification of all tables and columns
+
+This script is safe to run multiple times and will only add missing components.
 """
 
 import sqlite3
@@ -165,17 +176,24 @@ def fix_admin_data_db():
             )
         ''')
         
-        # Check if diagnosis_report column exists in user_queries
+        # Check for missing columns in user_queries
         cursor.execute("PRAGMA table_info(user_queries)")
         columns = [row[1] for row in cursor.fetchall()]
         
-        if 'diagnosis_report' not in columns:
-            try:
-                cursor.execute("ALTER TABLE user_queries ADD COLUMN diagnosis_report TEXT")
-                print("✅ Added diagnosis_report column to user_queries")
-            except sqlite3.OperationalError as e:
-                if "duplicate column name" not in str(e):
-                    print(f"⚠️  Warning adding diagnosis_report column: {e}")
+        user_queries_required_columns = {
+            'diagnosis_report': 'TEXT',
+            'gender': 'TEXT',
+            'priority': 'TEXT DEFAULT "normal"'
+        }
+        
+        for column, column_type in user_queries_required_columns.items():
+            if column not in columns:
+                try:
+                    cursor.execute(f"ALTER TABLE user_queries ADD COLUMN {column} {column_type}")
+                    print(f"✅ Added {column} column to user_queries")
+                except sqlite3.OperationalError as e:
+                    if "duplicate column name" not in str(e):
+                        print(f"⚠️  Warning adding {column} column: {e}")
         
         # Doctor clicks table
         cursor.execute('''
@@ -227,7 +245,8 @@ def fix_admin_data_db():
         admin_required_columns = {
             'totp_secret': 'TEXT',
             'totp_enabled': 'BOOLEAN DEFAULT 0',
-            'backup_codes': 'TEXT'
+            'backup_codes': 'TEXT',
+            'tab_permissions': 'TEXT DEFAULT NULL'
         }
         
         for column, column_type in admin_required_columns.items():
@@ -239,6 +258,31 @@ def fix_admin_data_db():
                     if "duplicate column name" not in str(e):
                         print(f"⚠️  Warning adding {column} column: {e}")
         
+        # Set default tab permissions for users who don't have them
+        import json
+        default_tab_permissions = {
+            "dashboard": True,
+            "analytics": True,
+            "config": True,
+            "doctors": True,
+            "users": True,
+            "bug_reports": True,
+            "severe_cases": True
+        }
+        
+        try:
+            cursor.execute('SELECT id FROM admin_users WHERE tab_permissions IS NULL OR tab_permissions = ""')
+            users_without_permissions = cursor.fetchall()
+            
+            if users_without_permissions:
+                default_permissions_json = json.dumps(default_tab_permissions)
+                for (user_id,) in users_without_permissions:
+                    cursor.execute('UPDATE admin_users SET tab_permissions = ? WHERE id = ?', 
+                                 (default_permissions_json, user_id))
+                print(f"✅ Set default tab permissions for {len(users_without_permissions)} users")
+        except Exception as e:
+            print(f"⚠️  Warning setting default tab permissions: {e}")
+        
         # Admin config table
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS admin_config (
@@ -249,15 +293,57 @@ def fix_admin_data_db():
             )
         ''')
         
+        # Severe cases table for monitoring critical medical cases
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS severe_cases (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_query_id INTEGER,
+                age INTEGER,
+                gender TEXT,
+                symptoms TEXT,
+                chronic_conditions TEXT,
+                severe_symptoms TEXT,
+                severe_conditions TEXT,
+                user_ip TEXT,
+                session_id TEXT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                admin_reviewed BOOLEAN DEFAULT 0,
+                admin_notes TEXT,
+                user_acknowledged BOOLEAN DEFAULT 0,
+                FOREIGN KEY (user_query_id) REFERENCES user_queries (id)
+            )
+        ''')
+        
+        # Bug reports table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS bug_reports (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                description TEXT NOT NULL,
+                contact_info TEXT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                url TEXT,
+                user_agent TEXT,
+                status TEXT DEFAULT 'open',
+                image_path TEXT
+            )
+        ''')
+        
         # Create indexes for better performance
         indexes = [
             "CREATE INDEX IF NOT EXISTS idx_analytics_timestamp ON analytics(timestamp)",
             "CREATE INDEX IF NOT EXISTS idx_analytics_event_type ON analytics(event_type)",
             "CREATE INDEX IF NOT EXISTS idx_user_queries_timestamp ON user_queries(timestamp)",
             "CREATE INDEX IF NOT EXISTS idx_user_queries_ip ON user_queries(user_ip)",
+            "CREATE INDEX IF NOT EXISTS idx_user_queries_gender ON user_queries(gender)",
+            "CREATE INDEX IF NOT EXISTS idx_user_queries_priority ON user_queries(priority)",
             "CREATE INDEX IF NOT EXISTS idx_doctor_clicks_timestamp ON doctor_clicks(timestamp)",
             "CREATE INDEX IF NOT EXISTS idx_system_config_key ON system_config(config_key)",
-            "CREATE INDEX IF NOT EXISTS idx_admin_config_key ON admin_config(key)"
+            "CREATE INDEX IF NOT EXISTS idx_admin_config_key ON admin_config(key)",
+            "CREATE INDEX IF NOT EXISTS idx_severe_cases_timestamp ON severe_cases(timestamp)",
+            "CREATE INDEX IF NOT EXISTS idx_severe_cases_user_query ON severe_cases(user_query_id)",
+            "CREATE INDEX IF NOT EXISTS idx_severe_cases_reviewed ON severe_cases(admin_reviewed)",
+            "CREATE INDEX IF NOT EXISTS idx_bug_reports_timestamp ON bug_reports(timestamp)",
+            "CREATE INDEX IF NOT EXISTS idx_bug_reports_status ON bug_reports(status)"
         ]
         
         for index_sql in indexes:
@@ -303,7 +389,7 @@ def verify_database_structure():
         cursor = conn.cursor()
         
         # Check all required tables
-        required_tables = ['analytics', 'user_queries', 'doctor_clicks', 'system_config', 'admin_users', 'admin_config']
+        required_tables = ['analytics', 'user_queries', 'doctor_clicks', 'system_config', 'admin_users', 'admin_config', 'severe_cases', 'bug_reports']
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
         existing_tables = [row[0] for row in cursor.fetchall()]
         
@@ -314,6 +400,36 @@ def verify_database_structure():
                 print(f"✅ {table}: {count} records")
             else:
                 print(f"❌ Missing table: {table}")
+        
+        # Verify critical columns exist
+        print("\n--- Verifying Critical Columns ---")
+        
+        # Check user_queries columns
+        cursor.execute("PRAGMA table_info(user_queries)")
+        user_queries_columns = [row[1] for row in cursor.fetchall()]
+        required_user_queries_columns = ['diagnosis_report', 'gender', 'priority']
+        for col in required_user_queries_columns:
+            if col in user_queries_columns:
+                print(f"✅ user_queries.{col} exists")
+            else:
+                print(f"❌ user_queries.{col} missing")
+        
+        # Check admin_users columns
+        cursor.execute("PRAGMA table_info(admin_users)")
+        admin_users_columns = [row[1] for row in cursor.fetchall()]
+        required_admin_columns = ['totp_secret', 'totp_enabled', 'backup_codes', 'tab_permissions']
+        for col in required_admin_columns:
+            if col in admin_users_columns:
+                print(f"✅ admin_users.{col} exists")
+            else:
+                print(f"❌ admin_users.{col} missing")
+        
+        # Check if users have tab_permissions set
+        cursor.execute('SELECT COUNT(*) FROM admin_users WHERE tab_permissions IS NOT NULL AND tab_permissions != ""')
+        users_with_permissions = cursor.fetchone()[0]
+        cursor.execute('SELECT COUNT(*) FROM admin_users')
+        total_users = cursor.fetchone()[0]
+        print(f"✅ Tab permissions: {users_with_permissions}/{total_users} users have permissions set")
         
         conn.close()
     except Exception as e:
