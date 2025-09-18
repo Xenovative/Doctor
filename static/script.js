@@ -648,6 +648,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 location: formData.location
             });
             
+            // Validate required fields before sending
+            if (!formData.age || formData.age <= 0) {
+                throw new Error('年齡是必填項目且必須大於0');
+            }
+            if (!formData.symptoms || formData.symptoms.trim() === '') {
+                throw new Error('症狀是必填項目');
+            }
+            if (!formData.language || formData.language.trim() === '') {
+                throw new Error('語言是必填項目');
+            }
+            if (!formData.location || formData.location.trim() === '') {
+                throw new Error('地區是必填項目');
+            }
+            
             // 發送請求到後端
             const response = await fetch('/find_doctor', {
                 method: 'POST',
@@ -660,11 +674,16 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!response.ok) {
                 // Try to get the error message from the server
                 let errorMessage = '網絡請求失敗';
+                let responseText = '';
                 try {
-                    const errorData = await response.json();
+                    responseText = await response.text();
+                    console.log('Raw server response:', responseText);
+                    const errorData = JSON.parse(responseText);
                     errorMessage = errorData.error || errorMessage;
                 } catch (e) {
-                    // If we can't parse the error response, use the default message
+                    console.error('Could not parse server error response:', e);
+                    console.log('Raw response text:', responseText);
+                    errorMessage = `服務器錯誤 (${response.status}): ${responseText || '未知錯誤'}`;
                 }
                 console.error('Server error:', response.status, errorMessage);
                 throw new Error(errorMessage);

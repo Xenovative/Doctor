@@ -2404,8 +2404,13 @@ def find_doctor():
         })
         
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        logger.error(f"處理請求時發生錯誤: {e}")
+        logger.error(f"錯誤詳情: {error_details}")
         print(f"處理請求時發生錯誤: {e}")
-        return jsonify({'error': '服務器內部錯誤'}), 500
+        print(f"錯誤詳情: {error_details}")
+        return jsonify({'error': f'服務器內部錯誤: {str(e)}'}), 500
 
 @app.route('/health')
 def health_check():

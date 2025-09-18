@@ -70,7 +70,9 @@ class SevereWarningSystem {
     }
     
     showWarning(warningData, formData, onProceedCallback) {
-        this.pendingFormData = formData;
+        console.log('Severe warning: storing formData:', formData);
+        // Deep copy the formData to avoid reference issues
+        this.pendingFormData = JSON.parse(JSON.stringify(formData));
         this.onProceedCallback = onProceedCallback;
         
         // Update modal content
@@ -185,6 +187,7 @@ class SevereWarningSystem {
         if (this.pendingFormData) {
             // Log that user proceeded despite warning
             console.log('User proceeded with diagnosis despite severe symptoms warning');
+            console.log('Severe warning: passing formData:', this.pendingFormData);
             
             // Close modal
             this.closeModal();
