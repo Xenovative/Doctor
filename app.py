@@ -2264,6 +2264,9 @@ def check_severe_symptoms():
     """檢查是否有嚴重症狀或病史，返回警告信息"""
     try:
         data = request.get_json()
+        if not data:
+            return jsonify({'error': '無效的請求數據'}), 400
+            
         symptoms = data.get('symptoms', '')
         chronic_conditions = data.get('chronicConditions', '')
         
@@ -2307,6 +2310,9 @@ def find_doctor():
     """處理醫生搜索請求"""
     try:
         data = request.get_json()
+        if not data:
+            return jsonify({'error': '無效的請求數據'}), 400
+            
         age = int(data.get('age', 0))
         gender = data.get('gender', '')
         symptoms = data.get('symptoms', '')
