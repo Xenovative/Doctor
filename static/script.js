@@ -685,6 +685,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // Make proceedWithDiagnosis globally accessible for severe warning system
+    window.proceedWithDiagnosis = proceedWithDiagnosis;
+
     function showValidationError(data) {
         results.style.display = 'block';
         doctorList.innerHTML = '';

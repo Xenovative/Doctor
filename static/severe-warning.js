@@ -182,15 +182,20 @@ class SevereWarningSystem {
     }
     
     proceedWithDiagnosis() {
-        if (this.onProceedCallback && this.pendingFormData) {
+        if (this.pendingFormData) {
             // Log that user proceeded despite warning
             console.log('User proceeded with diagnosis despite severe symptoms warning');
             
             // Close modal
             this.closeModal();
             
-            // Execute the original diagnosis request
-            this.onProceedCallback(this.pendingFormData);
+            // Execute the original diagnosis request using the global function
+            if (window.proceedWithDiagnosis) {
+                window.proceedWithDiagnosis(this.pendingFormData);
+            } else if (this.onProceedCallback) {
+                // Fallback to callback if global function not available
+                this.onProceedCallback(this.pendingFormData);
+            }
         }
     }
     
