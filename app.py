@@ -932,7 +932,8 @@ def tab_permission_required(tab_name):
                                 "config": True,
                                 "doctors": True,
                                 "users": True,
-                                "bug_reports": True
+                                "bug_reports": True,
+                                "severe_cases": True
                             }
                         session['admin_tab_permissions'] = tab_permissions
                     except Exception as e:
@@ -944,7 +945,8 @@ def tab_permission_required(tab_name):
                             "config": True,
                             "doctors": True,
                             "users": True,
-                            "bug_reports": True
+                            "bug_reports": True,
+                            "severe_cases": True
                         }
                         session['admin_tab_permissions'] = tab_permissions
                 else:
@@ -2550,7 +2552,8 @@ def admin_login():
                                 "config": True,
                                 "doctors": True,
                                 "users": True,
-                                "bug_reports": True
+                                "bug_reports": True,
+                                "severe_cases": True
                             }
                         
                         # Handle remember me for 2FA
@@ -2663,7 +2666,8 @@ def admin_login():
                     "config": True,
                     "doctors": True,
                     "users": True,
-                    "bug_reports": True
+                    "bug_reports": True,
+                    "severe_cases": True
                 }
             
             # Handle remember me functionality
@@ -2761,7 +2765,8 @@ def admin_login():
                 "config": True,
                 "doctors": True,
                 "users": True,
-                "bug_reports": True
+                "bug_reports": True,
+                "severe_cases": True
             }
             
             # Handle remember me functionality for super admin
@@ -3021,7 +3026,7 @@ def admin_analytics():
                              doctor_clicks=[])
 
 @app.route('/admin/severe-cases')
-@tab_permission_required('analytics')
+@tab_permission_required('severe_cases')
 def admin_severe_cases():
     """Severe cases monitoring page"""
     try:
@@ -3134,7 +3139,7 @@ def admin_severe_cases():
                              top_conditions=[])
 
 @app.route('/admin/severe-cases/<int:case_id>/review', methods=['POST'])
-@tab_permission_required('analytics')
+@tab_permission_required('severe_cases')
 def review_severe_case(case_id):
     """Mark severe case as reviewed and add admin notes"""
     try:
@@ -3834,7 +3839,8 @@ def create_admin_user():
             "config": True,
             "doctors": True,
             "users": True,
-            "bug_reports": True
+            "bug_reports": True,
+            "severe_cases": True
         }
         
         try:
@@ -3918,7 +3924,8 @@ def get_user_permissions():
                 "config": True,
                 "doctors": True,
                 "users": True,
-                "bug_reports": True
+                "bug_reports": True,
+                "severe_cases": True
             }
             
             user_data = {
@@ -3956,7 +3963,7 @@ def update_user_permissions():
             return jsonify({'error': 'Missing required parameters'}), 400
         
         # Valid permissions
-        valid_permissions = ['dashboard', 'analytics', 'config', 'doctors', 'users', 'bug_reports']
+        valid_permissions = ['dashboard', 'analytics', 'config', 'doctors', 'users', 'bug_reports', 'severe_cases']
         if permission not in valid_permissions:
             return jsonify({'error': 'Invalid permission'}), 400
         

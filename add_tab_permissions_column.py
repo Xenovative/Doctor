@@ -31,7 +31,8 @@ DEFAULT_TAB_PERMISSIONS = {
     "config": True,
     "doctors": True,
     "users": True,
-    "bug_reports": True
+    "bug_reports": True,
+    "severe_cases": True
 }
 
 def backup_database():
