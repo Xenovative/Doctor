@@ -171,6 +171,88 @@ AI_CONFIG = {
     }
 }
 
+# 嚴重症狀和病史配置 - Severe Symptoms and Conditions Configuration
+SEVERE_SYMPTOMS_CONFIG = {
+    'severe_symptoms': [
+        # 心血管緊急症狀
+        '胸痛', '胸悶', '心絞痛', '心臟病發作', '心肌梗塞', '心律不整', '心跳過快', '心跳過慢',
+        '嚴重心悸', '胸部劇痛', '左臂疼痛', '下顎疼痛', '冷汗', '心臟停止',
+        
+        # 呼吸系統緊急症狀
+        '呼吸困難', '氣喘', '呼吸急促', '無法呼吸', '窒息', '咳血', '大量咳血', '呼吸停止',
+        '嚴重氣喘', '肺水腫', '肺栓塞', '氣胸', '呼吸衰竭',
+        
+        # 神經系統緊急症狀
+        '中風', '腦中風', '半身不遂', '言語不清', '突然失語', '面部麻痺', '肢體麻痺',
+        '嚴重頭痛', '劇烈頭痛', '突發性頭痛', '意識不清', '昏迷', '癲癇', '抽搐',
+        '視力突然模糊', '突然失明', '複視', '眩暈', '平衡失調',
+        
+        # 消化系統緊急症狀
+        '嘔血', '大量嘔血', '黑便', '血便', '大量出血', '腹部劇痛', '急性腹痛',
+        '腸阻塞', '腹膜炎', '急性胰臟炎', '膽囊炎', '闌尾炎',
+        
+        # 泌尿生殖系統緊急症狀
+        '血尿', '無法排尿', '尿瀦留', '腎絞痛', '急性腎衰竭', '陰道大出血',
+        '產後大出血', '異位妊娠', '流產', '早產',
+        
+        # 外傷和中毒
+        '大出血', '骨折', '脫臼', '燒傷', '電擊傷', '中毒', '藥物中毒', '食物中毒',
+        '一氧化碳中毒', '化學品中毒', '過敏性休克', '嚴重過敏反應',
+        
+        # 精神科緊急症狀
+        '自殺念頭', '自殺企圖', '自殺行為', '自殘', '暴力行為', '精神病發作',
+        '嚴重憂鬱', '躁鬱症發作', '幻覺', '妄想',
+        
+        # 其他緊急症狀
+        '高燒', '體溫過高', '體溫過低', '脫水', '休克', '敗血症', '感染性休克',
+        '嚴重感染', '免疫系統衰竭', '器官衰竭', '多重器官衰竭'
+    ],
+    
+    'severe_conditions': [
+        # 心血管疾病
+        '心臟病', '冠心病', '心肌梗塞', '心絞痛', '心律不整', '心臟衰竭', '主動脈瘤',
+        '高血壓危象', '惡性高血壓', '心內膜炎', '心肌炎', '心包炎',
+        
+        # 癌症
+        '癌症', '惡性腫瘤', '白血病', '淋巴癌', '肺癌', '肝癌', '胃癌', '大腸癌',
+        '乳癌', '前列腺癌', '子宮須癌', '卵巢癌', '腦瘤', '骨癌', '皮膚癌',
+        '胰臟癌', '腎癌', '膀胱癌', '食道癌', '甲狀腺癌',
+        
+        # 神經系統疾病
+        '中風', '腦中風', '腦出血', '腦梗塞', '腦瘤', '腦炎', '腦膜炎',
+        '帕金森病', '阿茲海默症', '失智症', '多發性硬化症', '肌萎縮性側索硬化症',
+        '癲癇', '重症肌無力', '腦性麻痺',
+        
+        # 呼吸系統疾病
+        '肺癌', '肺纖維化', '慢性阻塞性肺病', '肺氣腫', '肺炎', '肺結核',
+        '氣喘', '肺栓塞', '肺水腫', '呼吸衰竭', '睡眠呼吸中止症',
+        
+        # 消化系統疾病
+        '肝硬化', '肝癌', '肝炎', '胰臟炎', '胰臟癌', '胃癌', '大腸癌',
+        '克隆氏症', '潰瘍性結腸炎', '胃潰瘍', '十二指腸潰瘍',
+        
+        # 腎臟疾病
+        '腎衰竭', '慢性腎病', '腎癌', '腎結石', '腎炎', '腎病症候群',
+        '多囊腎', '腎移植', '洗腎', '血液透析', '腹膜透析',
+        
+        # 內分泌疾病
+        '糖尿病', '甲狀腺癌', '甲狀腺機能亢進', '甲狀腺機能低下',
+        '腎上腺疾病', '垂體瘤', '糖尿病酮酸中毒', '低血糖昏迷',
+        
+        # 血液疾病
+        '白血病', '淋巴癌', '貧血', '血友病', '血小板減少症',
+        '骨髓移植', '地中海貧血', '鐮刀型貧血',
+        
+        # 免疫系統疾病
+        '愛滋病', 'HIV', '紅斑性狼瘡', '類風濕性關節炎', '硬皮症',
+        '多發性肌炎', '免疫缺陷', '器官移植', '免疫抑制治療',
+        
+        # 精神疾病
+        '重度憂鬱症', '躁鬱症', '精神分裂症', '自閉症', '注意力不足過動症',
+        '創傷後壓力症候群', '強迫症', '恐慌症', '焦慮症', '人格障礙'
+    ]
+}
+
 # 載入醫生資料
 def load_doctors_data():
     """載入醫生資料 - 從SQLite數據庫"""
@@ -520,6 +602,75 @@ def get_current_time():
     """Get current time in Hong Kong timezone"""
     hk_tz = pytz.timezone('Asia/Hong_Kong')
     return datetime.now(hk_tz)
+
+def detect_severe_symptoms_and_conditions(symptoms, chronic_conditions):
+    """
+    檢測嚴重症狀和病史，返回檢測結果
+    Detect severe symptoms and conditions, return detection results
+    """
+    severe_symptoms_found = []
+    severe_conditions_found = []
+    
+    # 將輸入轉換為小寫以便比較
+    symptoms_lower = symptoms.lower() if symptoms else ""
+    conditions_lower = chronic_conditions.lower() if chronic_conditions else ""
+    
+    # 檢測嚴重症狀
+    for severe_symptom in SEVERE_SYMPTOMS_CONFIG['severe_symptoms']:
+        if severe_symptom.lower() in symptoms_lower:
+            severe_symptoms_found.append(severe_symptom)
+    
+    # 檢測嚴重病史
+    for severe_condition in SEVERE_SYMPTOMS_CONFIG['severe_conditions']:
+        if severe_condition.lower() in conditions_lower:
+            severe_conditions_found.append(severe_condition)
+    
+    # 判斷是否需要顯示警告
+    is_severe_case = len(severe_symptoms_found) > 0 or len(severe_conditions_found) > 0
+    
+    return {
+        'is_severe': is_severe_case,
+        'severe_symptoms': severe_symptoms_found,
+        'severe_conditions': severe_conditions_found,
+        'total_severe_items': len(severe_symptoms_found) + len(severe_conditions_found)
+    }
+
+def log_severe_case(user_query_id, age, gender, symptoms, chronic_conditions, 
+                   severe_symptoms, severe_conditions, user_ip, session_id):
+    """
+    記錄嚴重病例到數據庫
+    Log severe case to database for admin monitoring
+    """
+    try:
+        conn = sqlite3.connect('admin_data.db')
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            INSERT INTO severe_cases 
+            (user_query_id, age, gender, symptoms, chronic_conditions, 
+             severe_symptoms, severe_conditions, user_ip, session_id, timestamp)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            user_query_id, age, gender, symptoms, chronic_conditions,
+            json.dumps(severe_symptoms, ensure_ascii=False),
+            json.dumps(severe_conditions, ensure_ascii=False),
+            user_ip, session_id, get_current_time().isoformat()
+        ))
+        
+        severe_case_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        
+        # 記錄到日誌
+        logger.warning(f"Severe case detected and logged - ID: {severe_case_id}, "
+                      f"Symptoms: {len(severe_symptoms)}, Conditions: {len(severe_conditions)}, "
+                      f"Session: {session_id}")
+        
+        return severe_case_id
+        
+    except Exception as e:
+        logger.error(f"Error logging severe case: {e}")
+        return None
 
 # 2FA Helper Functions
 def generate_totp_secret():
@@ -2108,6 +2259,49 @@ def index():
                  get_real_ip(), request.user_agent.string, session.get('session_id'))
     return render_template('index.html', current_lang=current_lang, translations=TRANSLATIONS.get(current_lang, TRANSLATIONS['zh-TW']))
 
+@app.route('/check_severe_symptoms', methods=['POST'])
+def check_severe_symptoms():
+    """檢查是否有嚴重症狀或病史，返回警告信息"""
+    try:
+        data = request.get_json()
+        symptoms = data.get('symptoms', '')
+        chronic_conditions = data.get('chronicConditions', '')
+        
+        # 檢測嚴重症狀和病史
+        detection_result = detect_severe_symptoms_and_conditions(symptoms, chronic_conditions)
+        
+        if detection_result['is_severe']:
+            # 構建警告消息
+            warning_message = {
+                'title': '⚠️ 重要醫療警告',
+                'message': '根據您提供的症狀和病史，我們強烈建議您：',
+                'recommendations': [
+                    '🚨 立即前往最近的急診室或醫院',
+                    '📞 撥打999緊急服務熱線',
+                    '🏥 尋求專業醫療人員的即時協助',
+                    '⏰ 請勿延遲，時間可能非常關鍵'
+                ],
+                'disclaimer': '此系統僅供參考，不能替代專業醫療診斷。對於嚴重或緊急的醫療狀況，請立即尋求專業醫療協助。',
+                'severe_items': {
+                    'symptoms': detection_result['severe_symptoms'],
+                    'conditions': detection_result['severe_conditions']
+                }
+            }
+            
+            return jsonify({
+                'is_severe': True,
+                'warning': warning_message
+            })
+        else:
+            return jsonify({
+                'is_severe': False,
+                'warning': None
+            })
+            
+    except Exception as e:
+        logger.error(f"Error checking severe symptoms: {e}")
+        return jsonify({'error': '檢查過程中發生錯誤'}), 500
+
 @app.route('/find_doctor', methods=['POST'])
 def find_doctor():
     """處理醫生搜索請求"""
@@ -2155,6 +2349,17 @@ def find_doctor():
             session['last_query_id'] = query_id
             conn.commit()
             conn.close()
+            
+            # Check for severe symptoms and log if found
+            detection_result = detect_severe_symptoms_and_conditions(symptoms, chronic_conditions)
+            if detection_result['is_severe']:
+                severe_case_id = log_severe_case(
+                    query_id, age, gender_safe, symptoms, chronic_conditions,
+                    detection_result['severe_symptoms'], detection_result['severe_conditions'],
+                    get_real_ip(), session_id
+                )
+                session['severe_case_id'] = severe_case_id
+                
         except Exception as e:
             print(f"Database logging error: {e}")
         
@@ -2766,6 +2971,147 @@ def admin_analytics():
                              gender_stats=[],
                              location_stats=[],
                              doctor_clicks=[])
+
+@app.route('/admin/severe-cases')
+@tab_permission_required('analytics')
+def admin_severe_cases():
+    """Severe cases monitoring page"""
+    try:
+        conn = sqlite3.connect('admin_data.db')
+        cursor = conn.cursor()
+        
+        # Get severe cases with user query details
+        cursor.execute('''
+            SELECT sc.id, sc.age, sc.gender, sc.symptoms, sc.chronic_conditions,
+                   sc.severe_symptoms, sc.severe_conditions, sc.user_ip, 
+                   sc.timestamp, sc.user_acknowledged, sc.admin_reviewed, sc.admin_notes,
+                   uq.ai_diagnosis, uq.recommended_specialty, uq.matched_doctors_count
+            FROM severe_cases sc
+            LEFT JOIN user_queries uq ON sc.user_query_id = uq.id
+            ORDER BY sc.timestamp DESC
+            LIMIT 100
+        ''')
+        severe_cases = cursor.fetchall()
+        
+        # Get statistics
+        cursor.execute('SELECT COUNT(*) FROM severe_cases')
+        total_cases = cursor.fetchone()[0]
+        
+        cursor.execute('SELECT COUNT(*) FROM severe_cases WHERE admin_reviewed = 1')
+        reviewed_cases = cursor.fetchone()[0]
+        
+        cursor.execute('SELECT COUNT(*) FROM severe_cases WHERE user_acknowledged = 1')
+        acknowledged_cases = cursor.fetchone()[0]
+        
+        # Get recent cases (last 24 hours)
+        cursor.execute('''
+            SELECT COUNT(*) FROM severe_cases 
+            WHERE datetime(timestamp) > datetime('now', '-1 day')
+        ''')
+        recent_cases = cursor.fetchone()[0]
+        
+        # Get top severe symptoms
+        cursor.execute('''
+            SELECT severe_symptoms, COUNT(*) as count
+            FROM severe_cases
+            WHERE severe_symptoms != '[]'
+            GROUP BY severe_symptoms
+            ORDER BY count DESC
+            LIMIT 10
+        ''')
+        top_symptoms = cursor.fetchall()
+        
+        # Get top severe conditions
+        cursor.execute('''
+            SELECT severe_conditions, COUNT(*) as count
+            FROM severe_cases
+            WHERE severe_conditions != '[]'
+            GROUP BY severe_conditions
+            ORDER BY count DESC
+            LIMIT 10
+        ''')
+        top_conditions = cursor.fetchall()
+        
+        conn.close()
+        
+        # Process the data for display
+        processed_cases = []
+        for case in severe_cases:
+            try:
+                severe_symptoms = json.loads(case[5]) if case[5] else []
+                severe_conditions = json.loads(case[6]) if case[6] else []
+            except:
+                severe_symptoms = []
+                severe_conditions = []
+            
+            processed_cases.append({
+                'id': case[0],
+                'age': case[1],
+                'gender': case[2],
+                'symptoms': case[3],
+                'chronic_conditions': case[4],
+                'severe_symptoms': severe_symptoms,
+                'severe_conditions': severe_conditions,
+                'user_ip': case[7],
+                'timestamp': case[8],
+                'user_acknowledged': case[9],
+                'admin_reviewed': case[10],
+                'admin_notes': case[11],
+                'ai_diagnosis': case[12],
+                'recommended_specialty': case[13],
+                'matched_doctors_count': case[14]
+            })
+        
+        stats = {
+            'total_cases': total_cases,
+            'reviewed_cases': reviewed_cases,
+            'acknowledged_cases': acknowledged_cases,
+            'recent_cases': recent_cases,
+            'review_rate': round((reviewed_cases / total_cases * 100) if total_cases > 0 else 0, 1)
+        }
+        
+        return render_template('admin/severe-cases.html', 
+                             severe_cases=processed_cases,
+                             stats=stats,
+                             top_symptoms=top_symptoms,
+                             top_conditions=top_conditions)
+                             
+    except Exception as e:
+        logger.error(f"Severe cases page error: {e}")
+        flash('載入嚴重病例數據時發生錯誤', 'error')
+        return render_template('admin/severe-cases.html', 
+                             severe_cases=[],
+                             stats={'total_cases': 0, 'reviewed_cases': 0, 'acknowledged_cases': 0, 'recent_cases': 0, 'review_rate': 0},
+                             top_symptoms=[],
+                             top_conditions=[])
+
+@app.route('/admin/severe-cases/<int:case_id>/review', methods=['POST'])
+@tab_permission_required('analytics')
+def review_severe_case(case_id):
+    """Mark severe case as reviewed and add admin notes"""
+    try:
+        data = request.get_json()
+        admin_notes = data.get('notes', '')
+        
+        conn = sqlite3.connect('admin_data.db')
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            UPDATE severe_cases 
+            SET admin_reviewed = 1, admin_notes = ?
+            WHERE id = ?
+        ''', (admin_notes, case_id))
+        
+        conn.commit()
+        conn.close()
+        
+        logger.info(f"Severe case {case_id} reviewed by admin with notes: {admin_notes[:100]}...")
+        
+        return jsonify({'success': True, 'message': '病例已標記為已審核'})
+        
+    except Exception as e:
+        logger.error(f"Error reviewing severe case {case_id}: {e}")
+        return jsonify({'success': False, 'error': '審核病例時發生錯誤'}), 500
 
 @app.route('/admin/profile')
 @require_admin

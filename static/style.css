@@ -2342,3 +2342,179 @@ body::before {
         justify-content: center;
     }
 }
+
+/* Severe Warning Modal Styles */
+.severe-warning {
+    border: 3px solid #ff4757;
+    box-shadow: 0 10px 30px rgba(255, 71, 87, 0.3);
+}
+
+.severe-header {
+    background: linear-gradient(135deg, #ff4757 0%, #ff3838 100%);
+    color: white;
+    border-bottom: none;
+}
+
+.severe-header h3 {
+    color: white;
+    font-size: 1.6em;
+    font-weight: bold;
+}
+
+.warning-content {
+    text-align: center;
+}
+
+.warning-message {
+    font-size: 1.2em;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 20px;
+    line-height: 1.6;
+}
+
+.recommendations-list {
+    list-style: none;
+    padding: 0;
+    margin: 20px 0;
+    text-align: left;
+}
+
+.recommendations-list li {
+    background: rgba(255, 71, 87, 0.1);
+    border-left: 4px solid #ff4757;
+    padding: 12px 15px;
+    margin: 10px 0;
+    border-radius: 5px;
+    font-size: 1.1em;
+    font-weight: 500;
+    color: #2c3e50;
+}
+
+.severe-items {
+    background: rgba(255, 193, 7, 0.1);
+    border: 2px solid #ffc107;
+    border-radius: 8px;
+    padding: 15px;
+    margin: 20px 0;
+    text-align: left;
+}
+
+.severe-items h4 {
+    color: #e67e22;
+    margin-bottom: 10px;
+    font-size: 1.1em;
+}
+
+.severe-list {
+    margin: 10px 0;
+}
+
+.severe-list h5 {
+    color: #c0392b;
+    margin-bottom: 5px;
+    font-size: 1em;
+}
+
+.severe-list ul {
+    list-style: none;
+    padding-left: 0;
+}
+
+.severe-list li {
+    background: rgba(231, 76, 60, 0.1);
+    border-left: 3px solid #e74c3c;
+    padding: 8px 12px;
+    margin: 5px 0;
+    border-radius: 3px;
+    font-size: 0.95em;
+    color: #2c3e50;
+}
+
+.disclaimer {
+    background: rgba(52, 73, 94, 0.1);
+    border: 1px solid #34495e;
+    border-radius: 5px;
+    padding: 15px;
+    margin: 20px 0;
+    text-align: center;
+}
+
+.disclaimer p {
+    color: #34495e;
+    font-size: 0.95em;
+    line-height: 1.5;
+    margin: 0;
+    font-style: italic;
+}
+
+.severe-actions {
+    justify-content: center;
+    gap: 15px;
+    margin-top: 25px;
+}
+
+.btn-emergency {
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 1.1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+}
+
+.btn-emergency:hover {
+    background: linear-gradient(135deg, #c0392b 0%, #a93226 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
+}
+
+.btn-warning {
+    background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 1em;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-warning:hover {
+    background: linear-gradient(135deg, #e67e22 0%, #d35400 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(243, 156, 18, 0.4);
+}
+
+/* Mobile responsiveness for severe warning modal */
+@media (max-width: 768px) {
+    .severe-actions {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .btn-emergency, .btn-warning, .btn-secondary {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .recommendations-list li {
+        font-size: 1em;
+        padding: 10px 12px;
+    }
+    
+    .warning-message {
+        font-size: 1.1em;
+    }
+}

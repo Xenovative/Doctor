@@ -616,6 +616,23 @@ document.addEventListener('DOMContentLoaded', function() {
             uiLanguage: currentUILanguage  // Add UI language for diagnosis
         };
 
+        // Check for severe symptoms first
+        if (window.severeWarningSystem) {
+            const severeCheck = await window.severeWarningSystem.checkSevereSymptoms(formData);
+            
+            if (severeCheck.is_severe) {
+                // Show severe warning modal and wait for user decision
+                window.severeWarningSystem.showWarning(severeCheck, formData, proceedWithDiagnosis);
+                return; // Stop here, let user decide
+            }
+        }
+        
+        // If no severe symptoms detected, proceed with normal diagnosis
+        await proceedWithDiagnosis(formData);
+    });
+    
+    // Function to handle the actual diagnosis request
+    async function proceedWithDiagnosis(formData) {
         // 顯示載入動畫
         loading.style.display = 'block';
         results.style.display = 'none';
@@ -666,7 +683,7 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
             results.scrollIntoView({ behavior: 'smooth' });
         }
-    });
+    }
 
     function showValidationError(data) {
         results.style.display = 'block';

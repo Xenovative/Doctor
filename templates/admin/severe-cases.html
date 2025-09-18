@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>嚴重病例監控 - AI醫生配對系統</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='admin-mobile.css') }}" rel="stylesheet">
+    <script src="{{ url_for('static', filename='timestamp-formatter.js') }}"></script>
+    <style>
+        .severe-case-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-left: 5px solid #e74c3c;
+        }
+        
+        .severe-case-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .case-id {
+            font-weight: bold;
+            color: #e74c3c;
+            font-size: 1.1em;
+        }
+        
+        .case-timestamp {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .patient-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .info-item {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        
+        .info-label {
+            font-weight: bold;
+            color: #333;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+        
+        .info-value {
+            color: #666;
+        }
+        
+        .severe-items {
+            margin: 15px 0;
+        }
+        
+        .severe-symptoms, .severe-conditions {
+            margin-bottom: 10px;
+        }
+        
+        .severe-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 5px;
+        }
+        
+        .severe-tag {
+            background: #ff6b6b;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: 500;
+        }
+        
+        .condition-tag {
+            background: #ffa726;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: 500;
+        }
+        
+        .case-status {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: 500;
+        }
+        
+        .status-reviewed {
+            background: #4caf50;
+            color: white;
+        }
+        
+        .status-pending {
+            background: #ff9800;
+            color: white;
+        }
+        
+        .status-acknowledged {
+            background: #2196f3;
+            color: white;
+        }
+        
+        .review-section {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+        
+        .review-form {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+        
+        .review-notes {
+            flex: 1;
+        }
+        
+        .review-notes textarea {
+            width: 100%;
+            min-height: 60px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            resize: vertical;
+        }
+        
+        .btn-review {
+            background: #4caf50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+        
+        .btn-review:hover {
+            background: #45a049;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #e74c3c;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .filters {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .filter-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .filter-group label {
+            font-size: 0.9em;
+            color: #666;
+        }
+        
+        .filter-group select, .filter-group input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Mobile Navigation Toggle -->
+    <button class="mobile-nav-toggle" id="mobileNavToggle">
+        <i class="fas fa-bars"></i>
+    </button>
+    
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 d-md-block sidebar" id="adminSidebar">
+                <div class="position-sticky pt-3">
+                    <div class="text-center mb-4">
+                        <div class="admin-logo-circle">
+                            <img src="{{ url_for('static', filename='../assets/img/doctoricon.png') }}" alt="Doctor AI" class="admin-logo">
+                        </div>
+                        <h5 class="text-white mb-1">
+                            Doctor AI.io
+                        </h5>
+                        <small class="text-white-50">管理後台</small>
+                    </div>
+                    
+                    <ul class="nav flex-column">
+                        {% if session.admin_role == 'super_admin' or session.admin_tab_permissions.get('dashboard', False) %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_dashboard') }}">
+                                <i class="fas fa-tachometer-alt me-2"></i>儀表板
+                            </a>
+                        </li>
+                        {% endif %}
+                        {% if session.admin_role == 'super_admin' or session.admin_tab_permissions.get('analytics', False) %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_analytics') }}">
+                                <i class="fas fa-chart-bar me-2"></i>分析報告
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="{{ url_for('admin_severe_cases') }}">
+                                <i class="fas fa-exclamation-triangle me-2"></i>嚴重病例
+                            </a>
+                        </li>
+                        {% endif %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_profile') }}">
+                                <i class="fas fa-user-cog me-2"></i>個人設定
+                            </a>
+                        </li>
+                        {% if session.admin_role == 'super_admin' or session.admin_tab_permissions.get('config', False) %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_config') }}">
+                                <i class="fas fa-cogs me-2"></i>系統配置
+                            </a>
+                        </li>
+                        {% endif %}
+                        {% if session.admin_role == 'super_admin' or session.admin_tab_permissions.get('doctors', False) %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_doctors') }}">
+                                <i class="fas fa-user-md me-2"></i>醫生管理
+                            </a>
+                        </li>
+                        {% endif %}
+                        {% if session.admin_role == 'super_admin' or session.admin_tab_permissions.get('bug_reports', False) %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_bug_reports') }}">
+                                <i class="fas fa-bug me-2"></i>問題回報
+                            </a>
+                        </li>
+                        {% endif %}
+                        {% if session.admin_role == 'super_admin' or session.admin_tab_permissions.get('users', False) %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_users') }}">
+                                <i class="fas fa-users me-2"></i>用戶管理
+                            </a>
+                        </li>
+                        {% endif %}
+                        <li class="nav-item mt-3">
+                            <a class="nav-link" href="/" target="_blank">
+                                <i class="fas fa-external-link-alt me-2"></i>查看網站
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_logout') }}">
+                                <i class="fas fa-sign-out-alt me-2"></i>登出
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Main content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <div class="page-header">
+                <h1><i class="fas fa-exclamation-triangle"></i> 嚴重病例監控</h1>
+                <p>監控和審核檢測到嚴重症狀或病史的用戶案例</p>
+            </div>
+
+            <!-- Statistics -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number">{{ stats.total_cases }}</div>
+                    <div class="stat-label">總病例數</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">{{ stats.recent_cases }}</div>
+                    <div class="stat-label">24小時內新增</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">{{ stats.reviewed_cases }}</div>
+                    <div class="stat-label">已審核</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">{{ stats.review_rate }}%</div>
+                    <div class="stat-label">審核率</div>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="filters">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label>審核狀態</label>
+                        <select id="reviewFilter">
+                            <option value="">全部</option>
+                            <option value="reviewed">已審核</option>
+                            <option value="pending">待審核</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>用戶確認</label>
+                        <select id="acknowledgeFilter">
+                            <option value="">全部</option>
+                            <option value="acknowledged">已確認</option>
+                            <option value="not_acknowledged">未確認</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>時間範圍</label>
+                        <select id="timeFilter">
+                            <option value="">全部時間</option>
+                            <option value="today">今天</option>
+                            <option value="week">本週</option>
+                            <option value="month">本月</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Severe Cases List -->
+            <div class="cases-container">
+                {% if severe_cases %}
+                    {% for case in severe_cases %}
+                    <div class="severe-case-card" data-case-id="{{ case.id }}">
+                        <div class="severe-case-header">
+                            <div class="case-id">病例 #{{ case.id }}</div>
+                            <div class="case-timestamp">{{ case.timestamp }}</div>
+                        </div>
+
+                        <div class="patient-info">
+                            <div class="info-item">
+                                <div class="info-label">年齡/性別</div>
+                                <div class="info-value">{{ case.age }}歲 / {{ case.gender or '未提供' }}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">IP地址</div>
+                                <div class="info-value">{{ case.user_ip }}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">推薦專科</div>
+                                <div class="info-value">{{ case.recommended_specialty or '未知' }}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">匹配醫生數</div>
+                                <div class="info-value">{{ case.matched_doctors_count or 0 }}位</div>
+                            </div>
+                        </div>
+
+                        <div class="info-item">
+                            <div class="info-label">症狀描述</div>
+                            <div class="info-value">{{ case.symptoms }}</div>
+                        </div>
+
+                        {% if case.chronic_conditions %}
+                        <div class="info-item">
+                            <div class="info-label">長期病史</div>
+                            <div class="info-value">{{ case.chronic_conditions }}</div>
+                        </div>
+                        {% endif %}
+
+                        <div class="severe-items">
+                            {% if case.severe_symptoms %}
+                            <div class="severe-symptoms">
+                                <div class="info-label">檢測到的嚴重症狀</div>
+                                <div class="severe-list">
+                                    {% for symptom in case.severe_symptoms %}
+                                    <span class="severe-tag">{{ symptom }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            {% if case.severe_conditions %}
+                            <div class="severe-conditions">
+                                <div class="info-label">檢測到的嚴重病史</div>
+                                <div class="severe-list">
+                                    {% for condition in case.severe_conditions %}
+                                    <span class="condition-tag">{{ condition }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        {% if case.ai_diagnosis %}
+                        <div class="info-item">
+                            <div class="info-label">AI診斷結果</div>
+                            <div class="info-value">{{ case.ai_diagnosis[:200] }}{% if case.ai_diagnosis|length > 200 %}...{% endif %}</div>
+                        </div>
+                        {% endif %}
+
+                        <div class="case-status">
+                            {% if case.admin_reviewed %}
+                            <span class="status-badge status-reviewed">
+                                <i class="fas fa-check"></i> 已審核
+                            </span>
+                            {% else %}
+                            <span class="status-badge status-pending">
+                                <i class="fas fa-clock"></i> 待審核
+                            </span>
+                            {% endif %}
+
+                            {% if case.user_acknowledged %}
+                            <span class="status-badge status-acknowledged">
+                                <i class="fas fa-user-check"></i> 用戶已確認
+                            </span>
+                            {% endif %}
+                        </div>
+
+                        {% if case.admin_notes %}
+                        <div class="info-item">
+                            <div class="info-label">管理員備註</div>
+                            <div class="info-value">{{ case.admin_notes }}</div>
+                        </div>
+                        {% endif %}
+
+                        {% if not case.admin_reviewed %}
+                        <div class="review-section">
+                            <div class="review-form">
+                                <div class="review-notes">
+                                    <label>審核備註</label>
+                                    <textarea placeholder="請輸入審核備註..." id="notes-{{ case.id }}"></textarea>
+                                </div>
+                                <button class="btn-review" onclick="reviewCase({{ case.id }})">
+                                    <i class="fas fa-check"></i> 標記已審核
+                                </button>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="no-data">
+                        <i class="fas fa-info-circle"></i>
+                        <p>目前沒有嚴重病例記錄</p>
+                    </div>
+                {% endif %}
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Review case function
+        async function reviewCase(caseId) {
+            const notes = document.getElementById(`notes-${caseId}`).value;
+            
+            try {
+                const response = await fetch(`/admin/severe-cases/${caseId}/review`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ notes: notes })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Refresh the page to show updated status
+                    location.reload();
+                } else {
+                    alert('審核失敗: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error reviewing case:', error);
+                alert('審核時發生錯誤');
+            }
+        }
+
+        // Filter functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const reviewFilter = document.getElementById('reviewFilter');
+            const acknowledgeFilter = document.getElementById('acknowledgeFilter');
+            const timeFilter = document.getElementById('timeFilter');
+            
+            function applyFilters() {
+                const cases = document.querySelectorAll('.severe-case-card');
+                
+                cases.forEach(caseCard => {
+                    let show = true;
+                    
+                    // Review status filter
+                    if (reviewFilter.value) {
+                        const isReviewed = caseCard.querySelector('.status-reviewed') !== null;
+                        if (reviewFilter.value === 'reviewed' && !isReviewed) show = false;
+                        if (reviewFilter.value === 'pending' && isReviewed) show = false;
+                    }
+                    
+                    // Acknowledge status filter
+                    if (acknowledgeFilter.value) {
+                        const isAcknowledged = caseCard.querySelector('.status-acknowledged') !== null;
+                        if (acknowledgeFilter.value === 'acknowledged' && !isAcknowledged) show = false;
+                        if (acknowledgeFilter.value === 'not_acknowledged' && isAcknowledged) show = false;
+                    }
+                    
+                    // Time filter (basic implementation)
+                    if (timeFilter.value) {
+                        const timestamp = caseCard.querySelector('.case-timestamp').textContent;
+                        const caseDate = new Date(timestamp);
+                        const now = new Date();
+                        
+                        if (timeFilter.value === 'today') {
+                            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                            if (caseDate < today) show = false;
+                        } else if (timeFilter.value === 'week') {
+                            const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                            if (caseDate < weekAgo) show = false;
+                        } else if (timeFilter.value === 'month') {
+                            const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                            if (caseDate < monthAgo) show = false;
+                        }
+                    }
+                    
+                    caseCard.style.display = show ? 'block' : 'none';
+                });
+            }
+            
+            reviewFilter.addEventListener('change', applyFilters);
+            acknowledgeFilter.addEventListener('change', applyFilters);
+            timeFilter.addEventListener('change', applyFilters);
+        });
+    </script>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='admin-mobile.js') }}"></script>
+            </main>
+        </div>
+    </div>
+</body>
+</html>

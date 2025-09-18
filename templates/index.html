@@ -405,6 +405,57 @@
         </div>
     </div>
     
+    <!-- Severe Symptoms Warning Modal -->
+    <div id="severeWarningModal" class="modal">
+        <div class="modal-content severe-warning">
+            <div class="modal-header severe-header">
+                <h3 id="severeWarningTitle">⚠️ 重要醫療警告</h3>
+                <span class="close" id="closeSevereModal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="warning-content">
+                    <p id="severeWarningMessage" class="warning-message">
+                        根據您提供的症狀和病史，我們強烈建議您：
+                    </p>
+                    
+                    <ul id="severeRecommendations" class="recommendations-list">
+                        <li>🚨 立即前往最近的急診室或醫院</li>
+                        <li>📞 撥打999緊急服務熱線</li>
+                        <li>🏥 尋求專業醫療人員的即時協助</li>
+                        <li>⏰ 請勿延遲，時間可能非常關鍵</li>
+                    </ul>
+                    
+                    <div class="severe-items" id="severeItemsContainer" style="display: none;">
+                        <h4>檢測到的嚴重項目：</h4>
+                        <div id="severeSymptoms" class="severe-list"></div>
+                        <div id="severeConditions" class="severe-list"></div>
+                    </div>
+                    
+                    <div class="disclaimer">
+                        <p id="severeDisclaimer">
+                            此系統僅供參考，不能替代專業醫療診斷。對於嚴重或緊急的醫療狀況，請立即尋求專業醫療協助。
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="modal-actions severe-actions">
+                    <button type="button" class="btn-emergency" id="callEmergency">
+                        <i class="fas fa-phone"></i>
+                        撥打999急救
+                    </button>
+                    <button type="button" class="btn-secondary" id="cancelDiagnosis">
+                        <i class="fas fa-times"></i>
+                        取消診斷
+                    </button>
+                    <button type="button" class="btn-warning" id="proceedAnyway">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        我了解風險，繼續診斷
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <footer class="footer">
         
         <div class="footer-bottom">
@@ -422,6 +473,7 @@
     <script src="static/language.js"></script>
     <script src="static/symptom-input.js"></script>
     <script src="static/form-validation.js"></script>
+    <script src="static/severe-warning.js"></script>
     <script src="static/script.js"></script>
     <script src="static/bug-report.js"></script>
 </body>
