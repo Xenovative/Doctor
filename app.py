@@ -2315,8 +2315,13 @@ def find_doctor():
         
         # Debug logging
         logger.info(f"Received find_doctor request with data keys: {list(data.keys())}")
+        logger.info(f"Raw data values: age={data.get('age')}, symptoms='{data.get('symptoms')}', language='{data.get('language')}', location='{data.get('location')}'")
             
-        age = int(data.get('age', 0))
+        try:
+            age = int(data.get('age', 0))
+        except (ValueError, TypeError) as e:
+            logger.error(f"Invalid age value: {data.get('age')}, error: {e}")
+            return jsonify({'error': '年齡必須是有效數字'}), 400
         gender = data.get('gender', '')
         symptoms = data.get('symptoms', '')
         chronic_conditions = data.get('chronicConditions', '')
@@ -2325,6 +2330,9 @@ def find_doctor():
         location_details = data.get('locationDetails', {})
         detailed_health_info = data.get('detailedHealthInfo', {})
         ui_language = data.get('uiLanguage', 'zh-TW')  # Get UI language for diagnosis
+        
+        # Debug parsed values
+        logger.info(f"Parsed values: age={age}, symptoms='{symptoms}', language='{language}', location='{location}'")
         
         # 驗證輸入 - gender is optional for backward compatibility
         if not symptoms or not language or not location or age <= 0:

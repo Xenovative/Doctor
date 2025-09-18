@@ -640,6 +640,13 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             // Debug logging
             console.log('Sending formData:', formData);
+            console.log('FormData keys:', Object.keys(formData));
+            console.log('FormData values:', {
+                age: formData.age,
+                symptoms: formData.symptoms,
+                language: formData.language,
+                location: formData.location
+            });
             
             // 發送請求到後端
             const response = await fetch('/find_doctor', {
