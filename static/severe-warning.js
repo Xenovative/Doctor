@@ -189,15 +189,26 @@ class SevereWarningSystem {
             console.log('User proceeded with diagnosis despite severe symptoms warning');
             console.log('Severe warning: passing formData:', this.pendingFormData);
             
+            // Store the data BEFORE closing modal (which clears it)
+            const formDataToPass = this.pendingFormData;
+            const callbackToUse = this.onProceedCallback;
+            
             // Close modal
             this.closeModal();
             
-            // Execute the original diagnosis request using the global function
-            if (window.proceedWithDiagnosis) {
-                window.proceedWithDiagnosis(this.pendingFormData);
-            } else if (this.onProceedCallback) {
+            // Execute the original diagnosis request using the stored data
+            console.log('About to call proceedWithDiagnosis with:', formDataToPass);
+            
+            if (window.proceedWithDiagnosis && formDataToPass) {
+                window.proceedWithDiagnosis(formDataToPass);
+            } else if (callbackToUse && formDataToPass) {
                 // Fallback to callback if global function not available
-                this.onProceedCallback(this.pendingFormData);
+                callbackToUse(formDataToPass);
+            } else {
+                console.error('No valid formData or callback available');
+                console.log('formDataToPass:', formDataToPass);
+                console.log('window.proceedWithDiagnosis:', typeof window.proceedWithDiagnosis);
+                console.log('callbackToUse:', typeof callbackToUse);
             }
         }
     }
