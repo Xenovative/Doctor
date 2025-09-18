@@ -1431,10 +1431,24 @@ def diagnose_symptoms(age: int, gender: str, symptoms: str, chronic_conditions: 
     
     # Debug logging
     print(f"DEBUG - AI Response: {diagnosis_response[:200]}...")
+    print(f"DEBUG - Full AI Response for Emergency Check:")
+    print("=" * 50)
+    print(diagnosis_response)
+    print("=" * 50)
     print(f"DEBUG - Extracted specialties: {recommended_specialties}")
     print(f"DEBUG - Primary specialty: {recommended_specialty}")
     print(f"DEBUG - Severity level: {severity_level}")
     print(f"DEBUG - Emergency needed: {emergency_needed}")
+    
+    # Additional emergency pattern debugging
+    if '緊急程度' in diagnosis_response:
+        print(f"DEBUG - Found '緊急程度' in response")
+        if '緊急程度：是' in diagnosis_response or '緊急程度: 是' in diagnosis_response:
+            print(f"DEBUG - Found emergency format '緊急程度：是'")
+        elif '緊急程度：否' in diagnosis_response or '緊急程度: 否' in diagnosis_response:
+            print(f"DEBUG - Found non-emergency format '緊急程度：否'")
+    else:
+        print(f"DEBUG - No '緊急程度' format found in response")
     
     return {
         'diagnosis': diagnosis_response,
@@ -1812,7 +1826,11 @@ def check_emergency_needed(diagnosis_text: str) -> bool:
         'call emergency', '撥打急救', 'go to emergency', '前往急診',
         'emergency room', '急診室', 'hospital immediately', '立即住院',
         'life-threatening', '威脅生命', 'critical condition', '危急狀況',
-        '999', '911', '112', 'ambulance', '救護車', '緊急護理'
+        '999', '911', '112', 'ambulance', '救護車', '緊急護理',
+        '緊急程度：是', '緊急程度: 是', 'emergency: yes', 'emergency:yes',
+        '需要緊急就醫', '建議緊急就醫', '立即就醫', '馬上就醫', '急需就醫',
+        '緊急醫療', '急診科', '心肌梗塞', '中風', '急性', '危急',
+        'immediately seek medical', 'urgent medical attention', 'emergency medical'
     ]
     
     # Weaker indicators that need context checking
