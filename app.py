@@ -2426,7 +2426,14 @@ def find_doctor():
             ''', (age, gender_safe, symptoms, chronic_conditions, language, location, 
                   json.dumps(detailed_health_info), result['analysis'], 
                   result['recommended_specialty'], len(result['doctors']), 
-                  get_real_ip(), session_id, result['analysis'], get_current_time().isoformat()))
+                  get_real_ip(), session_id, 
+                  format_analysis_report_full({
+                      'age': age, 'gender': gender_safe, 'symptoms': symptoms, 
+                      'chronic_conditions': chronic_conditions, 'language': language, 
+                      'location': location, 'ai_analysis': result['analysis'], 
+                      'related_specialty': result['recommended_specialty']
+                  }, {}), 
+                  get_current_time().isoformat()))
             query_id = cursor.lastrowid
             session['last_query_id'] = query_id
             conn.commit()
