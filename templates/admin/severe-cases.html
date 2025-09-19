@@ -436,10 +436,10 @@
                             {% endif %}
                         </div>
 
-                        {% if case.ai_diagnosis %}
+                        {% if case.ai_analysis %}
                         <div class="info-item">
-                            <div class="info-label">AI病徵分析結果</div>
-                            <div class="info-value">{{ case.ai_diagnosis[:200] }}{% if case.ai_diagnosis|length > 200 %}...{% endif %}</div>
+                            <div class="info-label">AI症狀分析結果</div>
+                            <div class="info-value">{{ case.ai_analysis[:200] }}{% if case.ai_analysis|length > 200 %}...{% endif %}</div>
                         </div>
                         {% endif %}
 
