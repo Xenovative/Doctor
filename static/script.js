@@ -849,12 +849,12 @@ document.addEventListener('DOMContentLoaded', function() {
             doctorList.appendChild(summaryCard);
         }
         
-        // 顯示AI病徵分析結果
-        if (data.diagnosis) {
+        // 顯示AI症狀分析結果
+        if (data.analysis) {
             // Check if analysis contains error messages
-            if (data.diagnosis.includes('AI分析服務暫時不可用') || 
-                data.diagnosis.includes('AI服務配置不完整') ||
-                data.diagnosis.includes('請稍後再試')) {
+            if (data.analysis.includes('AI分析服務暫時不可用') || 
+                data.analysis.includes('AI服務配置不完整') ||
+                data.analysis.includes('請稍後再試')) {
                 
                 const errorCard = document.createElement('div');
                 errorCard.className = 'alert alert-warning';
@@ -870,7 +870,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 `;
                 doctorList.appendChild(errorCard);
             } else {
-                const analysisCard = createAnalysisCard(data.diagnosis, data.recommended_specialty);
+                const analysisCard = createAnalysisCard(data.analysis, data.recommended_specialty);
                 doctorList.appendChild(analysisCard);
             }
         }
