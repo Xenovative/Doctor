@@ -1805,17 +1805,18 @@ def extract_severity_from_diagnosis(diagnosis_text: str) -> str:
     return 'mild'
 
 def check_emergency_needed(diagnosis_text: str) -> bool:
-    """檢查是否需要緊急就醫"""
+    """檢查是否需要緊急就醫 - 更保守的緊急檢測"""
     if not diagnosis_text:
         return False
     
     text_lower = diagnosis_text.lower()
     
-    # First check for explicit non-emergency statements
+    # First check for explicit non-emergency statements - these override everything
     non_emergency_patterns = [
         '不需要緊急就醫', '非緊急', '不緊急', 'not emergency', 'no emergency needed',
         '不需要急診', '無需緊急', 'non-urgent', 'not urgent',
-        '緊急程度：否', '緊急程度: 否', 'emergency: no', 'emergency:no'
+        '緊急程度：否', '緊急程度: 否', 'emergency: no', 'emergency:no',
+        '不用緊急', '毋須緊急', '無須立即', '不必立即'
     ]
     
     for pattern in non_emergency_patterns:
@@ -1823,63 +1824,98 @@ def check_emergency_needed(diagnosis_text: str) -> bool:
             print(f"DEBUG - Non-emergency pattern found: '{pattern}' - overriding emergency detection")
             return False
     
-    # Strong emergency indicators that should trigger emergency response
+    # Primary emergency format indicators - most reliable
+    primary_emergency_indicators = [
+        '緊急程度：是', '緊急程度: 是', 'emergency: yes', 'emergency:yes'
+    ]
+    
+    for indicator in primary_emergency_indicators:
+        if indicator in text_lower:
+            print(f"DEBUG - Primary emergency format found: '{indicator}'")
+            return True
+    
+    # Strong emergency action indicators - require immediate action
     strong_emergency_indicators = [
         'call emergency', '撥打急救', 'go to emergency', '前往急診',
         'emergency room', '急診室', 'hospital immediately', '立即住院',
         'life-threatening', '威脅生命', 'critical condition', '危急狀況',
-        '999', '911', '112', 'ambulance', '救護車', '緊急護理',
-        '緊急程度：是', '緊急程度: 是', 'emergency: yes', 'emergency:yes',
-        '需要緊急就醫', '建議緊急就醫', '立即就醫', '馬上就醫', '急需就醫',
-        '緊急醫療', '急診科', '心肌梗塞', '中風', '急性', '危急',
-        'immediately seek medical', 'urgent medical attention', 'emergency medical'
-    ]
-    
-    # Weaker indicators that need context checking
-    contextual_indicators = [
-        'seek immediate', 'urgent care'
+        '999', '911', '112', 'ambulance', '救護車',
+        'immediately seek medical', 'urgent medical attention'
     ]
     
     found_strong = []
-    found_contextual = []
-    
     for indicator in strong_emergency_indicators:
         if indicator in text_lower:
             found_strong.append(indicator)
     
-    for indicator in contextual_indicators:
-        if indicator in text_lower:
-            found_contextual.append(indicator)
-    
-    # If we have strong indicators, it's definitely emergency
     if found_strong:
-        print(f"DEBUG - Strong emergency indicators found: {found_strong}")
+        print(f"DEBUG - Strong emergency action indicators found: {found_strong}")
         return True
     
-    # For contextual indicators, check if they appear in conditional statements
-    if found_contextual:
-        # Check if the contextual indicator appears in conditional context
-        conditional_patterns = [
-            '若.*惡化.*立即就醫', '如果.*嚴重.*立即就醫', 'if.*worse.*seek immediate',
-            '症狀持續.*立即就醫', '持續或惡化.*立即就醫', '建議.*多休息.*並.*立即就醫',
-            '保持.*水分.*立即就醫', '避免.*刺激.*立即就醫'
+    # Critical medical conditions - only very specific life-threatening conditions
+    critical_conditions = [
+        '心肌梗塞', '急性心肌梗塞', '中風', '急性中風', '腦中風',
+        '急性腹痛', '急性胸痛', '呼吸困難', '意識不清', '昏迷',
+        '大量出血', '嚴重外傷', '骨折', '急性過敏反應'
+    ]
+    
+    found_critical = []
+    for condition in critical_conditions:
+        if condition in text_lower:
+            found_critical.append(condition)
+    
+    if found_critical:
+        # Check if these conditions are mentioned in a hypothetical or conditional context
+        conditional_phrases = [
+            '如果是', '若是', '可能是', '疑似', '排除', '不像是', '不太可能',
+            '建議排除', '需要排除', '若出現', '如果出現', '假如', '萬一'
         ]
         
         is_conditional = False
-        for pattern in conditional_patterns:
-            if re.search(pattern, text_lower):
+        for phrase in conditional_phrases:
+            if phrase in text_lower:
                 is_conditional = True
-                print(f"DEBUG - Contextual emergency indicator in conditional statement: '{pattern}'")
+                print(f"DEBUG - Critical condition '{found_critical}' mentioned in conditional context: '{phrase}'")
                 break
         
-        if is_conditional:
-            print(f"DEBUG - Emergency indicator '{found_contextual}' is conditional, not immediate emergency")
-            return False
-        else:
-            print(f"DEBUG - Direct emergency indicators found: {found_contextual}")
+        if not is_conditional:
+            print(f"DEBUG - Critical medical conditions found (not conditional): {found_critical}")
             return True
+        else:
+            print(f"DEBUG - Critical conditions mentioned conditionally, not immediate emergency")
     
-    print("DEBUG - No emergency indicators found")
+    # Emergency action phrases - but only if not conditional
+    emergency_actions = [
+        '需要緊急就醫', '建議緊急就醫', '立即就醫', '馬上就醫', '急需就醫',
+        '緊急醫療', '緊急處理'
+    ]
+    
+    found_actions = []
+    for action in emergency_actions:
+        if action in text_lower:
+            found_actions.append(action)
+    
+    if found_actions:
+        # Check if these are conditional recommendations
+        conditional_contexts = [
+            '若症狀惡化', '如果惡化', '症狀持續', '持續或惡化', '如果沒有改善',
+            '若無改善', '如果加重', '症狀加重時', '惡化時', '若出現'
+        ]
+        
+        is_conditional = False
+        for context in conditional_contexts:
+            if context in text_lower:
+                is_conditional = True
+                print(f"DEBUG - Emergency action '{found_actions}' in conditional context: '{context}'")
+                break
+        
+        if not is_conditional:
+            print(f"DEBUG - Direct emergency action recommendations found: {found_actions}")
+            return True
+        else:
+            print(f"DEBUG - Emergency actions are conditional recommendations, not immediate emergency")
+    
+    print("DEBUG - No immediate emergency indicators found")
     return False
 
 def safe_str_check(value, search_term):
