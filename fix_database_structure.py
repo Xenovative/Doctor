@@ -8,7 +8,7 @@ Recent Updates:
 - Added severe_cases table for monitoring critical medical cases
 - Added bug_reports table for issue tracking
 - Added gender and priority columns to user_queries table
-- Added diagnosis_report column to user_queries table
+- Added analysis_report column to user_queries table
 - Updated all indexes for better performance
 - Includes comprehensive verification of all tables and columns
 
@@ -181,7 +181,7 @@ def fix_admin_data_db():
         columns = [row[1] for row in cursor.fetchall()]
         
         user_queries_required_columns = {
-            'diagnosis_report': 'TEXT',
+            'analysis_report': 'TEXT',
             'gender': 'TEXT',
             'priority': 'TEXT DEFAULT "normal"'
         }
@@ -407,7 +407,7 @@ def verify_database_structure():
         # Check user_queries columns
         cursor.execute("PRAGMA table_info(user_queries)")
         user_queries_columns = [row[1] for row in cursor.fetchall()]
-        required_user_queries_columns = ['diagnosis_report', 'gender', 'priority']
+        required_user_queries_columns = ['analysis_report', 'gender', 'priority']
         for col in required_user_queries_columns:
             if col in user_queries_columns:
                 print(f"✅ user_queries.{col} exists")

@@ -849,20 +849,21 @@ document.addEventListener('DOMContentLoaded', function() {
             doctorList.appendChild(summaryCard);
         }
         
-        // 顯示AI診斷結果
+        // 顯示AI病徵分析結果
         if (data.diagnosis) {
-            // Check if diagnosis contains error messages
             if (data.diagnosis.includes('AI分析服務暫時不可用') || 
-                data.diagnosis.includes('AI服務配置不完整') ||
-                data.diagnosis.includes('請稍後再試')) {
+                data.diagnosis.includes('服務暫時不可用') ||
+                data.diagnosis.includes('無法連接') ||
+                data.diagnosis.includes('系統錯誤')) {
                 
+                // Create error card for AI service unavailable
                 const errorCard = document.createElement('div');
                 errorCard.className = 'alert alert-warning';
                 errorCard.style.cssText = 'text-align: center; padding: 20px; margin: 20px 0; border-radius: 10px; background-color: #fff3cd; border: 1px solid #ffeaa7;';
                 const aiUnavailableTitle = window.currentTranslations && window.currentTranslations['ai_diagnosis_unavailable'] 
-                    ? window.currentTranslations['ai_diagnosis_unavailable'] : 'AI診斷暫時不可用';
+                    ? window.currentTranslations['ai_diagnosis_unavailable'] : 'AI病徵分析暫時不可用';
                 const aiUnavailableDesc = window.currentTranslations && window.currentTranslations['ai_diagnosis_unavailable_desc'] 
-                    ? window.currentTranslations['ai_diagnosis_unavailable_desc'] : '我們的AI診斷服務暫時無法使用，但您仍可以查看推薦的醫生。建議直接諮詢醫療專業人士。';
+                    ? window.currentTranslations['ai_diagnosis_unavailable_desc'] : '我們的AI病徵分析服務暫時無法使用，但您仍可以查看推薦的醫生。建議直接諮詢醫療專業人士。';
                 errorCard.innerHTML = `
                     <i class="fas fa-exclamation-triangle" style="font-size: 2rem; color: #856404; margin-bottom: 10px;"></i>
                     <h4 style="color: #856404; margin-bottom: 10px;">${aiUnavailableTitle}</h4>
@@ -1371,7 +1372,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const card = document.createElement('div');
         card.className = 'diagnosis-card';
         
-        // 處理診斷文本，保留換行格式
+        // 處理病徵分析文本，保留換行格式
         const formattedDiagnosis = diagnosis.replace(/\n/g, '<br>');
         
         card.innerHTML = `
@@ -1380,7 +1381,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <i class="fas fa-stethoscope"></i>
                 </div>
                 <div class="diagnosis-title">
-                    <h3 data-translate="ai_diagnosis_analysis">AI 智能診斷分析</h3>
+                    <h3 data-translate="ai_diagnosis_analysis">AI 智能病徵分析</h3>
                     <div class="recommended-specialty"><span data-translate="recommended_specialty">推薦專科</span>：${translateSpecialty(recommendedSpecialty)}</div>
                 </div>
             </div>
@@ -1393,7 +1394,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             <div class="diagnosis-disclaimer">
                 <i class="fas fa-exclamation-triangle"></i>
-                <strong data-translate="important_reminder">重要提醒：</strong><span data-translate="ai_disclaimer">此AI分析僅供參考，不能替代專業醫療診斷。請務必諮詢合格醫生進行正式診斷。</span>
+                <strong data-translate="important_reminder">重要提醒：</strong><span data-translate="ai_disclaimer">此AI分析僅供參考，不能替代專業醫療病徵分析。請務必諮詢合格醫生進行正式病徵分析。</span>
             </div>
         `;
         

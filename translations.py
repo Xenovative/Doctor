@@ -78,7 +78,7 @@ TRANSLATIONS = {
         
         # Loading and Results
         'loading_message': 'AI正在分析您的症狀並配對合適的醫生...',
-        'recommended_doctors': 'AI診斷結果',
+        'recommended_doctors': 'AI病徵分析結果',
         
         # Footer
         'terms_conditions': '條款及細則',
@@ -127,16 +127,16 @@ TRANSLATIONS = {
         'more_info': '更多資料',
         'less_info': '收起資料',
         'show_more_doctors': '顯示更多醫生',
-        'recommended_doctors': 'AI診斷結果',
+        'recommended_doctors': 'AI病徵分析結果',
         'doctor_list_header': '醫生列表',
         'no_doctors_found': '抱歉，未能找到合適的醫生。請嘗試修改搜索條件。',
         'service_unavailable': '服務暫時不可用',
-        'ai_diagnosis_unavailable': 'AI診斷暫時不可用',
-        'ai_diagnosis_unavailable_desc': '我們的AI診斷服務暫時無法使用，但您仍可以查看推薦的醫生。建議直接諮詢醫療專業人士。',
+        'ai_diagnosis_unavailable': 'AI病徵分析暫時不可用',
+        'ai_diagnosis_unavailable_desc': '我們的AI病徵分析服務暫時無法使用，但您仍可以查看推薦的醫生。建議直接諮詢醫療專業人士。',
         
         # User summary and diagnosis cards
         'user_health_summary': '您的健康資料摘要',
-        'ai_diagnosis_analysis': 'AI 智能診斷分析',
+        'ai_diagnosis_analysis': 'AI 智能病徵分析',
         'recommended_specialty': '推薦專科',
         'age_years': '年齡',
         'main_symptoms': '主要症狀',
@@ -144,7 +144,7 @@ TRANSLATIONS = {
         'years_old_suffix': '歲',
         'height_weight_format': 'cm / kg (BMI: )',
         'important_reminder': '重要提醒：',
-        'ai_disclaimer': '此AI分析僅供參考，不能替代專業醫療診斷。請務必諮詢合格醫生進行正式診斷。',
+        'ai_disclaimer': '此AI分析僅供參考，不能替代專業醫療病徵分析。請務必諮詢合格醫生進行正式病徵分析。',
         
         # Medical Specialties
         '內科': 'Internal Medicine',
@@ -291,14 +291,14 @@ TRANSLATIONS = {
         '元朗': '元朗', '天水圍': '天水圍', '洪水橋': '洪水橋', '流浮山': '流浮山', '錦田': '錦田', '八鄉': '八鄉',
         
         # AI Diagnosis Prompts
-        'diagnosis_prompt_intro': '作為一名經驗豐富的醫療專家，請根據以下病人資料進行初步診斷分析：',
+        'diagnosis_prompt_intro': '作為一名經驗豐富的醫療專家，請根據以下病人資料進行初步病徵分析：',
         'patient_data': '病人資料：',
         'age_label': '年齡：',
         'main_symptoms': '主要症狀：',
         'years_old': '歲',
         'no_special_health_info': '無特殊健康信息',
         'please_provide': '請提供：',
-        'possible_diagnosis': '可能的病症診斷（最多3個可能性，按可能性排序）',
+        'possible_diagnosis': '可能的病症分析（最多3個可能性，按可能性排序）',
         'recommended_specialty': '建議就診的專科',
         'severity_assessment': '症狀嚴重程度評估（輕微/中等/嚴重）',
         'emergency_needed': '是否需要緊急就醫',
@@ -309,12 +309,12 @@ TRANSLATIONS = {
         'emergency_guideline': '如症狀涉及急性或危及生命情況，應推薦急診科',
         'specialty_guideline': '根據症狀的主要系統選擇最適合的專科，避免一律推薦內科',
         'response_language': '請用繁體中文回答。所有診斷結果、建議和醫療術語都必須使用繁體中文。回答格式如下：',
-        'diagnosis_format': '可能診斷：',
+        'diagnosis_format': '可能病徵分析：',
         'specialty_format': '建議專科：',
         'severity_format': '嚴重程度：',
         'emergency_format': '緊急程度：',
         'advice_format': '建議：',
-        'disclaimer': '免責聲明：此分析僅供參考，不能替代專業醫療診斷，請務必諮詢合格醫生。'
+        'disclaimer': '免責聲明：此分析僅供參考，不能替代專業醫療病徵分析，請務必諮詢合格醫生。'
     },
     
     'zh-CN': {
