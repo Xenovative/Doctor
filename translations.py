@@ -9,7 +9,7 @@ TRANSLATIONS = {
         # Header and Navigation
         'app_title': 'AI香港醫療配對系統',
         'main_title': 'Doctor AI.io',
-        'subtitle': '免費AI診症平台',
+        'subtitle': '免費AI病徵分析平台',
         'back_to_website': '返回主頁',
         'admin_panel': '管理後台',
         
