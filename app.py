@@ -2869,7 +2869,7 @@ def admin_dashboard():
         
         # Get recent queries
         cursor.execute('''
-            SELECT timestamp, age, symptoms, language, location, recommended_specialty
+            SELECT timestamp, age, symptoms, language, location, related_specialty
             FROM user_queries 
             ORDER BY timestamp DESC 
             LIMIT 10
@@ -2885,10 +2885,10 @@ def admin_dashboard():
         
         # Get popular specialties
         cursor.execute('''
-            SELECT recommended_specialty, COUNT(*) as count
+            SELECT related_specialty, COUNT(*) as count
             FROM user_queries 
-            WHERE recommended_specialty IS NOT NULL
-            GROUP BY recommended_specialty 
+            WHERE related_specialty IS NOT NULL
+            GROUP BY related_specialty 
             ORDER BY count DESC 
             LIMIT 5
         ''')
@@ -2992,7 +2992,7 @@ def admin_analytics():
         # Get user queries with details
         cursor.execute('''
             SELECT id, timestamp, age, gender, symptoms, language, location, 
-                   recommended_specialty, matched_doctors_count, user_ip
+                   related_specialty, matched_doctors_count, user_ip
             FROM user_queries 
             ORDER BY timestamp DESC 
             LIMIT 50
