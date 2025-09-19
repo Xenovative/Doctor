@@ -399,8 +399,8 @@ def init_db():
                 language TEXT,
                 location TEXT,
                 detailed_health_info TEXT,
-                ai_diagnosis TEXT,
-                recommended_specialty TEXT,
+                ai_analysis TEXT,
+                related_specialty TEXT,
                 matched_doctors_count INTEGER,
                 user_ip TEXT,
                 session_id TEXT
@@ -748,15 +748,15 @@ def format_timestamp(timestamp_str):
         logger.error(f"Error formatting timestamp {timestamp_str}: {e}")
         return str(timestamp_str)
 
-def format_diagnosis_report_full(user_query_data: dict, doctor_data: dict) -> str:
-    """格式化完整診斷報告為HTML顯示"""
+def format_analysis_report_full(user_query_data: dict, doctor_data: dict) -> str:
+    """格式化完整症狀分析報告為HTML顯示"""
     timestamp = get_current_time().strftime('%Y-%m-%d %H:%M:%S')
     
     # Format gender display
     gender = user_query_data.get('gender', '')
     gender_display = f"生理性別: {gender}" if gender else "生理性別: 未提供"
     
-    message = f"""🏥 AI醫療診斷報告
+    message = f"""🏥 AI症狀分析報告
 📅 時間: {timestamp}
 
 👤 患者信息
@@ -766,17 +766,17 @@ def format_diagnosis_report_full(user_query_data: dict, doctor_data: dict) -> st
 語言: {user_query_data.get('language', 'N/A')}
 地區: {user_query_data.get('location', 'N/A')}
 
-🔍 AI診斷結果
-推薦專科: {user_query_data.get('recommended_specialty', 'N/A')}
+🔍 AI症狀分析結果
+相關專科: {user_query_data.get('related_specialty', 'N/A')}
 
 👨‍⚕️ 選擇的醫生
 醫生姓名: {doctor_data.get('doctor_name', 'N/A')}
 專科: {doctor_data.get('doctor_specialty', 'N/A')}
 
-📊 完整診斷
-{user_query_data.get('ai_diagnosis', 'N/A')}
+📊 完整分析
+{user_query_data.get('ai_analysis', 'N/A')}
 
-免責聲明：此分析僅供參考，不能替代專業醫療診斷，請務必諮詢合格醫生。
+免責聲明：此分析僅供參考，不構成醫療建議或診斷，請務必諮詢合格醫生。
 
 ---
 Doctor-AI香港醫療配對系統"""
@@ -784,19 +784,19 @@ Doctor-AI香港醫療配對系統"""
     return message
 
 def format_whatsapp_message(doctor_data: dict, report_url: str) -> str:
-    """格式化WhatsApp消息，包含診斷報告鏈接"""
-    message = f"""AI醫療診斷報告
+    """格式化WhatsApp消息，包含症狀分析報告鏈接"""
+    message = f"""AI症狀分析報告
 
-您好！我通過AI醫療配對系統選擇了您作為我的醫生。
+您好！我通過AI症狀分析系統獲得了您的資訊。
 
 醫生信息
 姓名: {doctor_data.get('doctor_name', 'N/A')}
 專科: {doctor_data.get('doctor_specialty', 'N/A')}
 
-完整診斷報告請查看：
+完整症狀分析報告請查看：
 {report_url}
 
-期待您的專業建議，謝謝！
+期待您的專業意見，謝謝！
 
 ---
 Doctor-AI香港醫療配對系統"""
@@ -1321,8 +1321,8 @@ def validate_symptoms_with_llm(symptoms: str, user_language: str = 'zh-TW') -> d
         logger.error(f"Error validating symptoms: {e}")
         return {'valid': True, 'message': '症狀驗證過程中出現錯誤，將繼續處理'}
 
-def diagnose_symptoms(age: int, gender: str, symptoms: str, chronic_conditions: str = '', detailed_health_info: dict = None, user_language: str = 'zh-TW') -> dict:
-    """使用AI診斷症狀"""
+def analyze_symptoms(age: int, gender: str, symptoms: str, chronic_conditions: str = '', detailed_health_info: dict = None, user_language: str = 'zh-TW') -> dict:
+    """使用AI分析症狀"""
     
     if detailed_health_info is None:
         detailed_health_info = {}
@@ -1380,8 +1380,8 @@ def diagnose_symptoms(age: int, gender: str, symptoms: str, chronic_conditions: 
     available_specialties = get_available_specialties()
     specialty_list = "、".join(available_specialties)
     
-    # Build AI diagnosis prompt in user's language with consistency instructions
-    diagnosis_prompt = f"""
+    # Build AI analysis prompt in user's language with consistency instructions
+    analysis_prompt = f"""
     {t('diagnosis_prompt_intro')}
 
     {t('patient_data')}
@@ -1422,20 +1422,20 @@ def diagnose_symptoms(age: int, gender: str, symptoms: str, chronic_conditions: 
     {t('disclaimer')}
     """
     
-    # 獲取AI診斷
-    diagnosis_response = call_ai_api(diagnosis_prompt)
+    # 獲取AI分析
+    analysis_response = call_ai_api(analysis_prompt)
     
-    # 解析診斷結果
-    recommended_specialties = extract_specialties_from_diagnosis(diagnosis_response)
+    # 解析分析結果
+    recommended_specialties = extract_specialties_from_analysis(analysis_response)
     recommended_specialty = recommended_specialties[0] if recommended_specialties else '內科'
-    severity_level = extract_severity_from_diagnosis(diagnosis_response)
-    emergency_needed = check_emergency_needed(diagnosis_response)
+    severity_level = extract_severity_from_analysis(analysis_response)
+    emergency_needed = check_emergency_needed(analysis_response)
     
     # Debug logging
-    print(f"DEBUG - AI Response: {diagnosis_response[:200]}...")
+    print(f"DEBUG - AI Response: {analysis_response[:200]}...")
     print(f"DEBUG - Full AI Response for Emergency Check:")
     print("=" * 50)
-    print(diagnosis_response)
+    print(analysis_response)
     print("=" * 50)
     print(f"DEBUG - Extracted specialties: {recommended_specialties}")
     print(f"DEBUG - Primary specialty: {recommended_specialty}")
@@ -1443,17 +1443,17 @@ def diagnose_symptoms(age: int, gender: str, symptoms: str, chronic_conditions: 
     print(f"DEBUG - Emergency needed: {emergency_needed}")
     
     # Additional emergency pattern debugging
-    if '緊急程度' in diagnosis_response:
+    if '緊急程度' in analysis_response:
         print(f"DEBUG - Found '緊急程度' in response")
-        if '緊急程度：是' in diagnosis_response or '緊急程度: 是' in diagnosis_response:
+        if '緊急程度：是' in analysis_response or '緊急程度: 是' in analysis_response:
             print(f"DEBUG - Found emergency format '緊急程度：是'")
-        elif '緊急程度：否' in diagnosis_response or '緊急程度: 否' in diagnosis_response:
+        elif '緊急程度：否' in analysis_response or '緊急程度: 否' in analysis_response:
             print(f"DEBUG - Found non-emergency format '緊急程度：否'")
     else:
         print(f"DEBUG - No '緊急程度' format found in response")
     
     return {
-        'diagnosis': diagnosis_response,
+        'analysis': analysis_response,
         'recommended_specialty': recommended_specialty,
         'recommended_specialties': recommended_specialties,
         'severity_level': severity_level,
@@ -1486,11 +1486,12 @@ def analyze_symptoms_and_match(age: int, gender: str, symptoms: str, chronic_con
             'validation_error': True,
             'validation_issues': symptom_validation.get('issues', []),
             'validation_suggestions': symptom_validation.get('suggestions', []),
-            'validation_message': '您輸入的內容不是有效的醫療症狀。請重新輸入真實的身體不適症狀，例如頭痛、發燒、咳嗽等。'
+            'validation_message': '您輸入的內容不是有效的醫療症狀。請重新輸入真實的身體不適症狀，例如頭痛、發燒、咳嗽等。',
+            'validation_confidence': symptom_validation.get('confidence', 0.5)
         }
     
-    # 第二步：AI診斷 (pass user language)
-    diagnosis_result = diagnose_symptoms(age, gender, symptoms, chronic_conditions, detailed_health_info, user_language)
+    # 第二步：AI分析 (pass user language)
+    diagnosis_result = analyze_symptoms(age, gender, symptoms, chronic_conditions, detailed_health_info, user_language)
     
     # 第二步：檢查是否需要緊急醫療處理
     print(f"DEBUG - Emergency check: emergency_needed={diagnosis_result.get('emergency_needed', False)}, severity_level={diagnosis_result.get('severity_level')}")
@@ -1498,10 +1499,10 @@ def analyze_symptoms_and_match(age: int, gender: str, symptoms: str, chronic_con
     if diagnosis_result.get('emergency_needed', False):
         print("DEBUG - Emergency case detected, routing to emergency doctors")
         # 緊急情況：優先推薦急診科和醫院
-        emergency_doctors = filter_doctors('急診科', language, location, symptoms, diagnosis_result['diagnosis'], location_details)
+        emergency_doctors = filter_doctors('急診科', language, location, symptoms, diagnosis_result['analysis'], location_details)
         # 如果沒有急診科醫生，推薦內科醫生但標記為緊急
         if not emergency_doctors:
-            emergency_doctors = filter_doctors('內科', language, location, symptoms, diagnosis_result['diagnosis'], location_details)
+            emergency_doctors = filter_doctors('內科', language, location, symptoms, diagnosis_result['analysis'], location_details)
         
         # 為緊急醫生添加緊急標記
         for doctor in emergency_doctors:
@@ -1522,7 +1523,7 @@ def analyze_symptoms_and_match(age: int, gender: str, symptoms: str, chronic_con
                 language, 
                 location, 
                 symptoms, 
-                diagnosis_result['diagnosis'],
+                diagnosis_result['analysis'],
                 location_details
             )
             
@@ -1559,7 +1560,7 @@ def analyze_symptoms_and_match(age: int, gender: str, symptoms: str, chronic_con
     
     # 第三步：如果是12歲以下，添加兒科醫生
     if age <= 12:
-        pediatric_doctors = filter_doctors('兒科', language, location, symptoms, diagnosis_result['diagnosis'], location_details)
+        pediatric_doctors = filter_doctors('兒科', language, location, symptoms, diagnosis_result['analysis'], location_details)
         # 合併醫生清單，去除重複
         all_doctors = matched_doctors + pediatric_doctors
         seen_names = set()
@@ -1572,16 +1573,16 @@ def analyze_symptoms_and_match(age: int, gender: str, symptoms: str, chronic_con
     
     return {
         'user_summary': user_summary,
-        'diagnosis': diagnosis_result['diagnosis'],
+        'analysis': diagnosis_result['analysis'],
         'recommended_specialty': diagnosis_result['recommended_specialty'],
         'severity_level': diagnosis_result.get('severity_level', 'mild'),
         'emergency_needed': diagnosis_result.get('emergency_needed', False),
         'doctors': matched_doctors
     }
 
-def extract_specialties_from_diagnosis(diagnosis_text: str) -> list:
-    """從診斷文本中提取推薦的專科"""
-    if not diagnosis_text:
+def extract_specialties_from_analysis(analysis_text: str) -> list:
+    """從分析結果中提取推薦的專科"""
+    if not analysis_text:
         return ['內科']
     
     # Get available specialties from database
@@ -1676,7 +1677,7 @@ def extract_specialties_from_diagnosis(diagnosis_text: str) -> list:
     
     # 首先嘗試從明確的專科推薦中提取
     for pattern in specialty_patterns:
-        matches = re.findall(pattern, diagnosis_text, re.IGNORECASE)
+        matches = re.findall(pattern, analysis_text, re.IGNORECASE)
         if matches:
             recommended_specialty = matches[0].strip()
             print(f"DEBUG - Specialty pattern matched: '{pattern}' -> '{recommended_specialty}'")
@@ -1696,7 +1697,7 @@ def extract_specialties_from_diagnosis(diagnosis_text: str) -> list:
     # 如果沒有找到明確的專科推薦，搜索關鍵字
     if not found_specialties:
         print("DEBUG - No specialty pattern matched, searching for keywords")
-        text_lower = diagnosis_text.lower()
+        text_lower = analysis_text.lower()
         for standard_specialty, specialty_info in specialty_mapping.items():
             for variation in specialty_info['variations']:
                 if variation.lower() in text_lower:
@@ -1727,19 +1728,19 @@ def extract_specialties_from_diagnosis(diagnosis_text: str) -> list:
 
 def extract_specialty_from_diagnosis(diagnosis_text: str) -> str:
     """從診斷文本中提取推薦的專科（單一專科，保留兼容性）"""
-    specialties = extract_specialties_from_diagnosis(diagnosis_text)
+    specialties = extract_specialties_from_analysis(diagnosis_text)
     return specialties[0] if specialties else '內科'
 
 def extract_specialty_from_ai_response(ai_response: str) -> str:
     """從AI回應中提取推薦的專科（保留兼容性）"""
     return extract_specialty_from_diagnosis(ai_response)
 
-def extract_severity_from_diagnosis(diagnosis_text: str) -> str:
-    """從診斷文本中提取嚴重程度"""
-    if not diagnosis_text:
+def extract_severity_from_analysis(analysis_text: str) -> str:
+    """從分析結果中提取嚴重程度"""
+    if not analysis_text:
         return 'mild'
     
-    text_lower = diagnosis_text.lower()
+    text_lower = analysis_text.lower()
     
     # First check for explicit severity statements
     explicit_severity_patterns = [
@@ -2332,15 +2333,15 @@ def check_severe_symptoms():
         if detection_result['is_severe']:
             # 構建警告消息
             warning_message = {
-                'title': '⚠️ 重要醫療警告',
-                'message': '根據您提供的症狀和病史，我們強烈建議您：',
+                'title': '⚠️ 重要醫療提醒',
+                'message': '根據您提供的症狀和病史，以下是重要提醒：',
                 'recommendations': [
-                    '🚨 立即前往最近的急診室或醫院',
-                    '📞 撥打999緊急服務熱線',
-                    '🏥 尋求專業醫療人員的即時協助',
-                    '⏰ 請勿延遲，時間可能非常關鍵'
+                    '🚨 考慮前往最近的急診室或醫院',
+                    '📞 可撥打999緊急服務熱線',
+                    '🏥 建議尋求專業醫療人員的協助',
+                    '⏰ 如症狀嚴重，請勿延遲就醫'
                 ],
-                'disclaimer': '此系統僅供參考，不能替代專業醫療診斷。對於嚴重或緊急的醫療狀況，請立即尋求專業醫療協助。',
+                'disclaimer': '此系統僅供參考，不構成醫療建議或診斷。對於嚴重或緊急的醫療狀況，請諮詢專業醫療人員。',
                 'severe_items': {
                     'symptoms': detection_result['severe_symptoms'],
                     'conditions': detection_result['severe_conditions']
@@ -2420,12 +2421,12 @@ def find_doctor():
             cursor.execute('''
                 INSERT INTO user_queries 
                 (age, gender, symptoms, chronic_conditions, language, location, detailed_health_info, 
-                 ai_diagnosis, recommended_specialty, matched_doctors_count, user_ip, session_id, diagnosis_report, timestamp)
+                 ai_analysis, related_specialty, matched_doctors_count, user_ip, session_id, analysis_report, timestamp)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (age, gender_safe, symptoms, chronic_conditions, language, location, 
-                  json.dumps(detailed_health_info), result['diagnosis'], 
+                  json.dumps(detailed_health_info), result['analysis'], 
                   result['recommended_specialty'], len(result['doctors']), 
-                  get_real_ip(), session_id, result['diagnosis'], get_current_time().isoformat()))
+                  get_real_ip(), session_id, result['analysis'], get_current_time().isoformat()))
             query_id = cursor.lastrowid
             session['last_query_id'] = query_id
             conn.commit()
@@ -2453,7 +2454,7 @@ def find_doctor():
         return jsonify({
             'success': True,
             'user_summary': result['user_summary'],
-            'diagnosis': result['diagnosis'],
+            'analysis': result['analysis'],
             'recommended_specialty': result['recommended_specialty'],
             'doctors': result['doctors'],
             'total': len(result['doctors'])
@@ -3074,7 +3075,7 @@ def admin_severe_cases():
             SELECT sc.id, sc.age, sc.gender, sc.symptoms, sc.chronic_conditions,
                    sc.severe_symptoms, sc.severe_conditions, sc.user_ip, 
                    sc.timestamp, sc.user_acknowledged, sc.admin_reviewed, sc.admin_notes,
-                   uq.ai_diagnosis, uq.recommended_specialty, uq.matched_doctors_count
+                   uq.ai_analysis, uq.related_specialty, uq.matched_doctors_count
             FROM severe_cases sc
             LEFT JOIN user_queries uq ON sc.user_query_id = uq.id
             ORDER BY sc.timestamp DESC
@@ -3146,8 +3147,8 @@ def admin_severe_cases():
                 'user_acknowledged': case[9],
                 'admin_reviewed': case[10],
                 'admin_notes': case[11],
-                'ai_diagnosis': case[12],
-                'recommended_specialty': case[13],
+                'ai_analysis': case[12],
+                'related_specialty': case[13],
                 'matched_doctors_count': case[14]
             })
         
@@ -4400,8 +4401,8 @@ def export_analytics_database():
                     uq.language,
                     uq.location,
                     uq.detailed_health_info,
-                    uq.ai_diagnosis,
-                    uq.recommended_specialty,
+                    uq.ai_analysis,
+                    uq.related_specialty,
                     uq.matched_doctors_count,
                     uq.user_ip,
                     uq.session_id
@@ -4981,7 +4982,7 @@ def get_user_reports(user_ip):
         # Get all user queries with diagnosis reports
         cursor.execute('''
             SELECT id, timestamp, age, gender, symptoms, chronic_conditions, 
-                   recommended_specialty, ai_diagnosis, language, location, 
+                   related_specialty, ai_analysis, language, location, 
                    diagnosis_report
             FROM user_queries 
             WHERE user_ip = ?
@@ -5054,14 +5055,14 @@ def view_report(report_id):
         </head>
         <body>
             <div class="header">
-                <h1>🏥 AI醫療診斷報告</h1>
+                <h1>🏥 AI症狀分析報告</h1>
             </div>
             <div class="report">
                 {report_html}
             </div>
             <div class="footer">
                 <p>此報告生成於: {created_at}</p>
-                <p><small>免責聲明：此分析僅供參考，不能替代專業醫療診斷，請務必諮詢合格醫生。</small></p>
+                <p><small>免責聲明：此分析僅供參考，不構成醫療建議或診斷，請務必諮詢合格醫生。</small></p>
             </div>
         </body>
         </html>
@@ -5101,7 +5102,7 @@ def get_whatsapp_url():
         if query_id:
             cursor.execute('''
                 SELECT age, gender, symptoms, chronic_conditions, language, location, 
-                       detailed_health_info, ai_diagnosis, recommended_specialty
+                       detailed_health_info, ai_analysis, related_specialty
                 FROM user_queries WHERE id = ?
             ''', (query_id,))
             user_query_row = cursor.fetchone()
@@ -5115,8 +5116,8 @@ def get_whatsapp_url():
                     'language': user_query_row[4],
                     'location': user_query_row[5],
                     'detailed_health_info': user_query_row[6],
-                    'ai_diagnosis': user_query_row[7],
-                    'recommended_specialty': user_query_row[8]
+                    'ai_analysis': user_query_row[7],
+                    'related_specialty': user_query_row[8]
                 }
                 
                 doctor_data = {
@@ -5811,7 +5812,7 @@ def test_ai_diagnosis():
             
             try:
                 # Call the AI diagnosis function
-                diagnosis_result = diagnose_symptoms(
+                diagnosis_result = analyze_symptoms(
                     age=test_case['age'],
                     gender=test_case['gender'],
                     symptoms=test_case['symptoms'],

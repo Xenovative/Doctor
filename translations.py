@@ -9,7 +9,7 @@ TRANSLATIONS = {
         # Header and Navigation
         'app_title': 'AI香港醫療配對系統',
         'main_title': 'Doctor AI.io',
-        'subtitle': '免費AI病徵分析平台',
+        'subtitle': '免費AI症狀分析平台',
         'back_to_website': '返回主頁',
         'admin_panel': '管理後台',
         
@@ -78,7 +78,7 @@ TRANSLATIONS = {
         
         # Loading and Results
         'loading_message': 'AI正在分析您的症狀並配對合適的醫生...',
-        'recommended_doctors': 'AI病徵分析結果',
+        'recommended_doctors': 'AI症狀分析結果',
         
         # Footer
         'terms_conditions': '條款及細則',
@@ -127,24 +127,24 @@ TRANSLATIONS = {
         'more_info': '更多資料',
         'less_info': '收起資料',
         'show_more_doctors': '顯示更多醫生',
-        'recommended_doctors': 'AI病徵分析結果',
+        'recommended_doctors': 'AI症狀分析結果',
         'doctor_list_header': '醫生列表',
         'no_doctors_found': '抱歉，未能找到合適的醫生。請嘗試修改搜索條件。',
         'service_unavailable': '服務暫時不可用',
-        'ai_diagnosis_unavailable': 'AI病徵分析暫時不可用',
-        'ai_diagnosis_unavailable_desc': '我們的AI病徵分析服務暫時無法使用，但您仍可以查看推薦的醫生。建議直接諮詢醫療專業人士。',
+        'ai_diagnosis_unavailable': 'AI症狀分析暫時不可用',
+        'ai_diagnosis_unavailable_desc': '我們的AI症狀分析服務暫時無法使用，但您仍可以查看相關的醫生資訊。請直接諮詢醫療專業人士。',
         
         # User summary and diagnosis cards
         'user_health_summary': '您的健康資料摘要',
-        'ai_diagnosis_analysis': 'AI 智能病徵分析',
-        'recommended_specialty': '推薦專科',
+        'ai_diagnosis_analysis': 'AI 智能症狀分析',
+        'recommended_specialty': '相關專科資訊',
         'age_years': '年齡',
         'main_symptoms': '主要症狀',
         'body_info': '身高體重',
         'years_old_suffix': '歲',
         'height_weight_format': 'cm / kg (BMI: )',
         'important_reminder': '重要提醒：',
-        'ai_disclaimer': '此AI分析僅供參考，不能替代專業醫療病徵分析。請務必諮詢合格醫生進行正式病徵分析。',
+        'ai_disclaimer': '此AI分析僅供參考，不構成醫療建議或診斷。請務必諮詢合格醫生進行專業評估。',
         
         # Medical Specialties
         '內科': 'Internal Medicine',
@@ -240,8 +240,8 @@ TRANSLATIONS = {
             'zh-TW': '全科醫生',
             'en': 'General Practitioner'
         },
-        'emergency_care_needed': '🚨 建議緊急就醫',
-        'urgent_consultation': '需要緊急醫療諮詢',
+        'emergency_care_needed': '🚨 可能需要緊急醫療關注',
+        'urgent_consultation': '可能需要緊急醫療諮詢',
         
         # Location translations - Districts
         '中西區': '中西區',
@@ -291,37 +291,37 @@ TRANSLATIONS = {
         '元朗': '元朗', '天水圍': '天水圍', '洪水橋': '洪水橋', '流浮山': '流浮山', '錦田': '錦田', '八鄉': '八鄉',
         
         # AI Analysis Prompts
-        'diagnosis_prompt_intro': '作為一名經驗豐富的醫療專家，請根據以下病人資料進行初步病徵分析：',
+        'diagnosis_prompt_intro': '請根據以下症狀資料提供初步症狀分析和相關專科資訊：',
         'patient_data': '病人資料：',
         'age_label': '年齡：',
         'main_symptoms': '主要症狀：',
         'years_old': '歲',
         'no_special_health_info': '無特殊健康信息',
         'please_provide': '請提供：',
-        'possible_diagnosis': '可能的病症分析（最多3個可能性，按可能性排序）',
-        'recommended_specialty': '建議就診的專科',
+        'possible_diagnosis': '可能的症狀分析（最多3個可能性，按可能性排序）',
+        'recommended_specialty': '相關專科資訊',
         'severity_assessment': '症狀嚴重程度評估（輕微/中等/嚴重）',
         'emergency_needed': '是否需要緊急就醫',
-        'general_advice': '一般建議和注意事項',
+        'general_advice': '一般資訊和注意事項',
         'important_guidelines': '重要指引：',
         'mental_health_guideline': '只有在明確涉及精神健康問題（如精神崩潰、妄想、幻覺、自殺念頭、嚴重抑鬱/焦慮、恐慌症等）時，才推薦精神科。單純的身體症狀（如頭痛、頭暈、食慾不振）應優先考慮相關的身體專科',
         'trauma_guideline': '如涉及心理創傷、PTSD、情緒失控等，應推薦精神科而非內科',
         'emergency_guideline': '如症狀涉及急性或危及生命情況，應推薦急診科',
         'specialty_guideline': '根據症狀的主要系統選擇最適合的專科，避免一律推薦內科',
-        'response_language': '請用繁體中文回答。所有病徵分析結果、建議和醫療術語都必須使用繁體中文。回答格式如下：',
-        'diagnosis_format': '可能病徵：',
-        'specialty_format': '建議專科：',
+        'response_language': '請用繁體中文回答。所有症狀分析結果、資訊和醫療術語都必須使用繁體中文。回答格式如下：',
+        'diagnosis_format': '症狀分析：',
+        'specialty_format': '相關專科：',
         'severity_format': '嚴重程度：',
         'emergency_format': '緊急程度：',
-        'advice_format': '建議：',
-        'disclaimer': '免責聲明：此分析僅供參考，不能替代專業醫療病徵分析，請務必諮詢合格醫生。'
+        'advice_format': '資訊：',
+        'disclaimer': '免責聲明：此分析僅供參考，不構成醫療建議或診斷，請務必諮詢合格醫生。'
     },
     
     'zh-CN': {
         # Header and Navigation
         'app_title': 'AI香港医疗配对系统',
         'main_title': 'Doctor AI.io',
-        'subtitle': '免费AI病征分析平台',
+        'subtitle': '免费AI症状分析平台',
         'back_to_website': '返回主页',
         'admin_panel': '管理后台',
         
@@ -384,7 +384,7 @@ TRANSLATIONS = {
         
         # Loading and Results
         'loading_message': 'AI正在分析您的症状并配对合适的医生...',
-        'recommended_doctors': 'AI诊断结果',
+        'recommended_doctors': 'AI症状分析结果',
         
         # Footer
         'terms_conditions': '条款及细则',
@@ -419,24 +419,24 @@ TRANSLATIONS = {
         'more_info': '更多资料',
         'less_info': '收起资料',
         'show_more_doctors': '显示更多医生',
-        'recommended_doctors': 'AI病征分析结果',
+        'recommended_doctors': 'AI症状分析结果',
         'doctor_list_header': '医生列表',
         'no_doctors_found': '抱歉，未能找到合适的医生。请尝试修改搜索条件。',
         'service_unavailable': '服务暂时不可用',
-        'ai_diagnosis_unavailable': 'AI病征分析暂时不可用',
-        'ai_diagnosis_unavailable_desc': '我们的AI病征分析服务暂时无法使用，但您仍可以查看推荐的医生。建议直接咨询医疗专业人士。',
+        'ai_diagnosis_unavailable': 'AI症状分析暂时不可用',
+        'ai_diagnosis_unavailable_desc': '我们的AI症状分析服务暂时无法使用，但您仍可以查看相关的医生资讯。请直接咨询医疗专业人士。',
         
         # User summary and diagnosis cards
         'user_health_summary': '您的健康资料摘要',
-        'ai_diagnosis_analysis': 'AI 智能病征分析',
-        'recommended_specialty': '推荐专科',
+        'ai_diagnosis_analysis': 'AI 智能症状分析',
+        'recommended_specialty': '相关专科资讯',
         'age_years': '年龄',
         'main_symptoms': '主要症状',
         'body_info': '身高体重',
         'years_old_suffix': '岁',
         'height_weight_format': 'cm / kg (BMI: )',
         'important_reminder': '重要提醒：',
-        'ai_disclaimer': '此AI分析仅供参考，不能替代专业医疗病征分析。请务必咨询合格医生进行正式病征分析。',
+        'ai_disclaimer': '此AI分析仅供参考，不构成医疗建议或诊断。请务必咨询合格医生进行专业评估。',
         
         # Medical Specialties
         '內科': '内科',
@@ -481,8 +481,8 @@ TRANSLATIONS = {
         'not_provided': '未提供',
         'unknown_doctor': '未知医生',
         'general_specialist': '专科医生',
-        'emergency_care_needed': '🚨 建议紧急就医',
-        'urgent_consultation': '需要紧急医疗咨询',
+        'emergency_care_needed': '🚨 可能需要紧急医疗关注',
+        'urgent_consultation': '可能需要紧急医疗咨询',
         
         # Location translations - Districts
         '中西區': '中西区',

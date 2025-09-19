@@ -186,7 +186,7 @@ class SevereWarningSystem {
     proceedWithDiagnosis() {
         if (this.pendingFormData) {
             // Log that user proceeded despite warning
-            console.log('User proceeded with diagnosis despite severe symptoms warning');
+            console.log('User proceeded with analysis despite severe symptoms warning');
             console.log('Severe warning: passing formData:', this.pendingFormData);
             
             // Store the data BEFORE closing modal (which clears it)
@@ -196,7 +196,7 @@ class SevereWarningSystem {
             // Close modal
             this.closeModal();
             
-            // Execute the original diagnosis request using the stored data
+            // Execute the original analysis request using the stored data
             console.log('About to call proceedWithDiagnosis with:', formDataToPass);
             
             if (window.proceedWithDiagnosis && formDataToPass) {
