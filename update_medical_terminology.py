@@ -78,6 +78,48 @@ def migrate_user_queries_table(cursor):
     
     return changes_made
 
+def migrate_reports_table(cursor):
+    """Migrate diagnosis_reports table to analysis_reports"""
+    print("🔄 Migrating reports table...")
+    
+    # Check if old table exists
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='diagnosis_reports'")
+    has_old_table = cursor.fetchone() is not None
+    
+    # Check if new table exists
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='analysis_reports'")
+    has_new_table = cursor.fetchone() is not None
+    
+    changes_made = False
+    
+    if has_old_table and not has_new_table:
+        print("  📝 Creating analysis_reports table...")
+        cursor.execute('''
+            CREATE TABLE analysis_reports (
+                id TEXT PRIMARY KEY,
+                query_id INTEGER,
+                doctor_name TEXT,
+                doctor_specialty TEXT,
+                report_data TEXT,
+                created_at TEXT
+            )
+        ''')
+        
+        print("  📋 Copying data from diagnosis_reports to analysis_reports...")
+        cursor.execute('''
+            INSERT INTO analysis_reports (id, query_id, doctor_name, doctor_specialty, report_data, created_at)
+            SELECT id, query_id, doctor_name, doctor_specialty, report_data, created_at
+            FROM diagnosis_reports
+        ''')
+        changes_made = True
+        print("  ✅ Reports table migration completed")
+    elif has_new_table:
+        print("  ℹ️  analysis_reports table already exists")
+    else:
+        print("  ℹ️  No diagnosis_reports table found to migrate")
+    
+    return changes_made
+
 def verify_migration(cursor):
     """Verify the migration was successful"""
     print("🔍 Verifying migration...")
@@ -101,8 +143,19 @@ def verify_migration(cursor):
     cursor.execute('SELECT COUNT(*) FROM user_queries WHERE related_specialty IS NOT NULL')
     related_specialty_count = cursor.fetchone()[0]
     
+    # Check if analysis_reports table exists
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='analysis_reports'")
+    has_analysis_reports = cursor.fetchone() is not None
+    
     print(f"  ✅ Records with ai_analysis: {ai_analysis_count}")
     print(f"  ✅ Records with related_specialty: {related_specialty_count}")
+    print(f"  ✅ Analysis reports table exists: {has_analysis_reports}")
+    
+    if has_analysis_reports:
+        cursor.execute('SELECT COUNT(*) FROM analysis_reports')
+        reports_count = cursor.fetchone()[0]
+        print(f"  ✅ Analysis reports count: {reports_count}")
+    
     print("  ✅ Migration verification completed")
     
     return True
@@ -128,6 +181,8 @@ def main():
         
         # Perform migration
         changes_made = migrate_user_queries_table(cursor)
+        reports_changes = migrate_reports_table(cursor)
+        changes_made = changes_made or reports_changes
         
         # Commit changes
         if changes_made:

@@ -4983,7 +4983,7 @@ def get_user_reports(user_ip):
         cursor.execute('''
             SELECT id, timestamp, age, gender, symptoms, chronic_conditions, 
                    related_specialty, ai_analysis, language, location, 
-                   diagnosis_report
+                   analysis_report
             FROM user_queries 
             WHERE user_ip = ?
             ORDER BY timestamp DESC
@@ -5005,7 +5005,7 @@ def get_user_reports(user_ip):
                 'emergency_level': 'Yes' if check_emergency_needed(query[7]) else 'No',  # Use emergency detection instead of severity
                 'language': query[8],
                 'location': query[9],
-                'diagnosis_report': query[10]
+                'analysis_report': query[10]
             })
         
         return jsonify({
@@ -5024,7 +5024,7 @@ def view_report(report_id):
         
         cursor.execute('''
             SELECT report_data, created_at, doctor_name, doctor_specialty 
-            FROM diagnosis_reports 
+            FROM analysis_reports 
             WHERE id = ?
         ''', (report_id,))
         
@@ -5132,16 +5132,16 @@ def get_whatsapp_url():
                 # Store the full diagnosis report in database
                 try:
                     cursor.execute('''
-                        INSERT OR REPLACE INTO diagnosis_reports (id, query_id, doctor_name, doctor_specialty, report_data, created_at)
+                        INSERT OR REPLACE INTO analysis_reports (id, query_id, doctor_name, doctor_specialty, report_data, created_at)
                         VALUES (?, ?, ?, ?, ?, ?)
                     ''', (report_id, query_id, doctor_name, doctor_specialty, 
-                         format_diagnosis_report_full(user_query_data, doctor_data), 
+                         format_analysis_report_full(user_query_data, doctor_data), 
                          get_current_time().isoformat()))
                 except sqlite3.OperationalError as e:
                     print(f"Database error: {e}")
                     # Create table if it doesn't exist
                     cursor.execute('''
-                        CREATE TABLE IF NOT EXISTS diagnosis_reports (
+                        CREATE TABLE IF NOT EXISTS analysis_reports (
                             id TEXT PRIMARY KEY, 
                             query_id INTEGER, 
                             doctor_name TEXT, 
@@ -5151,10 +5151,10 @@ def get_whatsapp_url():
                         )
                     ''')
                     cursor.execute('''
-                        INSERT OR REPLACE INTO diagnosis_reports (id, query_id, doctor_name, doctor_specialty, report_data, created_at)
+                        INSERT OR REPLACE INTO analysis_reports (id, query_id, doctor_name, doctor_specialty, report_data, created_at)
                         VALUES (?, ?, ?, ?, ?, ?)
                     ''', (report_id, query_id, doctor_name, doctor_specialty, 
-                         format_diagnosis_report_full(user_query_data, doctor_data), 
+                         format_analysis_report_full(user_query_data, doctor_data), 
                          get_current_time().isoformat()))
                 conn.commit()
                 
@@ -5534,8 +5534,8 @@ def update_whatsapp_config():
         flash(f'更新WhatsApp配置失敗: {str(e)}', 'error')
         return redirect(url_for('admin_config'))
 
-def cleanup_old_diagnosis_reports():
-    """Clean up diagnosis reports older than 30 days"""
+def cleanup_old_analysis_reports():
+    """Clean up analysis reports older than 30 days"""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -5544,9 +5544,9 @@ def cleanup_old_diagnosis_reports():
         cutoff_date = datetime.now() - timedelta(days=30)
         cutoff_timestamp = cutoff_date.strftime('%Y-%m-%d %H:%M:%S')
         
-        # Delete old diagnosis reports
+        # Delete old analysis reports
         cursor.execute("""
-            DELETE FROM diagnosis_reports 
+            DELETE FROM analysis_reports 
             WHERE created_at < ?
         """, (cutoff_timestamp,))
         
@@ -6024,7 +6024,7 @@ def run_scheduled_tasks():
     """Run scheduled maintenance tasks in background thread"""
     def scheduler_thread():
         # Schedule cleanup to run daily at 2 AM
-        schedule.every().day.at("02:00").do(cleanup_old_diagnosis_reports)
+        schedule.every().day.at("02:00").do(cleanup_old_analysis_reports)
         
         # Schedule daily health check at midnight (12:00 AM)
         schedule.every().day.at("00:00").do(run_daily_health_check)
