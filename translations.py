@@ -290,7 +290,7 @@ TRANSLATIONS = {
         '屯門': '屯門', '友愛': '友愛', '安定': '安定', '山景': '山景', '大興': '大興', '良景': '良景', '建生': '建生',
         '元朗': '元朗', '天水圍': '天水圍', '洪水橋': '洪水橋', '流浮山': '流浮山', '錦田': '錦田', '八鄉': '八鄉',
         
-        # AI Diagnosis Prompts
+        # AI Analysis Prompts
         'diagnosis_prompt_intro': '作為一名經驗豐富的醫療專家，請根據以下病人資料進行初步病徵分析：',
         'patient_data': '病人資料：',
         'age_label': '年齡：',
@@ -308,8 +308,8 @@ TRANSLATIONS = {
         'trauma_guideline': '如涉及心理創傷、PTSD、情緒失控等，應推薦精神科而非內科',
         'emergency_guideline': '如症狀涉及急性或危及生命情況，應推薦急診科',
         'specialty_guideline': '根據症狀的主要系統選擇最適合的專科，避免一律推薦內科',
-        'response_language': '請用繁體中文回答。所有診斷結果、建議和醫療術語都必須使用繁體中文。回答格式如下：',
-        'diagnosis_format': '可能病徵分析：',
+        'response_language': '請用繁體中文回答。所有病徵分析結果、建議和醫療術語都必須使用繁體中文。回答格式如下：',
+        'diagnosis_format': '可能病徵：',
         'specialty_format': '建議專科：',
         'severity_format': '嚴重程度：',
         'emergency_format': '緊急程度：',
@@ -321,7 +321,7 @@ TRANSLATIONS = {
         # Header and Navigation
         'app_title': 'AI香港医疗配对系统',
         'main_title': 'Doctor AI.io',
-        'subtitle': '免费AI诊症平台',
+        'subtitle': '免费AI病征分析平台',
         'back_to_website': '返回主页',
         'admin_panel': '管理后台',
         
@@ -419,16 +419,16 @@ TRANSLATIONS = {
         'more_info': '更多资料',
         'less_info': '收起资料',
         'show_more_doctors': '显示更多医生',
-        'recommended_doctors': 'AI诊断结果',
+        'recommended_doctors': 'AI病征分析结果',
         'doctor_list_header': '医生列表',
         'no_doctors_found': '抱歉，未能找到合适的医生。请尝试修改搜索条件。',
         'service_unavailable': '服务暂时不可用',
-        'ai_diagnosis_unavailable': 'AI诊断暂时不可用',
-        'ai_diagnosis_unavailable_desc': '我们的AI诊断服务暂时无法使用，但您仍可以查看推荐的医生。建议直接咨询医疗专业人士。',
+        'ai_diagnosis_unavailable': 'AI病征分析暂时不可用',
+        'ai_diagnosis_unavailable_desc': '我们的AI病征分析服务暂时无法使用，但您仍可以查看推荐的医生。建议直接咨询医疗专业人士。',
         
         # User summary and diagnosis cards
         'user_health_summary': '您的健康资料摘要',
-        'ai_diagnosis_analysis': 'AI 智能诊断分析',
+        'ai_diagnosis_analysis': 'AI 智能病征分析',
         'recommended_specialty': '推荐专科',
         'age_years': '年龄',
         'main_symptoms': '主要症状',
@@ -436,7 +436,7 @@ TRANSLATIONS = {
         'years_old_suffix': '岁',
         'height_weight_format': 'cm / kg (BMI: )',
         'important_reminder': '重要提醒：',
-        'ai_disclaimer': '此AI分析仅供参考，不能替代专业医疗诊断。请务必咨询合格医生进行正式诊断。',
+        'ai_disclaimer': '此AI分析仅供参考，不能替代专业医疗病征分析。请务必咨询合格医生进行正式病征分析。',
         
         # Medical Specialties
         '內科': '内科',
@@ -531,15 +531,15 @@ TRANSLATIONS = {
         '屯門': '屯门', '友愛': '友爱', '安定': '安定', '山景': '山景', '大興': '大兴', '良景': '良景', '建生': '建生',
         '元朗': '元朗', '天水圍': '天水围', '洪水橋': '洪水桥', '流浮山': '流浮山', '錦田': '锦田', '八鄉': '八乡',
         
-        # AI Diagnosis Prompts
-        'diagnosis_prompt_intro': '作为一名经验丰富的医疗专家，请根据以下病人资料进行初步诊断分析：',
+        # AI Analysis Prompts
+        'diagnosis_prompt_intro': '作为一名经验丰富的医疗专家，请根据以下病人资料进行初步病征分析：',
         'patient_data': '病人资料：',
         'age_label': '年龄：',
         'main_symptoms': '主要症状：',
         'years_old': '岁',
         'no_special_health_info': '无特殊健康信息',
         'please_provide': '请提供：',
-        'possible_diagnosis': '可能的病症诊断（最多3个可能性，按可能性排序）',
+        'possible_diagnosis': '可能的病症分析（最多3个可能性，按可能性排序）',
         'recommended_specialty': '建议就诊的专科',
         'severity_assessment': '症状严重程度评估（轻微/中等/严重）',
         'emergency_needed': '是否需要紧急就医',
@@ -549,20 +549,20 @@ TRANSLATIONS = {
         'trauma_guideline': '如涉及心理创伤、PTSD、情绪失控等，应推荐精神科而非内科',
         'emergency_guideline': '如症状涉及急性或危及生命情况，应推荐急诊科',
         'specialty_guideline': '根据症状的主要系统选择最适合的专科，避免一律推荐内科',
-        'response_language': '请用简体中文回答。所有诊断结果、建议和医疗术语都必须使用简体中文。回答格式如下：',
-        'diagnosis_format': '可能诊断：',
+        'response_language': '请用简体中文回答。所有病征分析结果、建议和医疗术语都必须使用简体中文。回答格式如下：',
+        'diagnosis_format': '可能病征：',
         'specialty_format': '建议专科：',
         'severity_format': '严重程度：',
         'emergency_format': '紧急程度：',
         'advice_format': '建议：',
-        'disclaimer': '免责声明：此分析仅供参考，不能替代专业医疗诊断，请务必咨询合格医生。'
+        'disclaimer': '免责声明：此分析仅供参考，不能替代专业医疗病征分析，请务必咨询合格医生。'
     },
     
     'en': {
         # Header and Navigation
         'app_title': 'AI Hong Kong Medical Matching System',
         'main_title': 'Doctor AI.io',
-        'subtitle': 'Free AI Diagnosis Platform',
+        'subtitle': 'Free AI Symptom Analysis Platform',
         'back_to_website': 'Back to Homepage',
         'admin_panel': 'Admin Panel',
         
@@ -631,7 +631,7 @@ TRANSLATIONS = {
         
         # Loading and Results
         'loading_message': 'AI is analyzing your symptoms and matching suitable doctors...',
-        'recommended_doctors': 'AI Diagnosis Results',
+        'recommended_doctors': 'AI Symptom Analysis Results',
         
         # Footer
         'terms_conditions': 'Terms & Conditions',
@@ -666,16 +666,16 @@ TRANSLATIONS = {
         'more_info': 'More Information',
         'less_info': 'Less Information',
         'show_more_doctors': 'Show More Doctors',
-        'recommended_doctors': 'AI Diagnosis Results',
+        'recommended_doctors': 'AI Symptom Analysis Results',
         'doctor_list_header': 'Doctor List',
         'no_doctors_found': 'Sorry, no suitable doctors found. Please try modifying your search criteria.',
         'service_unavailable': 'Service Temporarily Unavailable',
-        'ai_diagnosis_unavailable': 'AI Diagnosis Temporarily Unavailable',
-        'ai_diagnosis_unavailable_desc': 'Our AI diagnosis service is temporarily unavailable, but you can still view recommended doctors. We suggest consulting medical professionals directly.',
+        'ai_diagnosis_unavailable': 'AI Symptom Analysis Temporarily Unavailable',
+        'ai_diagnosis_unavailable_desc': 'Our AI symptom analysis service is temporarily unavailable, but you can still view recommended doctors. We suggest consulting medical professionals directly.',
         
         # User summary and diagnosis cards
         'user_health_summary': 'Your Health Information Summary',
-        'ai_diagnosis_analysis': 'AI Diagnostic Analysis',
+        'ai_diagnosis_analysis': 'AI Symptom Analysis',
         'recommended_specialty': 'Recommended Specialty',
         'age_years': 'Age',
         'main_symptoms': 'Main Symptoms',
@@ -683,7 +683,7 @@ TRANSLATIONS = {
         'years_old_suffix': ' years old',
         'height_weight_format': 'cm / kg (BMI: )',
         'important_reminder': 'Important Reminder:',
-        'ai_disclaimer': 'This AI analysis is for reference only and cannot replace professional medical diagnosis. Please consult a qualified physician for formal diagnosis.',
+        'ai_disclaimer': 'This AI analysis is for reference only and cannot replace professional medical symptom analysis. Please consult a qualified physician for formal symptom analysis.',
         
         # Medical Specialties
         '內科': 'Internal Medicine',

@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const results = document.getElementById('results');
     const loadingDiv = document.getElementById('loading');
     const doctorList = document.getElementById('doctorList');
-    const diagnosisResult = document.getElementById('diagnosisResult');
+    const analysisResult = document.getElementById('diagnosisResult');
     
     // Location cascade data with coordinates for geolocation matching
     const locationData = {
@@ -613,7 +613,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 area: area
             },
             detailedHealthInfo: detailedHealthInfo,
-            uiLanguage: currentUILanguage  // Add UI language for diagnosis
+            uiLanguage: currentUILanguage  // Add UI language for analysis
         };
 
         // Check for severe symptoms first
@@ -622,17 +622,17 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (severeCheck.is_severe) {
                 // Show severe warning modal and wait for user decision
-                window.severeWarningSystem.showWarning(severeCheck, formData, proceedWithDiagnosis);
+                window.severeWarningSystem.showWarning(severeCheck, formData, proceedWithAnalysis);
                 return; // Stop here, let user decide
             }
         }
         
-        // If no severe symptoms detected, proceed with normal diagnosis
-        await proceedWithDiagnosis(formData);
+        // If no severe symptoms detected, proceed with normal analysis
+        await proceedWithAnalysis(formData);
     });
     
-    // Function to handle the actual diagnosis request
-    async function proceedWithDiagnosis(formData) {
+    // Function to handle the actual analysis request
+    async function proceedWithAnalysis(formData) {
         // 顯示載入動畫
         loading.style.display = 'block';
         results.style.display = 'none';
@@ -723,8 +723,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Make proceedWithDiagnosis globally accessible for severe warning system
-    window.proceedWithDiagnosis = proceedWithDiagnosis;
+    // Make proceedWithAnalysis globally accessible for severe warning system
+    window.proceedWithAnalysis = proceedWithAnalysis;
 
     function showValidationError(data) {
         results.style.display = 'block';
@@ -851,12 +851,11 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 顯示AI病徵分析結果
         if (data.diagnosis) {
+            // Check if analysis contains error messages
             if (data.diagnosis.includes('AI分析服務暫時不可用') || 
-                data.diagnosis.includes('服務暫時不可用') ||
-                data.diagnosis.includes('無法連接') ||
-                data.diagnosis.includes('系統錯誤')) {
+                data.diagnosis.includes('AI服務配置不完整') ||
+                data.diagnosis.includes('請稍後再試')) {
                 
-                // Create error card for AI service unavailable
                 const errorCard = document.createElement('div');
                 errorCard.className = 'alert alert-warning';
                 errorCard.style.cssText = 'text-align: center; padding: 20px; margin: 20px 0; border-radius: 10px; background-color: #fff3cd; border: 1px solid #ffeaa7;';
@@ -871,8 +870,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 `;
                 doctorList.appendChild(errorCard);
             } else {
-                const diagnosisCard = createDiagnosisCard(data.diagnosis, data.recommended_specialty);
-                doctorList.appendChild(diagnosisCard);
+                const analysisCard = createAnalysisCard(data.diagnosis, data.recommended_specialty);
+                doctorList.appendChild(analysisCard);
             }
         }
         
@@ -1295,7 +1294,7 @@ document.addEventListener('DOMContentLoaded', function() {
         event.stopPropagation();
         
         try {
-            // Get WhatsApp URL with diagnosis report
+            // Get WhatsApp URL with analysis report
             const response = await fetch('/get_whatsapp_url', {
                 method: 'POST',
                 headers: {
@@ -1310,7 +1309,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
             
             if (data.success && data.whatsapp_url) {
-                // Open WhatsApp with pre-filled diagnosis report
+                // Open WhatsApp with pre-filled analysis report
                 window.open(data.whatsapp_url, '_blank');
             } else {
                 // Fallback to basic WhatsApp URL if there's an error
@@ -1368,37 +1367,37 @@ document.addEventListener('DOMContentLoaded', function() {
         return card;
     }
 
-    function createDiagnosisCard(diagnosis, recommendedSpecialty) {
+    function createAnalysisCard(analysis, recommendedSpecialty) {
         const card = document.createElement('div');
-        card.className = 'diagnosis-card';
+        card.className = 'analysis-card';
         
         // 處理病徵分析文本，保留換行格式
-        const formattedDiagnosis = diagnosis.replace(/\n/g, '<br>');
+        const formattedAnalysis = analysis.replace(/\n/g, '<br>');
         
         card.innerHTML = `
-            <div class="diagnosis-header">
-                <div class="diagnosis-icon">
+            <div class="analysis-header">
+                <div class="analysis-icon">
                     <i class="fas fa-stethoscope"></i>
                 </div>
-                <div class="diagnosis-title">
+                <div class="analysis-title">
                     <h3 data-translate="ai_diagnosis_analysis">AI 智能病徵分析</h3>
                     <div class="recommended-specialty"><span data-translate="recommended_specialty">推薦專科</span>：${translateSpecialty(recommendedSpecialty)}</div>
                 </div>
             </div>
             
-            <div class="diagnosis-content">
-                <div class="diagnosis-text">
-                    ${formattedDiagnosis}
+            <div class="analysis-content">
+                <div class="analysis-text">
+                    ${formattedAnalysis}
                 </div>
             </div>
             
-            <div class="diagnosis-disclaimer">
+            <div class="analysis-disclaimer">
                 <i class="fas fa-exclamation-triangle"></i>
-                <strong data-translate="important_reminder">重要提醒：</strong><span data-translate="ai_disclaimer">此AI分析僅供參考，不能替代專業醫療病徵分析。請務必諮詢合格醫生進行正式病徵分析。</span>
+                <strong data-translate="important_reminder">重要提醒：</strong><span data-translate="ai_disclaimer">此AI分析僅供參考，不能替代專業醫療診斷。請務必諮詢合格醫生進行正式診斷。</span>
             </div>
         `;
         
-        // Apply translations to newly created diagnosis card
+        // Apply translations to newly created analysis card
         setTimeout(() => {
             if (window.currentTranslations) {
                 card.querySelectorAll('[data-translate]').forEach(element => {

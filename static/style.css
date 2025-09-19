@@ -364,7 +364,7 @@ body::before {
     .results-container,
     .loading,
     .user-summary-card,
-    .diagnosis-card {
+    .analysis-card {
         padding: 20px;
     }
     
@@ -382,7 +382,7 @@ body::before {
     .results-container,
     .loading,
     .user-summary-card,
-    .diagnosis-card {
+    .analysis-card {
         padding: 15px;
         margin: 0 5px;
     }
@@ -790,7 +790,7 @@ body::before {
     .results-container,
     .loading,
     .user-summary-card,
-    .diagnosis-card {
+    .analysis-card {
         margin: 0 10px;
     }
 }
@@ -812,7 +812,7 @@ body::before {
         margin: 0 10px 15px 10px;
     }
     
-    .diagnosis-card {
+    .analysis-card {
         margin: 0 10px 20px 10px;
     }
     
@@ -840,7 +840,7 @@ body::before {
         margin: 0 5px 10px 5px;
     }
     
-    .diagnosis-card {
+    .analysis-card {
         margin: 0 5px 15px 5px;
     }
     
@@ -1546,7 +1546,7 @@ body::before {
     font-weight: 400;
 }
 
-.diagnosis-card {
+.analysis-card {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     border-radius: 20px;
     padding: 30px;
@@ -1557,7 +1557,7 @@ body::before {
     overflow: hidden;
 }
 
-.diagnosis-header {
+.analysis-header {
     display: flex;
     align-items: center;
     margin-bottom: 25px;
@@ -1565,7 +1565,7 @@ body::before {
     z-index: 1;
 }
 
-.diagnosis-icon {
+.analysis-icon {
     width: 70px;
     height: 70px;
     background: rgba(255, 255, 255, 0.2);
@@ -1577,12 +1577,12 @@ body::before {
     backdrop-filter: blur(10px);
 }
 
-.diagnosis-icon i {
+.analysis-icon i {
     font-size: 2rem;
     color: white;
 }
 
-.diagnosis-title h3 {
+.analysis-title h3 {
     font-size: 1.8rem;
     margin-bottom: 8px;
     font-weight: 700;
@@ -1598,13 +1598,13 @@ body::before {
     backdrop-filter: blur(10px);
 }
 
-.diagnosis-content {
+.analysis-content {
     position: relative;
     z-index: 1;
     margin-bottom: 25px;
 }
 
-.diagnosis-text {
+.analysis-text {
     background: rgba(255, 255, 255, 0.1);
     border-radius: 15px;
     padding: 25px;
@@ -1614,7 +1614,7 @@ body::before {
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.diagnosis-disclaimer {
+.analysis-disclaimer {
     background: rgba(255, 193, 7, 0.2);
     border: 1px solid rgba(255, 193, 7, 0.3);
     border-radius: 10px;
@@ -1629,13 +1629,13 @@ body::before {
     backdrop-filter: blur(10px);
 }
 
-.diagnosis-disclaimer i {
+.analysis-disclaimer i {
     color: #ffc107;
     margin-top: 2px;
     flex-shrink: 0;
 }
 
-.diagnosis-disclaimer strong {
+.analysis-disclaimer strong {
     color: #ffc107;
 }
 

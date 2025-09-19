@@ -372,7 +372,7 @@
                         <div class="card-body">
                             <div class="alert alert-info">
                                 <i class="fas fa-info-circle me-2"></i>
-                                設定應用程式使用的時區，影響診斷報告的時間戳記顯示
+                                設定應用程式使用的時區，影響病徵分析報告的時間戳記顯示
                             </div>
                             
                             <form method="POST" action="{{ url_for('update_timezone_config') }}">
@@ -435,14 +435,14 @@
                             <div class="alert alert-info mb-4">
                                 <i class="fas fa-info-circle me-2"></i>
                                 <strong>WhatsApp Web整合：</strong>
-                                系統現在使用WhatsApp Web直接發送診斷報告，用戶點擊聯絡醫生時會開啟WhatsApp並預填完整的診斷報告訊息。
+                                系統現在使用WhatsApp Web直接發送病徵分析報告，用戶點擊聯絡醫生時會開啟WhatsApp並預填完整的病徵分析報告訊息。
                             </div>
                             
                             <form method="POST" action="{{ url_for('update_whatsapp_config') }}">
                                 <div class="row mb-4">
                                     <div class="col-md-8">
                                         <label class="form-label">
-                                            <i class="fas fa-phone me-2"></i>接收診斷報告的WhatsApp號碼
+                                            <i class="fas fa-phone me-2"></i>接收病徵分析報告的WhatsApp號碼
                                         </label>
                                         <input type="text" class="form-control" name="target_number" 
                                                value="{{ whatsapp_config.target_number or '85294974070' }}" 
@@ -451,7 +451,7 @@
                                                title="請輸入純數字的電話號碼">
                                         <div class="form-text">
                                             <i class="fas fa-lightbulb me-1"></i>
-                                            用戶點擊聯絡醫生時，會開啟WhatsApp並將診斷報告發送到此號碼
+                                            用戶點擊聯絡醫生時，會開啟WhatsApp並將病徵分析報告發送到此號碼
                                         </div>
                                     </div>
                                     <div class="col-md-4 d-flex align-items-end">
@@ -466,13 +466,13 @@
                                 <div class="row mb-4">
                                     <div class="col-12">
                                         <h6 class="fw-bold mb-3">
-                                            <i class="fas fa-file-medical me-2"></i>診斷報告內容預覽
+                                            <i class="fas fa-file-medical me-2"></i>病徵分析報告內容預覽
                                         </h6>
                                         <div class="border rounded p-3 bg-light">
                                             <small class="text-muted">用戶聯絡醫生時會發送包含以下信息的完整報告：</small>
                                             <ul class="mt-2 mb-0">
                                                 <li>患者基本信息（年齡、性別、症狀、地區）</li>
-                                                <li>AI診斷結果和推薦專科</li>
+                                                <li>AI病徵分析結果和推薦專科</li>
                                                 <li>選擇的醫生信息</li>
                                                 <li>詳細健康資料（如有提供）</li>
                                                 <li>時間戳記和系統標識</li>

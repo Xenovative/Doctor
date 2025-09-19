@@ -749,14 +749,14 @@ def format_timestamp(timestamp_str):
         return str(timestamp_str)
 
 def format_diagnosis_report_full(user_query_data: dict, doctor_data: dict) -> str:
-    """格式化完整病徵分析報告為HTML顯示"""
+    """格式化完整診斷報告為HTML顯示"""
     timestamp = get_current_time().strftime('%Y-%m-%d %H:%M:%S')
     
     # Format gender display
     gender = user_query_data.get('gender', '')
     gender_display = f"生理性別: {gender}" if gender else "生理性別: 未提供"
     
-    message = f"""🏥 AI醫療病徵分析報告
+    message = f"""🏥 AI醫療診斷報告
 📅 時間: {timestamp}
 
 👤 患者信息
@@ -766,14 +766,14 @@ def format_diagnosis_report_full(user_query_data: dict, doctor_data: dict) -> st
 語言: {user_query_data.get('language', 'N/A')}
 地區: {user_query_data.get('location', 'N/A')}
 
-🔍 AI病徵分析結果
+🔍 AI診斷結果
 推薦專科: {user_query_data.get('recommended_specialty', 'N/A')}
 
 👨‍⚕️ 選擇的醫生
 醫生姓名: {doctor_data.get('doctor_name', 'N/A')}
 專科: {doctor_data.get('doctor_specialty', 'N/A')}
 
-📊 完整病徵分析
+📊 完整診斷
 {user_query_data.get('ai_diagnosis', 'N/A')}
 
 免責聲明：此分析僅供參考，不能替代專業醫療診斷，請務必諮詢合格醫生。
@@ -784,8 +784,8 @@ Doctor-AI香港醫療配對系統"""
     return message
 
 def format_whatsapp_message(doctor_data: dict, report_url: str) -> str:
-    """格式化WhatsApp消息，包含病徵分析報告鏈接"""
-    message = f"""AI醫療病徵分析報告
+    """格式化WhatsApp消息，包含診斷報告鏈接"""
+    message = f"""AI醫療診斷報告
 
 您好！我通過AI醫療配對系統選擇了您作為我的醫生。
 
@@ -793,7 +793,7 @@ def format_whatsapp_message(doctor_data: dict, report_url: str) -> str:
 姓名: {doctor_data.get('doctor_name', 'N/A')}
 專科: {doctor_data.get('doctor_specialty', 'N/A')}
 
-完整病徵分析報告請查看：
+完整診斷報告請查看：
 {report_url}
 
 期待您的專業建議，謝謝！
@@ -1322,7 +1322,7 @@ def validate_symptoms_with_llm(symptoms: str, user_language: str = 'zh-TW') -> d
         return {'valid': True, 'message': '症狀驗證過程中出現錯誤，將繼續處理'}
 
 def diagnose_symptoms(age: int, gender: str, symptoms: str, chronic_conditions: str = '', detailed_health_info: dict = None, user_language: str = 'zh-TW') -> dict:
-    """使用AI分析病徵"""
+    """使用AI診斷症狀"""
     
     if detailed_health_info is None:
         detailed_health_info = {}
@@ -1422,10 +1422,10 @@ def diagnose_symptoms(age: int, gender: str, symptoms: str, chronic_conditions: 
     {t('disclaimer')}
     """
     
-    # 獲取AI病徵分析
+    # 獲取AI診斷
     diagnosis_response = call_ai_api(diagnosis_prompt)
     
-    # 解析病徵分析結果
+    # 解析診斷結果
     recommended_specialties = extract_specialties_from_diagnosis(diagnosis_response)
     recommended_specialty = recommended_specialties[0] if recommended_specialties else '內科'
     severity_level = extract_severity_from_diagnosis(diagnosis_response)
@@ -1489,7 +1489,7 @@ def analyze_symptoms_and_match(age: int, gender: str, symptoms: str, chronic_con
             'validation_message': '您輸入的內容不是有效的醫療症狀。請重新輸入真實的身體不適症狀，例如頭痛、發燒、咳嗽等。'
         }
     
-    # 第二步：AI病徵分析 (pass user language)
+    # 第二步：AI診斷 (pass user language)
     diagnosis_result = diagnose_symptoms(age, gender, symptoms, chronic_conditions, detailed_health_info, user_language)
     
     # 第二步：檢查是否需要緊急醫療處理
@@ -1511,7 +1511,7 @@ def analyze_symptoms_and_match(age: int, gender: str, symptoms: str, chronic_con
         matched_doctors = emergency_doctors
     else:
         print("DEBUG - Normal case, routing to specialty doctors")
-        # 一般情況：根據病徵分析結果推薦多個相關專科的醫生
+        # 一般情況：根據診斷結果推薦多個相關專科的醫生
         all_matched_doctors = []
         recommended_specialties = diagnosis_result.get('recommended_specialties', [diagnosis_result['recommended_specialty']])
         print(f"DEBUG - Will search for specialties: {recommended_specialties}")
@@ -1580,7 +1580,7 @@ def analyze_symptoms_and_match(age: int, gender: str, symptoms: str, chronic_con
     }
 
 def extract_specialties_from_diagnosis(diagnosis_text: str) -> list:
-    """從病徵分析文本中提取推薦的專科"""
+    """從診斷文本中提取推薦的專科"""
     if not diagnosis_text:
         return ['內科']
     
@@ -1726,7 +1726,7 @@ def extract_specialties_from_diagnosis(diagnosis_text: str) -> list:
     return ['內科']
 
 def extract_specialty_from_diagnosis(diagnosis_text: str) -> str:
-    """從病徵分析文本中提取推薦的專科（單一專科，保留兼容性）"""
+    """從診斷文本中提取推薦的專科（單一專科，保留兼容性）"""
     specialties = extract_specialties_from_diagnosis(diagnosis_text)
     return specialties[0] if specialties else '內科'
 
@@ -1735,7 +1735,7 @@ def extract_specialty_from_ai_response(ai_response: str) -> str:
     return extract_specialty_from_diagnosis(ai_response)
 
 def extract_severity_from_diagnosis(diagnosis_text: str) -> str:
-    """從病徵分析文本中提取嚴重程度"""
+    """從診斷文本中提取嚴重程度"""
     if not diagnosis_text:
         return 'mild'
     
@@ -2304,7 +2304,7 @@ def check_severe_symptoms():
                     '🏥 尋求專業醫療人員的即時協助',
                     '⏰ 請勿延遲，時間可能非常關鍵'
                 ],
-                'disclaimer': '此系統僅供參考，不能替代專業醫療病徵分析。對於嚴重或緊急的醫療狀況，請立即尋求專業醫療協助。',
+                'disclaimer': '此系統僅供參考，不能替代專業醫療診斷。對於嚴重或緊急的醫療狀況，請立即尋求專業醫療協助。',
                 'severe_items': {
                     'symptoms': detection_result['severe_symptoms'],
                     'conditions': detection_result['severe_conditions']
@@ -2384,7 +2384,7 @@ def find_doctor():
             cursor.execute('''
                 INSERT INTO user_queries 
                 (age, gender, symptoms, chronic_conditions, language, location, detailed_health_info, 
-                 ai_diagnosis, recommended_specialty, matched_doctors_count, user_ip, session_id, analysis_report, timestamp)
+                 ai_diagnosis, recommended_specialty, matched_doctors_count, user_ip, session_id, diagnosis_report, timestamp)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (age, gender_safe, symptoms, chronic_conditions, language, location, 
                   json.dumps(detailed_health_info), result['diagnosis'], 
@@ -4946,7 +4946,7 @@ def get_user_reports(user_ip):
         cursor.execute('''
             SELECT id, timestamp, age, gender, symptoms, chronic_conditions, 
                    recommended_specialty, ai_diagnosis, language, location, 
-                   analysis_report
+                   diagnosis_report
             FROM user_queries 
             WHERE user_ip = ?
             ORDER BY timestamp DESC
@@ -4968,7 +4968,7 @@ def get_user_reports(user_ip):
                 'emergency_level': 'Yes' if check_emergency_needed(query[7]) else 'No',  # Use emergency detection instead of severity
                 'language': query[8],
                 'location': query[9],
-                'analysis_report': query[10]
+                'diagnosis_report': query[10]
             })
         
         return jsonify({
@@ -4987,7 +4987,7 @@ def view_report(report_id):
         
         cursor.execute('''
             SELECT report_data, created_at, doctor_name, doctor_specialty 
-            FROM analysis_reports 
+            FROM diagnosis_reports 
             WHERE id = ?
         ''', (report_id,))
         
@@ -5008,7 +5008,7 @@ def view_report(report_id):
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>AI醫療病徵分析報告</title>
+            <title>AI醫療診斷報告</title>
             <style>
                 body {{ font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6; }}
                 .report {{ background: #f9f9f9; padding: 20px; border-radius: 10px; white-space: pre-line; }}
@@ -5018,14 +5018,14 @@ def view_report(report_id):
         </head>
         <body>
             <div class="header">
-                <h1>🏥 AI醫療病徵分析報告</h1>
+                <h1>🏥 AI醫療診斷報告</h1>
             </div>
             <div class="report">
                 {report_html}
             </div>
             <div class="footer">
                 <p>此報告生成於: {created_at}</p>
-                <p><small>免責聲明：此分析僅供參考，不能替代專業醫療病徵分析，請務必諮詢合格醫生。</small></p>
+                <p><small>免責聲明：此分析僅供參考，不能替代專業醫療診斷，請務必諮詢合格醫生。</small></p>
             </div>
         </body>
         </html>
@@ -5095,7 +5095,7 @@ def get_whatsapp_url():
                 # Store the full diagnosis report in database
                 try:
                     cursor.execute('''
-                        INSERT OR REPLACE INTO analysis_reports (id, query_id, doctor_name, doctor_specialty, report_data, created_at)
+                        INSERT OR REPLACE INTO diagnosis_reports (id, query_id, doctor_name, doctor_specialty, report_data, created_at)
                         VALUES (?, ?, ?, ?, ?, ?)
                     ''', (report_id, query_id, doctor_name, doctor_specialty, 
                          format_diagnosis_report_full(user_query_data, doctor_data), 
@@ -5104,7 +5104,7 @@ def get_whatsapp_url():
                     print(f"Database error: {e}")
                     # Create table if it doesn't exist
                     cursor.execute('''
-                        CREATE TABLE IF NOT EXISTS analysis_reports (
+                        CREATE TABLE IF NOT EXISTS diagnosis_reports (
                             id TEXT PRIMARY KEY, 
                             query_id INTEGER, 
                             doctor_name TEXT, 
@@ -5114,7 +5114,7 @@ def get_whatsapp_url():
                         )
                     ''')
                     cursor.execute('''
-                        INSERT OR REPLACE INTO analysis_reports (id, query_id, doctor_name, doctor_specialty, report_data, created_at)
+                        INSERT OR REPLACE INTO diagnosis_reports (id, query_id, doctor_name, doctor_specialty, report_data, created_at)
                         VALUES (?, ?, ?, ?, ?, ?)
                     ''', (report_id, query_id, doctor_name, doctor_specialty, 
                          format_diagnosis_report_full(user_query_data, doctor_data), 
@@ -5497,8 +5497,8 @@ def update_whatsapp_config():
         flash(f'更新WhatsApp配置失敗: {str(e)}', 'error')
         return redirect(url_for('admin_config'))
 
-def cleanup_old_analysis_reports():
-    """Clean up analysis reports older than 30 days"""
+def cleanup_old_diagnosis_reports():
+    """Clean up diagnosis reports older than 30 days"""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -5507,9 +5507,9 @@ def cleanup_old_analysis_reports():
         cutoff_date = datetime.now() - timedelta(days=30)
         cutoff_timestamp = cutoff_date.strftime('%Y-%m-%d %H:%M:%S')
         
-        # Delete old analysis reports
+        # Delete old diagnosis reports
         cursor.execute("""
-            DELETE FROM analysis_reports 
+            DELETE FROM diagnosis_reports 
             WHERE created_at < ?
         """, (cutoff_timestamp,))
         
@@ -5987,7 +5987,7 @@ def run_scheduled_tasks():
     """Run scheduled maintenance tasks in background thread"""
     def scheduler_thread():
         # Schedule cleanup to run daily at 2 AM
-        schedule.every().day.at("02:00").do(cleanup_old_analysis_reports)
+        schedule.every().day.at("02:00").do(cleanup_old_diagnosis_reports)
         
         # Schedule daily health check at midnight (12:00 AM)
         schedule.every().day.at("00:00").do(run_daily_health_check)
