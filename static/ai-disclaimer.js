@@ -7,6 +7,9 @@ class AIDisclaimerModal {
     constructor() {
         this.modal = document.getElementById('aiDisclaimerModal');
         this.acceptBtn = document.getElementById('acceptDisclaimer');
+        this.modalLanguageToggle = document.getElementById('modalLanguageToggle');
+        this.modalLanguageDropdown = document.getElementById('modalLanguageDropdown');
+        this.modalCurrentLang = document.getElementById('modalCurrentLang');
         this.storageKey = 'doctor_ai_disclaimer_accepted';
         this.init();
     }
@@ -27,6 +30,32 @@ class AIDisclaimerModal {
         if (this.acceptBtn) {
             this.acceptBtn.addEventListener('click', () => {
                 this.acceptDisclaimer();
+            });
+        }
+
+        // Modal language selector
+        if (this.modalLanguageToggle && this.modalLanguageDropdown) {
+            this.modalLanguageToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.modalLanguageDropdown.classList.toggle('show');
+            });
+
+            // Language option selection
+            const languageOptions = this.modalLanguageDropdown.querySelectorAll('.language-option');
+            languageOptions.forEach(option => {
+                option.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const lang = option.getAttribute('data-lang');
+                    this.changeModalLanguage(lang);
+                    this.modalLanguageDropdown.classList.remove('show');
+                });
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!this.modalLanguageToggle.contains(e.target)) {
+                    this.modalLanguageDropdown.classList.remove('show');
+                }
             });
         }
 
@@ -52,6 +81,9 @@ class AIDisclaimerModal {
         if (this.modal) {
             this.modal.style.display = 'block';
             document.body.style.overflow = 'hidden'; // Prevent background scrolling
+            
+            // Sync modal language with current page language
+            this.syncModalLanguage();
             
             // Add animation class
             setTimeout(() => {
@@ -104,6 +136,67 @@ class AIDisclaimerModal {
             }
         } catch (error) {
             // Silently fail if analytics not available
+        }
+    }
+
+    syncModalLanguage() {
+        // Get current language from localStorage or default to zh-TW
+        let currentLang = 'zh-TW';
+        try {
+            currentLang = localStorage.getItem('selectedLanguage') || 'zh-TW';
+        } catch (error) {
+            // Fallback if localStorage is not available
+        }
+
+        // Update modal language display without triggering change
+        const langMap = {
+            'zh-TW': '繁',
+            'zh-CN': '简',
+            'en': 'EN'
+        };
+        
+        if (this.modalCurrentLang) {
+            this.modalCurrentLang.textContent = langMap[currentLang] || '繁';
+        }
+
+        // Update active state in dropdown
+        if (this.modalLanguageDropdown) {
+            const languageOptions = this.modalLanguageDropdown.querySelectorAll('.language-option');
+            languageOptions.forEach(option => {
+                option.classList.remove('active');
+                if (option.getAttribute('data-lang') === currentLang) {
+                    option.classList.add('active');
+                }
+            });
+        }
+    }
+
+    changeModalLanguage(lang) {
+        // Update modal language indicator
+        const langMap = {
+            'zh-TW': '繁',
+            'zh-CN': '简',
+            'en': 'EN'
+        };
+        
+        if (this.modalCurrentLang) {
+            this.modalCurrentLang.textContent = langMap[lang] || '繁';
+        }
+
+        // Update active state in dropdown
+        const languageOptions = this.modalLanguageDropdown.querySelectorAll('.language-option');
+        languageOptions.forEach(option => {
+            option.classList.remove('active');
+            if (option.getAttribute('data-lang') === lang) {
+                option.classList.add('active');
+            }
+        });
+
+        // Trigger global language change if the language system exists
+        if (typeof window.changeLanguage === 'function') {
+            window.changeLanguage(lang);
+        } else if (typeof window.languageSystem !== 'undefined' && window.languageSystem.changeLanguage) {
+            window.languageSystem.changeLanguage(lang);
         }
     }
 

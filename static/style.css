@@ -2535,10 +2535,14 @@ body::before {
 
 .disclaimer-header {
     background: linear-gradient(135deg, #805ad5 0%, #667eea 100%);
-    color: white;
+    color: white !important;
     padding: 25px;
     text-align: center;
     border-radius: 15px 15px 0 0;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .disclaimer-header h3 {
@@ -2549,11 +2553,107 @@ body::before {
     align-items: center;
     justify-content: center;
     gap: 12px;
+    color: white !important;
+    flex: 1;
+}
+
+.disclaimer-header h3 span {
+    color: white !important;
 }
 
 .disclaimer-header i {
     font-size: 1.3em;
     animation: pulse 2s infinite;
+}
+
+/* Modal Language Selector */
+.disclaimer-language-selector {
+    position: absolute;
+    top: 50%;
+    right: 20px;
+    transform: translateY(-50%);
+}
+
+.modal-language-toggle {
+    position: relative;
+}
+
+.modal-language-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white !important;
+    padding: 8px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9em;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.modal-language-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: translateY(-1px);
+}
+
+.modal-language-btn i {
+    animation: none;
+    font-size: 1em;
+}
+
+.modal-language-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    min-width: 160px;
+    z-index: 1000;
+    display: none;
+    overflow: hidden;
+    border: 1px solid rgba(128, 90, 213, 0.2);
+    margin-top: 8px;
+}
+
+.modal-language-dropdown.show {
+    display: block;
+    animation: modalDropdownSlideIn 0.3s ease-out;
+}
+
+@keyframes modalDropdownSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.modal-language-dropdown .language-option {
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #333;
+    font-size: 0.9em;
+}
+
+.modal-language-dropdown .language-option:hover {
+    background-color: rgba(128, 90, 213, 0.1);
+}
+
+.modal-language-dropdown .language-option.active {
+    background-color: rgba(128, 90, 213, 0.2);
+    color: #805ad5;
+    font-weight: 600;
 }
 
 @keyframes pulse {
@@ -2713,6 +2813,26 @@ body::before {
         font-size: 1.3em;
         flex-direction: column;
         gap: 8px;
+    }
+    
+    .disclaimer-language-selector {
+        position: static;
+        transform: none;
+        margin-top: 15px;
+        display: flex;
+        justify-content: center;
+    }
+    
+    .modal-language-btn {
+        font-size: 0.85em;
+        padding: 6px 10px;
+    }
+    
+    .modal-language-dropdown {
+        right: auto;
+        left: 50%;
+        transform: translateX(-50%);
+        min-width: 140px;
     }
     
     .disclaimer-content-wrapper {
