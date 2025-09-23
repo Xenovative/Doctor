@@ -128,6 +128,9 @@ class AIAnalysisTester:
             # Test medical evidence gathering
             medical_evidence = self.test_medical_evidence_gathering(symptoms)
 
+            # Calculate evidence relevance score
+            evidence_relevance = self.calculate_evidence_relevance(medical_evidence, symptoms)
+
             test_result = {
                 "test_name": test_name,
                 "symptoms": symptoms,
@@ -135,6 +138,7 @@ class AIAnalysisTester:
                 "status": "PASSED",
                 "chp_relevance": chp_relevance,
                 "pubmed_relevance": pubmed_relevance,
+                "evidence_relevance": evidence_relevance,
                 "medical_evidence": medical_evidence,
                 "analysis_preview": analysis[:200] + "..." if len(analysis) > 200 else analysis
             }
@@ -519,6 +523,53 @@ class AIAnalysisTester:
                 "error": str(e)
             }
 
+    def calculate_evidence_relevance(self, evidence_data, original_symptoms):
+        """Calculate overall evidence relevance score"""
+        if not evidence_data.get("success", False):
+            return {"score": 0, "assessment": "No evidence available"}
+
+        evidence_count = evidence_data.get("evidence_count", 0)
+        has_pubmed = evidence_data.get("has_pubmed", False)
+        has_chp = evidence_data.get("has_chp", False)
+
+        # Base score from quantity
+        quantity_score = min(evidence_count * 10, 40)  # Max 40 points for quantity
+
+        # Quality bonus
+        quality_bonus = 0
+        if has_pubmed:
+            quality_bonus += 30  # PubMed articles = high quality
+        if has_chp:
+            quality_bonus += 20   # CHP content = local relevance
+
+        # Relevance to symptoms (basic check)
+        urls = evidence_data.get("evidence_urls", [])
+        symptom_relevance = sum(1 for url in urls
+                              if any(symptom.lower() in url.lower()
+                                    for symptom in original_symptoms))
+
+        relevance_bonus = min(symptom_relevance * 5, 10)  # Max 10 points for relevance
+
+        total_score = min(quantity_score + quality_bonus + relevance_bonus, 100)
+
+        # Assessment text
+        if total_score >= 70:
+            assessment = "Excellent evidence coverage"
+        elif total_score >= 50:
+            assessment = "Good evidence coverage"
+        elif total_score >= 30:
+            assessment = "Basic evidence coverage"
+        else:
+            assessment = "Limited evidence coverage"
+
+        return {
+            "score": round(total_score, 1),
+            "assessment": assessment,
+            "evidence_count": evidence_count,
+            "has_pubmed": has_pubmed,
+            "has_chp": has_chp
+        }
+
     def run_comprehensive_tests(self):
         """Run comprehensive test suite"""
         print("🚀 Starting Comprehensive AI Analysis Test Suite")
@@ -657,6 +708,15 @@ class AIAnalysisTester:
             print(f"   {status_emoji} CHP Relevance: {chp_score}/100")
             print(f"   {status_emoji} PubMed Relevance: {pubmed_score}/100")
 
+            # Show evidence relevance
+            evidence = result.get("evidence_relevance", {})
+            if evidence.get("score", 0) > 0:
+                evidence_score = evidence.get("score", 0)
+                assessment = evidence.get("assessment", "")
+                print(f"   {status_emoji} Evidence Relevance: {evidence_score}/100 ({assessment})")
+            else:
+                print(f"   ❌ Evidence Relevance: No evidence available")
+
             # Show medical evidence gathering results
             evidence = result.get("medical_evidence", {})
             if evidence.get("success", False):
@@ -719,27 +779,19 @@ class AIAnalysisTester:
             print(f"   Lowest: {min(pubmed_scores)}/100")
 
         # Medical Evidence Gathering Analysis
-        evidence_results = [r.get("medical_evidence", {}) for r in results if r["status"] == "PASSED"]
-        successful_evidence = [e for e in evidence_results if e.get("success", False)]
-        avg_evidence_count = 0.0
-        total_pubmed_articles = 0
-        total_chp_articles = 0
+        evidence_results = [r.get("evidence_relevance", {}) for r in results if r["status"] == "PASSED"]
+        successful_evidence = [e for e in evidence_results if e.get("score", 0) > 0]
+        avg_evidence = 0.0
+        total_articles = 0
 
         if successful_evidence:
-            evidence_counts = [e.get("evidence_count", 0) for e in successful_evidence]
-            avg_evidence_count = sum(evidence_counts) / len(evidence_counts)
+            evidence_scores = [e.get("score", 0) for e in successful_evidence]
+            avg_evidence = sum(evidence_scores) / len(evidence_scores)
+            total_articles = sum(e.get("evidence_count", 0) for e in successful_evidence)
 
-            # Count total articles from all evidence sources
-            for evidence in successful_evidence:
-                titles = evidence.get("evidence_titles", [])
-                total_pubmed_articles += sum(1 for t in titles if 'pubmed' in t.lower())
-                total_chp_articles += sum(1 for t in titles if 'chp' in t.lower() or '衞生' in t)
-
-            print("\n🔬 MEDICAL EVIDENCE GATHERING ANALYSIS:")
-            print(f"   Successful Evidence Gathering: {len(successful_evidence)}/{len(evidence_results)} tests")
-            print(f"   Average Articles per Test: {avg_evidence_count:.1f}")
-            print(f"   Total PubMed Articles: {total_pubmed_articles}")
-            print(f"   Total CHP Articles: {total_chp_articles}")
+            print("\n🔬 MEDICAL EVIDENCE ANALYSIS:")
+            print(f"   Average Evidence Score: {avg_evidence:.1f}/100")
+            print(f"   Total Articles Gathered: {total_articles}")
             print(f"   Evidence Integration Rate: {(len(successful_evidence)/len(evidence_results)*100):.1f}%")
 
         # Detailed results
@@ -766,6 +818,12 @@ class AIAnalysisTester:
                 print(f"   Extracted: {', '.join(extracted) if extracted else 'No extracted symptoms'}")
                 print(f"   CHP Score: {chp.get('score', 0)}/100")
                 print(f"   PubMed Score: {pubmed.get('score', 0)}/100")
+
+                # Show evidence relevance
+                evidence_rel = result.get("evidence_relevance", {})
+                if evidence_rel.get("score", 0) > 0:
+                    print(f"   Evidence Score: {evidence_rel.get('score', 0)}/100 ({evidence_rel.get('assessment', '')})")
+                    print(f"   Evidence Count: {evidence_rel.get('evidence_count', 0)} articles")
 
                 if chp.get("matched_topics"):
                     print(f"   CHP Topics: {', '.join(chp['matched_topics'][:2])}")
