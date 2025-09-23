@@ -144,9 +144,15 @@ def get_medical_evidence():
         
         # If symptoms contain Chinese text, translate them using AI
         if any(isinstance(s, str) and any('\u4e00' <= c <= '\u9fff' for c in s) for s in symptoms):
-            logger.info("Detected Chinese medical terms, translating with AI...")
+            logger.info("Detected Chinese medical terms in symptoms, translating with AI...")
             translated_symptoms = translate_medical_terms_with_ai(symptoms)
             symptoms = translated_symptoms
+        
+        # Also translate diagnosis if it contains Chinese text
+        if diagnosis and isinstance(diagnosis, str) and any('\u4e00' <= c <= '\u9fff' for c in diagnosis):
+            logger.info("Detected Chinese medical terms in diagnosis, translating with AI...")
+            translated_diagnosis = translate_medical_terms_with_ai([diagnosis])
+            diagnosis = translated_diagnosis[0] if translated_diagnosis else diagnosis
         
         # Generate search terms for medical databases
         search_terms = generate_medical_search_terms(symptoms, diagnosis)
@@ -358,6 +364,131 @@ def fetch_pubmed_evidence(search_terms):
         logger.error(f"PubMed API error: {e}")
         return []
 
+def extract_relevant_excerpt(abstract_text, search_term):
+    """Extract the most relevant excerpt from abstract based on search term"""
+    try:
+        if not abstract_text or len(abstract_text) < 100:
+            return abstract_text
+        
+        # Split into sentences
+        sentences = [s.strip() for s in abstract_text.replace('\n', ' ').split('.') if s.strip()]
+        
+        # Score sentences based on relevance to search term
+        scored_sentences = []
+        search_words = search_term.lower().split()
+        
+        for sentence in sentences:
+            sentence_lower = sentence.lower()
+            score = 0
+            
+            # Direct term matches
+            for word in search_words:
+                if word in sentence_lower:
+                    score += 3
+            
+            # Medical relevance keywords
+            medical_keywords = [
+                'diagnosis', 'treatment', 'symptoms', 'clinical', 'patients', 'study', 
+                'results', 'findings', 'associated', 'risk', 'therapy', 'management',
+                'condition', 'disease', 'syndrome', 'disorder', 'prevalence', 'incidence'
+            ]
+            
+            for keyword in medical_keywords:
+                if keyword in sentence_lower:
+                    score += 1
+            
+            # Prefer sentences with numbers/statistics
+            if any(char.isdigit() for char in sentence):
+                score += 1
+            
+            # Prefer sentences mentioning outcomes
+            outcome_words = ['effective', 'improved', 'reduced', 'increased', 'significant', 'associated']
+            for word in outcome_words:
+                if word in sentence_lower:
+                    score += 2
+            
+            if score > 0 and len(sentence) > 20:  # Minimum sentence length
+                scored_sentences.append((score, sentence))
+        
+        if not scored_sentences:
+            # Fallback to first part of abstract
+            return abstract_text[:250] + "..." if len(abstract_text) > 250 else abstract_text
+        
+        # Sort by score and take top sentences
+        scored_sentences.sort(key=lambda x: x[0], reverse=True)
+        
+        # Combine top 2-3 sentences, keeping under 300 characters
+        selected_sentences = []
+        total_length = 0
+        
+        for score, sentence in scored_sentences[:3]:
+            if total_length + len(sentence) < 280:
+                selected_sentences.append(sentence)
+                total_length += len(sentence)
+            else:
+                break
+        
+        if selected_sentences:
+            excerpt = '. '.join(selected_sentences)
+            if not excerpt.endswith('.'):
+                excerpt += '.'
+            return excerpt
+        else:
+            return abstract_text[:250] + "..." if len(abstract_text) > 250 else abstract_text
+            
+    except Exception as e:
+        logger.error(f"Error extracting relevant excerpt: {e}")
+        return abstract_text[:200] + "..." if len(abstract_text) > 200 else abstract_text
+
+def generate_relevance_explanation(search_term, title, abstract):
+    """Generate a specific explanation of why this article is relevant"""
+    try:
+        relevance_parts = []
+        
+        # Check what aspects are covered
+        title_lower = title.lower()
+        abstract_lower = abstract.lower()
+        search_lower = search_term.lower()
+        
+        # Direct term matches
+        if search_lower in title_lower:
+            relevance_parts.append(f"directly addresses {search_term}")
+        elif search_lower in abstract_lower:
+            relevance_parts.append(f"discusses {search_term}")
+        
+        # Clinical aspects
+        clinical_aspects = []
+        if 'diagnosis' in abstract_lower or 'diagnostic' in abstract_lower:
+            clinical_aspects.append('diagnosis')
+        if 'treatment' in abstract_lower or 'therapy' in abstract_lower:
+            clinical_aspects.append('treatment')
+        if 'management' in abstract_lower:
+            clinical_aspects.append('management')
+        if 'risk' in abstract_lower or 'factor' in abstract_lower:
+            clinical_aspects.append('risk factors')
+        if 'outcome' in abstract_lower or 'prognosis' in abstract_lower:
+            clinical_aspects.append('outcomes')
+        
+        if clinical_aspects:
+            relevance_parts.append(f"covers {', '.join(clinical_aspects[:2])}")
+        
+        # Study type
+        if 'randomized' in abstract_lower or 'controlled trial' in abstract_lower:
+            relevance_parts.append("from a controlled clinical trial")
+        elif 'systematic review' in abstract_lower or 'meta-analysis' in abstract_lower:
+            relevance_parts.append("from a systematic review")
+        elif 'cohort' in abstract_lower or 'longitudinal' in abstract_lower:
+            relevance_parts.append("from a longitudinal study")
+        
+        if relevance_parts:
+            return f"This research {', '.join(relevance_parts[:3])} and provides evidence-based insights for your condition."
+        else:
+            return f"This research on {search_term} provides relevant medical evidence for your symptoms."
+            
+    except Exception as e:
+        logger.error(f"Error generating relevance explanation: {e}")
+        return f"This research on {search_term} provides evidence-based insights relevant to your symptoms."
+
 def parse_pubmed_articles(xml_content, search_term):
     """Parse PubMed XML response to extract article information"""
     try:
@@ -377,12 +508,13 @@ def parse_pubmed_articles(xml_content, search_term):
                 year_elem = article.find('.//PubDate/Year')
                 year = year_elem.text if year_elem is not None else "Unknown Year"
                 
-                # Extract abstract (first 200 characters)
+                # Extract abstract and find most relevant excerpt
                 abstract_elem = article.find('.//Abstract/AbstractText')
                 abstract = ""
                 if abstract_elem is not None:
                     abstract_text = abstract_elem.text or ""
-                    abstract = abstract_text[:200] + "..." if len(abstract_text) > 200 else abstract_text
+                    # Find the most relevant excerpt based on search term
+                    abstract = extract_relevant_excerpt(abstract_text, search_term)
                 
                 # Extract PMID for URL
                 pmid_elem = article.find('.//PMID')
@@ -393,7 +525,7 @@ def parse_pubmed_articles(xml_content, search_term):
                         'title': title,
                         'source': f"{journal}, {year}",
                         'excerpt': abstract,
-                        'relevance': f"This research on {search_term} provides evidence-based insights relevant to your symptoms.",
+                        'relevance': generate_relevance_explanation(search_term, title, abstract),
                         'url': f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/" if pmid else "",
                         'type': 'pubmed'
                     })
