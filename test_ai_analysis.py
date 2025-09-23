@@ -107,7 +107,7 @@ class AIAnalysisTester:
             return False
         return True
 
-    def test_ai_analysis(self, symptoms, expected_chp_topics=None, test_name=""):
+    def test_ai_analysis(self, symptoms, expected_chp_topics=None, test_name="", age=30, gender="男"):
         """Test single AI analysis with symptom set"""
         print(f"\n🧪 Testing: {test_name}")
         print(f"   Symptoms: {symptoms}")
@@ -116,8 +116,8 @@ class AIAnalysisTester:
             # Make request to the correct AI analysis endpoint
             # Based on the frontend code, it uses /find_doctor endpoint
             form_data = {
-                "age": 30,
-                "gender": "男",
+                "age": age,
+                "gender": gender,
                 "symptoms": symptoms,
                 "language": "zh-TW",
                 "location": "香港島",
@@ -1336,7 +1336,9 @@ class AIAnalysisTester:
                 result = self.test_ai_analysis(
                     symptoms=test_case["symptoms"],
                     expected_chp_topics=test_case["expected_chp"],
-                    test_name=test_case["name"]
+                    test_name=test_case["name"],
+                    age=test_case["age"],
+                    gender=test_case["gender"]
                 )
 
             all_results.append(result)
