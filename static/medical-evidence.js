@@ -11,24 +11,31 @@ class MedicalEvidenceSystem {
 
     async fetchEvidenceForSymptoms(symptoms, diagnosis = '') {
         try {
+            console.log('fetchEvidenceForSymptoms called with:', symptoms, diagnosis);
+            
             // Create cache key
             const cacheKey = JSON.stringify({ symptoms, diagnosis });
+            console.log('Cache key:', cacheKey);
             
             // Check cache first
             if (this.cache.has(cacheKey)) {
+                console.log('Found in cache');
                 return this.cache.get(cacheKey);
             }
 
             // Check if already loading
             if (this.loadingStates.has(cacheKey)) {
+                console.log('Already loading, waiting...');
                 return await this.loadingStates.get(cacheKey);
             }
 
             // Create loading promise
+            console.log('Making new API call');
             const loadingPromise = this.fetchFromAPI(symptoms, diagnosis);
             this.loadingStates.set(cacheKey, loadingPromise);
 
             const result = await loadingPromise;
+            console.log('API result:', result);
             
             // Cache the result
             this.cache.set(cacheKey, result);
@@ -44,22 +51,32 @@ class MedicalEvidenceSystem {
 
     async fetchFromAPI(symptoms, diagnosis) {
         try {
+            console.log('fetchFromAPI called with:', symptoms, diagnosis);
+            
+            const requestBody = {
+                symptoms: symptoms,
+                diagnosis: diagnosis
+            };
+            console.log('Request body:', requestBody);
+            
             const response = await fetch('/api/medical-evidence', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    symptoms: symptoms,
-                    diagnosis: diagnosis
-                })
+                body: JSON.stringify(requestBody)
             });
 
+            console.log('Response status:', response.status);
+            
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                const errorText = await response.text();
+                console.error('API error response:', errorText);
+                throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
             }
 
             const data = await response.json();
+            console.log('API response data:', data);
             return data;
 
         } catch (error) {
@@ -76,11 +93,29 @@ class MedicalEvidenceSystem {
             
             // Fetch evidence from API
             const result = await this.fetchEvidenceForSymptoms(symptoms, diagnosis);
+            console.log('fetchEvidenceForSymptoms returned:', result);
             
-            if (!result.success || !result.evidence || result.evidence.length === 0) {
-                return ''; // No evidence available
+            if (!result) {
+                console.log('Result is null/undefined');
+                return '';
+            }
+            
+            if (!result.success) {
+                console.log('Result success is false:', result.success);
+                return '';
+            }
+            
+            if (!result.evidence) {
+                console.log('Result evidence is null/undefined:', result.evidence);
+                return '';
+            }
+            
+            if (result.evidence.length === 0) {
+                console.log('Result evidence array is empty, length:', result.evidence.length);
+                return '';
             }
 
+            console.log('Generating HTML from evidence data:', result.evidence);
             return this.generateEvidenceHTMLFromData(result.evidence);
 
         } catch (error) {
