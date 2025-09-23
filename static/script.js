@@ -1547,13 +1547,13 @@ document.addEventListener('DOMContentLoaded', function() {
         // Extract symptoms from different sections of the AI analysis
         const extractedTerms = [];
         
-        // Look for "症狀分析：" or "症狀：" sections
+        // Look for "症狀分析：" or "症狀：" sections - capture everything until next section
         const symptomSections = [
-            /症狀分析[：:]\s*([^。\n]+)/g,
-            /主要症狀[：:]\s*([^。\n]+)/g,
-            /症狀[：:]\s*([^。\n]+)/g,
-            /臨床表現[：:]\s*([^。\n]+)/g,
-            /病徵[：:]\s*([^。\n]+)/g
+            /症狀分析[：:]\s*([\s\S]*?)(?=相關專科|嚴重程度|緊急程度|資訊|$)/g,
+            /主要症狀[：:]\s*([\s\S]*?)(?=相關專科|嚴重程度|緊急程度|資訊|$)/g,
+            /症狀[：:]\s*([\s\S]*?)(?=相關專科|嚴重程度|緊急程度|資訊|$)/g,
+            /臨床表現[：:]\s*([\s\S]*?)(?=相關專科|嚴重程度|緊急程度|資訊|$)/g,
+            /病徵[：:]\s*([\s\S]*?)(?=相關專科|嚴重程度|緊急程度|資訊|$)/g
         ];
         
         symptomSections.forEach(regex => {
@@ -1604,12 +1604,16 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Extracting from text:', text);
         
         // Handle numbered lists (1. 上呼吸道感染, 2. 支氣管炎, etc.)
-        const numberedItems = text.match(/\d+\.\s*([^（\n]+)/g);
+        const numberedItems = text.match(/\d+\.\s*([^\n]+)/g);
         if (numberedItems) {
             numberedItems.forEach(item => {
-                const cleanItem = item.replace(/^\d+\.\s*/, '').trim();
+                let cleanItem = item.replace(/^\d+\.\s*/, '').trim();
+                // Remove parentheses content for the main term
+                cleanItem = cleanItem.replace(/（[^）]*）/g, '').trim();
                 console.log('Found numbered item:', cleanItem);
-                terms.push(cleanItem);
+                if (cleanItem.length > 1) {
+                    terms.push(cleanItem);
+                }
             });
         }
         
@@ -1657,14 +1661,27 @@ document.addEventListener('DOMContentLoaded', function() {
         // Also extract simple comma/punctuation separated terms
         const simpleTerms = text.split(/[，,、。；;\n]/)
             .map(term => term.trim())
-            .filter(term => term.length > 1 && term.length < 15)
+            .map(term => term.replace(/^\d+\.\s*/, '')) // Remove number prefixes
+            .filter(term => term.length > 1 && term.length < 20)
             .filter(term => /[\u4e00-\u9fff]/.test(term)) // Contains Chinese characters
-            .filter(term => !term.match(/^\d+$/)); // Not just numbers
+            .filter(term => !term.match(/^\d+$/)) // Not just numbers
+            .filter(term => !term.match(/^[，,、。；;\s]+$/)); // Not just punctuation
         
         terms.push(...simpleTerms);
         
-        console.log('All extracted terms:', terms);
-        return [...new Set(terms)]; // Remove duplicates
+        // Clean and deduplicate
+        const cleanedTerms = [...new Set(terms)]
+            .map(term => term.replace(/^\d+\.\s*/, '').trim()) // Final cleanup of number prefixes
+            .filter(term => term.length > 1)
+            .filter((term, index, arr) => {
+                // Remove terms that are substrings of other terms
+                return !arr.some((otherTerm, otherIndex) => 
+                    otherIndex !== index && otherTerm.includes(term) && otherTerm.length > term.length
+                );
+            });
+        
+        console.log('All extracted terms:', cleanedTerms);
+        return cleanedTerms;
     }
 
     // Function to track doctor clicks
