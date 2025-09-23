@@ -536,6 +536,19 @@ def fetch_pubmed_evidence(search_terms, original_terms=None):
                             logger.warning(f"No articles found for symptom: {original_term}")
                             symptom_coverage[original_term] = 0
         
+        # Remove duplicate articles based on title
+        seen_titles = set()
+        unique_evidence = []
+        for article in evidence:
+            title = article.get('title', '').strip().lower()
+            if title and title not in seen_titles:
+                seen_titles.add(title)
+                unique_evidence.append(article)
+            else:
+                logger.info(f"Removed duplicate article: {article.get('title', '')[:50]}...")
+        
+        evidence = unique_evidence
+        
         # Sort evidence by relevance score (highest first)
         evidence.sort(key=lambda x: x.get('relevance_score', 0), reverse=True)
         

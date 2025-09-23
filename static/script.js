@@ -1621,30 +1621,33 @@ document.addEventListener('DOMContentLoaded', function() {
         
         console.log('Extracting from text:', text);
         
-        // First try to extract clean condition names
+        // First try to extract clean condition names (this is the primary method)
         const conditionNames = extractConditionNames(text);
         terms.push(...conditionNames);
         
-        // Handle numbered lists - extract only the medical condition name before colon
-        const numberedItems = text.match(/\d+\.\s*([^\n]+)/g);
-        if (numberedItems) {
-            numberedItems.forEach(item => {
-                let cleanItem = item.replace(/^\d+\.\s*/, '').trim();
-                
-                // Extract only the medical term before colon or first punctuation
-                const colonIndex = cleanItem.indexOf('：');
-                if (colonIndex > 0) {
-                    cleanItem = cleanItem.substring(0, colonIndex).trim();
-                }
-                
-                // Remove parentheses content
-                cleanItem = cleanItem.replace(/（[^）]*）/g, '').trim();
-                
-                console.log('Found numbered item:', cleanItem);
-                if (cleanItem.length > 1 && cleanItem.length < 15) {
-                    terms.push(cleanItem);
-                }
-            });
+        // Only use fallback extraction if no condition names were found
+        if (conditionNames.length === 0) {
+            // Handle numbered lists - extract only the medical condition name before colon
+            const numberedItems = text.match(/\d+\.\s*([^\n]+)/g);
+            if (numberedItems) {
+                numberedItems.forEach(item => {
+                    let cleanItem = item.replace(/^\d+\.\s*/, '').trim();
+                    
+                    // Extract only the medical term before colon or first punctuation
+                    const colonIndex = cleanItem.indexOf('：');
+                    if (colonIndex > 0) {
+                        cleanItem = cleanItem.substring(0, colonIndex).trim();
+                    }
+                    
+                    // Remove parentheses content
+                    cleanItem = cleanItem.replace(/（[^）]*）/g, '').trim();
+                    
+                    console.log('Found numbered item (fallback):', cleanItem);
+                    if (cleanItem.length > 1 && cleanItem.length < 15 && !terms.includes(cleanItem)) {
+                        terms.push(cleanItem);
+                    }
+                });
+            }
         }
         
         // Extract content in parentheses (如普通感冒或流感)
@@ -1660,11 +1663,11 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Common medical symptom patterns
         const medicalPatterns = [
-            /([^，,、。\s（）]+感染)/g,    // Infections: 上呼吸道感染, etc.
-            /([^，,、。\s（）]+炎)/g,      // Inflammation: 肺炎, 支氣管炎, etc.
-            /([^，,、。\s（）]+症)/g,      // Syndromes: 感冒症, etc.
-            /([^，,、。\s（）]+病)/g,      // Diseases: 心臟病, etc.
-            /([^，,、。\s（）]+痛)/g,      // Pain symptoms: 頭痛, 胸痛, etc.
+            /([^，,、。\s（）]{2,8}感染)/g,    // Infections: 上呼吸道感染, etc. (length limited)
+            /([^，,、。\s（）]{2,6}炎)/g,      // Inflammation: 肺炎, 支氣管炎, etc.
+            /([^，,、。\s（）]{2,8}症)/g,      // Syndromes: 感冒症, etc.
+            /([^，,、。\s（）]{2,6}病)/g,      // Diseases: 心臟病, etc.
+            /([^，,、。\s（）]{2,6}痛)/g,      // Pain symptoms: 頭痛, 胸痛, etc.
             /(發燒|發熱)/g,               // Fever
             /(咳嗽)/g,                    // Cough
             /(頭暈|暈眩)/g,               // Dizziness
@@ -1683,8 +1686,11 @@ document.addEventListener('DOMContentLoaded', function() {
             let match;
             while ((match = pattern.exec(text)) !== null) {
                 const term = match[1] || match[0];
-                console.log('Found pattern match:', term);
-                terms.push(term);
+                // Only add if it's a reasonable length and doesn't contain descriptive words
+                if (term.length <= 10 && !term.includes('可能') && !term.includes('相關') && !term.includes('不振')) {
+                    console.log('Found pattern match:', term);
+                    terms.push(term);
+                }
             }
         });
         
@@ -1700,14 +1706,25 @@ document.addEventListener('DOMContentLoaded', function() {
             .filter(term => !term.includes('可能')) // Avoid "possible" descriptions
             .filter(term => !term.includes('建議')); // Avoid "suggest" descriptions
         
-        terms.push(...simpleTerms);
+        // Only add simpleTerms that aren't already in terms
+        simpleTerms.forEach(term => {
+            if (!terms.includes(term)) {
+                terms.push(term);
+            }
+        });
         
         // Clean and deduplicate
         const cleanedTerms = [...new Set(terms)]
             .map(term => term.replace(/^\d+\.\s*/, '').trim()) // Final cleanup of number prefixes
             .filter(term => term.length > 1)
             .filter((term, index, arr) => {
-                // Remove terms that are substrings of other terms
+                // Remove terms that are substrings of other terms, but preserve medical conditions
+                // Don't remove if the term is a known medical condition (short and specific)
+                if (term.length <= 8 && (term.includes('病') || term.includes('症') || term.includes('炎') || term.includes('癌'))) {
+                    return true; // Keep medical conditions
+                }
+                
+                // For longer terms, remove if they're substrings of other terms
                 return !arr.some((otherTerm, otherIndex) => 
                     otherIndex !== index && otherTerm.includes(term) && otherTerm.length > term.length
                 );
