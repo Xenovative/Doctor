@@ -700,45 +700,9 @@ class AIAnalysisTester:
 
             all_results.append(result)
 
-            # Show immediate results
+            # Simple progress indicator (removed detailed output to avoid duplication)
             status_emoji = "✅" if result["status"] == "PASSED" else "❌"
-            chp_score = result.get("chp_relevance", {}).get("score", 0)
-            # Removed pubmed_score variable
-
-            print(f"   {status_emoji} CHP Relevance: {chp_score}/100")
-            # Removed PubMed relevance display
-
-            # Show evidence relevance
-            evidence = result.get("evidence_relevance", {})
-            if evidence.get("score", 0) > 0:
-                evidence_score = evidence.get("score", 0)
-                assessment = evidence.get("assessment", "")
-                print(f"   {status_emoji} Evidence Relevance: {evidence_score}/100 ({assessment})")
-            else:
-                print(f"   ❌ Evidence Relevance: No evidence available")
-
-            # Show medical evidence gathering results
-            evidence = result.get("medical_evidence", {})
-            if evidence.get("success", False):
-                evidence_count = evidence.get("evidence_count", 0)
-                has_pubmed = evidence.get("has_pubmed", False)
-                has_chp = evidence.get("has_chp", False)
-                titles = evidence.get("evidence_titles", [])
-
-                print(f"   📚 Evidence Gathered: {evidence_count} articles")
-                if has_pubmed:
-                    print(f"   🔬 PubMed: ✅")
-                if has_chp:
-                    print(f"   🏥 CHP: ✅")
-                    # Show actual CHP content fetched
-                    chp_titles = [t for t in titles if 'chp' in t.lower() or '衞生' in t or '衛生' in t]
-                    if chp_titles:
-                        print(f"   📄 CHP Fetched: {', '.join(chp_titles[:1])}")
-
-                if titles and len(titles) <= 3:
-                    print(f"   📖 Titles: {', '.join(titles[:2])}")
-            else:
-                print(f"   ❌ Evidence Error: {evidence.get('error', 'Unknown')}")
+            print(f"   {status_emoji} {test_case['name']}")
 
             if result["status"] == "FAILED":
                 print(f"   ❌ Error: {result.get('error', 'Unknown')}")
@@ -857,8 +821,7 @@ class AIAnalysisTester:
         if avg_chp < 70:
             print("⚠️  CHP mapping needs improvement - consider expanding symptom coverage")
 
-        if avg_pubmed < 60:
-            print("⚠️  PubMed integration may need enhancement")
+        # Removed PubMed recommendations - now handled by evidence relevance
 
         if failed_tests > 0:
             print(f"⚠️  {failed_tests} tests failed - check AI analysis endpoint")
