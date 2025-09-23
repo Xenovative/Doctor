@@ -171,8 +171,8 @@ def get_medical_evidence():
             additional_evidence = fetch_additional_medical_sources(search_terms)
             evidence.extend(additional_evidence)
         
-        # Limit to top 3 most relevant results
-        evidence = evidence[:3]
+        # Limit to top 6 most relevant results for scrollable display
+        evidence = evidence[:6]
         
         return jsonify({
             'success': True,
@@ -329,14 +329,14 @@ def fetch_pubmed_evidence(search_terms, original_terms=None):
         if original_terms is None:
             original_terms = search_terms
         
-        for i, term in enumerate(search_terms[:2]):  # Limit to avoid too many API calls
+        for i, term in enumerate(search_terms[:3]):  # Increased to 3 terms for more comprehensive results
             original_term = original_terms[i] if i < len(original_terms) else term
             # PubMed E-utilities API
             search_url = f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
             search_params = {
                 'db': 'pubmed',
                 'term': f"{term}[Title/Abstract] AND (clinical[Title/Abstract] OR diagnosis[Title/Abstract] OR treatment[Title/Abstract])",
-                'retmax': 3,
+                'retmax': 5,
                 'sort': 'relevance',
                 'retmode': 'xml'
             }
@@ -353,7 +353,7 @@ def fetch_pubmed_evidence(search_terms, original_terms=None):
                     fetch_url = f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
                     fetch_params = {
                         'db': 'pubmed',
-                        'id': ','.join(pmids[:2]),  # Get top 2 articles
+                        'id': ','.join(pmids[:3]),  # Get top 3 articles
                         'retmode': 'xml'
                     }
                     
@@ -1811,7 +1811,7 @@ def analyze_symptoms_with_evidence(age: int, gender: str, symptoms: str, chronic
             search_terms = symptom_terms
         
         # Fetch evidence from PubMed (pass both English for search and Chinese for display)
-        evidence_results = fetch_pubmed_evidence(search_terms[:3], symptom_terms[:3])  # Limit to top 3 terms
+        evidence_results = fetch_pubmed_evidence(search_terms[:4], symptom_terms[:4])  # Increased to 4 terms for more comprehensive results
         
         if evidence_results:
             medical_evidence = "\n\n**醫學文獻參考資料 (Medical Literature References):**\n"
