@@ -730,6 +730,7 @@ class AIAnalysisTester:
 
                 print(f"   Patient: {patient_data.get('age', 'N/A')}歲 {patient_data.get('gender', 'N/A')}性")
                 print(f"   Symptoms: {', '.join(result['symptoms'])}")
+                print(f"   📄 AI Analysis: {result.get('analysis_preview', 'No analysis available')}")
                 print(f"   Extracted: {', '.join(result.get('extracted_symptoms', []))}")
                 print(f"   CHP Score: {chp.get('score', 0)}/100")
                 print(f"   PubMed Score: {pubmed.get('score', 0)}/100")
