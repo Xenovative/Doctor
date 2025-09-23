@@ -727,9 +727,13 @@ class AIAnalysisTester:
 
                 print(f"   📚 Evidence Gathered: {evidence_count} articles")
                 if has_pubmed:
-                    print(f"   🔬 PubMed: ✅ ({sum(1 for t in titles if 'pubmed' in t.lower())} articles)")
+                    print(f"   🔬 PubMed: ✅")
                 if has_chp:
-                    print(f"   🏥 CHP: ✅ ({sum(1 for t in titles if 'chp' in t.lower() or '衞生' in t)} articles)")
+                    print(f"   🏥 CHP: ✅")
+                    # Show actual CHP content fetched
+                    chp_titles = [t for t in titles if 'chp' in t.lower() or '衞生' in t or '衛生' in t]
+                    if chp_titles:
+                        print(f"   📄 CHP Fetched: {', '.join(chp_titles[:1])}")
 
                 if titles and len(titles) <= 3:
                     print(f"   📖 Titles: {', '.join(titles[:2])}")
@@ -781,18 +785,14 @@ class AIAnalysisTester:
         # Medical Evidence Gathering Analysis
         evidence_results = [r.get("evidence_relevance", {}) for r in results if r["status"] == "PASSED"]
         successful_evidence = [e for e in evidence_results if e.get("score", 0) > 0]
-        avg_evidence = 0.0
-        total_articles = 0
+        total_articles = sum(e.get("evidence_count", 0) for e in successful_evidence)
+        avg_evidence_count = total_articles / len(successful_evidence) if successful_evidence else 0
 
-        if successful_evidence:
-            evidence_scores = [e.get("score", 0) for e in successful_evidence]
-            avg_evidence = sum(evidence_scores) / len(evidence_scores)
-            total_articles = sum(e.get("evidence_count", 0) for e in successful_evidence)
-
-            print("\n🔬 MEDICAL EVIDENCE ANALYSIS:")
-            print(f"   Average Evidence Score: {avg_evidence:.1f}/100")
-            print(f"   Total Articles Gathered: {total_articles}")
-            print(f"   Evidence Integration Rate: {(len(successful_evidence)/len(evidence_results)*100):.1f}%")
+        print("\n🔬 MEDICAL EVIDENCE ANALYSIS:")
+        print(f"   Successful Evidence Gathering: {len(successful_evidence)}/{len(evidence_results)} tests")
+        print(f"   Average Articles per Test: {avg_evidence_count:.1f}")
+        print(f"   Total Articles Gathered: {total_articles}")
+        print(f"   Evidence Integration Rate: {(len(successful_evidence)/len(evidence_results)*100):.1f}%")
 
         # Detailed results
         print("\n📋 DETAILED TEST RESULTS:")
@@ -825,6 +825,14 @@ class AIAnalysisTester:
                     print(f"   Evidence Score: {evidence_rel.get('score', 0)}/100 ({evidence_rel.get('assessment', '')})")
                     print(f"   Evidence Count: {evidence_rel.get('evidence_count', 0)} articles")
 
+                    # Show what CHP content was actually fetched
+                    evidence_data = result.get("medical_evidence", {})
+                    if evidence_data.get("has_chp", False):
+                        titles = evidence_data.get("evidence_titles", [])
+                        chp_titles = [t for t in titles if 'chp' in t.lower() or '衞生' in t or '衛生' in t]
+                        if chp_titles:
+                            print(f"   🏥 CHP Content: {', '.join(chp_titles[:2])}")
+
                 if chp.get("matched_topics"):
                     print(f"   CHP Topics: {', '.join(chp['matched_topics'][:2])}")
 
@@ -836,19 +844,6 @@ class AIAnalysisTester:
                     titles = evidence.get("evidence_titles", [])
                     if titles:
                         print(f"   📖 Titles: {', '.join(titles[:2])}")
-
-                    if evidence.get("has_pubmed", False):
-                        # Count PubMed articles by checking URLs
-                        urls = evidence.get("evidence_urls", [])
-                        pubmed_count = sum(1 for url in urls
-                                          if ("pubmed" in url.lower() or
-                                              "nih.gov" in url.lower() or
-                                              "ncbi.nlm.nih.gov" in url.lower()))
-                        print(f"   🔬 PubMed: ✅ ({pubmed_count} articles)")
-
-                    if evidence.get("has_chp", False):
-                        chp_count = sum(1 for t in titles if 'chp' in t.lower() or '衞生' in t)
-                        print(f"   🏥 CHP Articles: {chp_count}")
                 else:
                     print(f"   ❌ Evidence Error: {evidence.get('error', 'API not available')}")
 
