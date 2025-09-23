@@ -745,100 +745,393 @@ class AIAnalysisTester:
 
         # Test cases with various symptom combinations and patient profiles
         test_cases = [
-            # Respiratory infections
+            # Respiratory        
+            # Original test cases (12)
             {
                 "name": "Common Cold - Adult Male",
-                "age": 35,
-                "gender": "男",
                 "symptoms": ["喉嚨痛", "鼻塞", "輕微咳嗽"],
-                "expected_chp": ["2019冠狀病毒病"]
+                "age": "35",
+                "gender": "male",
+                "location": "Central and Western",
+                "expected_chp": ["2019冠狀病毒病", "季節流行性感冒"]
             },
             {
                 "name": "Flu-like - Young Female",
-                "age": 28,
-                "gender": "女",
                 "symptoms": ["發燒", "咳嗽", "頭痛", "喉嚨痛"],
-                "expected_chp": ["2019冠狀病毒病"]
+                "age": "28",
+                "gender": "female",
+                "location": "Wan Chai",
+                "expected_chp": ["乙型流感嗜血桿菌感染", "2019冠狀病毒病", "季節流行性感冒"]
             },
             {
                 "name": "Severe Respiratory - Elderly",
-                "age": 65,
-                "gender": "男",
                 "symptoms": ["高燒", "劇烈咳嗽", "呼吸困難"],
-                "expected_chp": ["2019冠狀病毒病", "肺炎球菌感染"]
+                "age": "72",
+                "gender": "male",
+                "location": "Sha Tin",
+                "expected_chp": ["肺炎球菌感染", "肺炎支原體感染", "2019冠狀病毒病"]
             },
-
-            # Gastrointestinal
             {
                 "name": "Food Poisoning - Adult",
-                "age": 42,
-                "gender": "女",
                 "symptoms": ["腹痛", "腹瀉", "嘔吐"],
-                "expected_chp": ["諾如病毒感染"]
+                "age": "45",
+                "gender": "female",
+                "location": "Tsuen Wan",
+                "expected_chp": ["食物中毒", "腸胃炎", "霍亂"]
             },
             {
                 "name": "Stomach Issues - Child",
-                "age": 8,
-                "gender": "男",
                 "symptoms": ["胃痛", "腹瀉", "噁心"],
-                "expected_chp": ["諾如病毒感染"]
+                "age": "12",
+                "gender": "male",
+                "location": "Kwun Tong",
+                "expected_chp": ["腸胃炎", "食物中毒", "消化不良"]
             },
-
-            # Chronic diseases
             {
                 "name": "Diabetes Symptoms - Middle-aged",
-                "age": 55,
-                "gender": "男",
                 "symptoms": ["口渴", "多尿", "疲倦", "體重減輕"],
-                "expected_chp": ["糖尿病"]
+                "age": "55",
+                "gender": "male",
+                "location": "Mong Kok",
+                "expected_chp": ["糖尿病", "糖尿病及其併發症"]
             },
             {
                 "name": "Heart Disease - Senior",
-                "age": 70,
-                "gender": "女",
                 "symptoms": ["胸痛", "呼吸困難", "疲倦"],
-                "expected_chp": ["心臟病"]
+                "age": "68",
+                "gender": "female",
+                "location": "North District",
+                "expected_chp": ["心臟病", "心血管疾病"]
             },
             {
                 "name": "Hypertension - Adult",
-                "age": 50,
-                "gender": "男",
                 "symptoms": ["頭痛", "頭暈", "高血壓"],
-                "expected_chp": ["心臟病"]
+                "age": "52",
+                "gender": "male",
+                "location": "Yau Tsim Mong",
+                "expected_chp": ["心臟病", "高血壓", "心血管疾病"]
             },
-
-            # Skin conditions
             {
                 "name": "Chickenpox - Child",
-                "age": 6,
-                "gender": "女",
                 "symptoms": ["發燒", "皮疹", "水泡"],
+                "age": "8",
+                "gender": "female",
+                "location": "Kwai Tsing",
                 "expected_chp": ["水痘"]
             },
             {
                 "name": "Hand Foot Mouth - Child",
-                "age": 4,
-                "gender": "男",
                 "symptoms": ["發燒", "口腔潰瘍", "手足皮疹"],
+                "age": "5",
+                "gender": "male",
+                "location": "Tuen Mun",
                 "expected_chp": ["手足口病"]
             },
-
-            # Mental health
             {
                 "name": "Mental Health - Adult",
-                "age": 32,
-                "gender": "女",
                 "symptoms": ["抑鬱", "焦慮", "壓力大"],
-                "expected_chp": ["心理健康"]
+                "age": "42",
+                "gender": "female",
+                "location": "Eastern",
+                "expected_chp": ["心理健康", "抑鬱症", "焦慮症", "壓力管理"]
             },
-
-            # Mixed symptoms
             {
                 "name": "Complex Case - Adult",
-                "age": 45,
-                "gender": "男",
                 "symptoms": ["發燒", "咳嗽", "胸痛", "疲倦"],
-                "expected_chp": ["2019冠狀病毒病", "心臟病"]
+                "age": "38",
+                "gender": "male",
+                "location": "Islands",
+                "expected_chp": ["肺炎球菌感染", "2019冠狀病毒病", "心臟病"]
+            },
+
+            # Additional diverse test cases (24 more = 36 total)
+            {
+                "name": "Pregnancy Symptoms - Young Female",
+                "symptoms": ["噁心", "嘔吐", "疲倦", "停經"],
+                "age": "26",
+                "gender": "female",
+                "location": "Central and Western",
+                "expected_chp": ["懷孕與準備懷孕"]
+            },
+            {
+                "name": "Menopause - Middle-aged Female",
+                "symptoms": ["潮熱", "失眠", "情緒波動"],
+                "age": "48",
+                "gender": "female",
+                "location": "Wan Chai",
+                "expected_chp": ["更年期"]
+            },
+            {
+                "name": "Prostate Issues - Senior Male",
+                "symptoms": ["尿頻", "尿急", "夜尿"],
+                "age": "65",
+                "gender": "male",
+                "location": "Sha Tin",
+                "expected_chp": ["攝護腺癌"]
+            },
+            {
+                "name": "Thyroid Problems - Adult Female",
+                "symptoms": ["疲倦", "體重增加", "怕冷"],
+                "age": "34",
+                "gender": "female",
+                "location": "Tsuen Wan",
+                "expected_chp": ["甲狀腺功能減退"]
+            },
+            {
+                "name": "Asthma Attack - Child",
+                "symptoms": ["呼吸困難", "喘鳴", "胸悶"],
+                "age": "10",
+                "gender": "male",
+                "location": "Kwun Tong",
+                "expected_chp": ["哮喘"]
+            },
+            {
+                "name": "Migraine - Adult Female",
+                "symptoms": ["劇烈頭痛", "噁心", "畏光"],
+                "age": "31",
+                "gender": "female",
+                "location": "Mong Kok",
+                "expected_chp": ["偏頭痛"]
+            },
+            {
+                "name": "Kidney Stones - Adult Male",
+                "symptoms": ["劇烈腰痛", "血尿", "噁心"],
+                "age": "41",
+                "gender": "male",
+                "location": "North District",
+                "expected_chp": ["腎結石"]
+            },
+            {
+                "name": "Hepatitis - Adult Male",
+                "symptoms": ["疲倦", "黃疸", "食慾不振"],
+                "age": "37",
+                "gender": "male",
+                "location": "Yau Tsim Mong",
+                "expected_chp": ["病毒性肝炎"]
+            },
+            {
+                "name": "Breast Cancer Screening - Adult Female",
+                "symptoms": ["乳房腫塊", "乳頭分泌"],
+                "age": "44",
+                "gender": "female",
+                "location": "Kwai Tsing",
+                "expected_chp": ["乳癌"]
+            },
+            {
+                "name": "Tuberculosis - Adult Male",
+                "symptoms": ["持續咳嗽", "咳血", "體重減輕"],
+                "age": "33",
+                "gender": "male",
+                "location": "Tuen Mun",
+                "expected_chp": ["肺結核"]
+            },
+            {
+                "name": "Osteoporosis - Elderly Female",
+                "symptoms": ["骨痛", "身高減低", "容易骨折"],
+                "age": "78",
+                "gender": "female",
+                "location": "Eastern",
+                "expected_chp": ["骨質疏鬆"]
+            },
+            {
+                "name": "HIV Symptoms - Adult Male",
+                "symptoms": ["疲倦", "淋巴結腫大", "發燒"],
+                "age": "29",
+                "gender": "male",
+                "location": "Islands",
+                "expected_chp": ["人類免疫缺乏病毒感染"]
+            },
+            {
+                "name": "Epilepsy - Young Adult",
+                "symptoms": ["突然抽搐", "意識喪失", "肌肉僵硬"],
+                "age": "22",
+                "gender": "female",
+                "location": "Central and Western",
+                "expected_chp": ["癲癇"]
+            },
+            {
+                "name": "Alzheimer's - Elderly Female",
+                "symptoms": ["記憶力減退", "混亂", "性格改變"],
+                "age": "82",
+                "gender": "female",
+                "location": "Wan Chai",
+                "expected_chp": ["認知障礙症"]
+            },
+            {
+                "name": "Conjunctivitis - Child",
+                "symptoms": ["眼紅", "眼屎多", "畏光"],
+                "age": "7",
+                "gender": "male",
+                "location": "Sha Tin",
+                "expected_chp": ["傳染性急性結膜炎"]
+            },
+            {
+                "name": "Obesity - Adult Male",
+                "symptoms": ["體重過重", "呼吸困難", "關節痛"],
+                "age": "39",
+                "gender": "male",
+                "location": "Tsuen Wan",
+                "expected_chp": ["肥胖"]
+            },
+            {
+                "name": "Smoking Cessation - Adult Female",
+                "symptoms": ["咳嗽", "呼吸困難", "戒煙意願"],
+                "age": "36",
+                "gender": "female",
+                "location": "Kwun Tong",
+                "expected_chp": ["戒煙"]
+            },
+            {
+                "name": "Alcohol Addiction - Adult Male",
+                "symptoms": ["飲酒依賴", "肝功能異常", "情緒波動"],
+                "age": "43",
+                "gender": "male",
+                "location": "Mong Kok",
+                "expected_chp": ["酗酒"]
+            },
+            {
+                "name": "Malnutrition - Elderly Female",
+                "symptoms": ["體重減輕", "疲倦", "營養不良"],
+                "age": "75",
+                "gender": "female",
+                "location": "North District",
+                "expected_chp": ["營養不良"]
+            },
+            {
+                "name": "Parkinson's - Elderly Male",
+                "symptoms": ["肢體顫抖", "動作緩慢", "平衡困難"],
+                "age": "71",
+                "gender": "male",
+                "location": "Yau Tsim Mong",
+                "expected_chp": ["帕金森病"]
+            },
+            {
+                "name": "Dysmenorrhea - Young Female",
+                "symptoms": ["經痛", "腹痛", "噁心"],
+                "age": "19",
+                "gender": "female",
+                "location": "Kwai Tsing",
+                "expected_chp": ["經痛"]
+            },
+            {
+                "name": "Influenza Vaccination - Senior",
+                "symptoms": ["預防接種", "流感疫苗"],
+                "age": "67",
+                "gender": "female",
+                "location": "Tuen Mun",
+                "expected_chp": ["疫苗", "預防接種"]
+            },
+            {
+                "name": "Colorectal Cancer - Middle-aged",
+                "symptoms": ["大便習慣改變", "血便", "腹痛"],
+                "age": "58",
+                "gender": "male",
+                "location": "Eastern",
+                "expected_chp": ["大腸癌"]
+            },
+            {
+                "name": "Schizophrenia - Adult Male",
+                "symptoms": ["幻覺", "妄想", "社會退縮"],
+                "age": "27",
+                "gender": "male",
+                "location": "Islands",
+                "expected_chp": ["精神健康"]
+            },
+            {
+                "name": "Endometriosis - Adult Female",
+                "symptoms": ["經痛加劇", "不孕", "盆腔痛"],
+                "age": "32",
+                "gender": "female",
+                "location": "Central and Western",
+                "expected_chp": ["子宮內膜異位症"]
+            },
+            {
+                "name": "Acute Pancreatitis - Adult Male",
+                "symptoms": ["劇烈腹痛", "噁心", "嘔吐"],
+                "age": "46",
+                "gender": "male",
+                "location": "Wan Chai",
+                "expected_chp": ["急性胰臟炎"]
+            },
+            {
+                "name": "Occupational Health - Adult Female",
+                "symptoms": ["工作壓力", "職業傷害", "健康檢查"],
+                "age": "35",
+                "gender": "female",
+                "location": "Sha Tin",
+                "expected_chp": ["職業安全", "環境健康與損傷預防"]
+            },
+            {
+                "name": "Pediatric Vaccination - Child",
+                "symptoms": ["疫苗接種", "兒童預防"],
+                "age": "2",
+                "gender": "male",
+                "location": "Tsuen Wan",
+                "expected_chp": ["疫苗", "預防接種"]
+            },
+            {
+                "name": "Chronic Kidney Disease - Senior",
+                "symptoms": ["疲倦", "水腫", "高血壓"],
+                "age": "73",
+                "gender": "female",
+                "location": "Kwun Tong",
+                "expected_chp": ["慢性腎病"]
+            },
+            {
+                "name": "Lung Cancer - Senior Male",
+                "symptoms": ["持續咳嗽", "體重減輕", "呼吸困難"],
+                "age": "69",
+                "gender": "male",
+                "location": "Mong Kok",
+                "expected_chp": ["肺癌"]
+            },
+            {
+                "name": "Testicular Cancer - Young Male",
+                "symptoms": ["睪丸腫大", "疼痛", "腫塊"],
+                "age": "24",
+                "gender": "male",
+                "location": "North District",
+                "expected_chp": ["睪丸癌"]
+            },
+            {
+                "name": "Ovarian Cancer - Middle-aged Female",
+                "symptoms": ["腹脹", "腹痛", "體重減輕"],
+                "age": "51",
+                "gender": "female",
+                "location": "Yau Tsim Mong",
+                "expected_chp": ["卵巢癌"]
+            },
+            {
+                "name": "Cervical Cancer - Adult Female",
+                "symptoms": ["不正常陰道出血", "骨盆痛"],
+                "age": "40",
+                "gender": "female",
+                "location": "Kwai Tsing",
+                "expected_chp": ["子宮頸癌"]
+            },
+            {
+                "name": "Gonorrhea - Young Adult",
+                "symptoms": ["異常分泌物", "尿道痛", "陰部搔癢"],
+                "age": "25",
+                "gender": "male",
+                "location": "Tuen Mun",
+                "expected_chp": ["淋病"]
+            },
+            {
+                "name": "Chlamydia - Young Female",
+                "symptoms": ["異常分泌物", "陰部痛", "無症狀感染"],
+                "age": "23",
+                "gender": "female",
+                "location": "Eastern",
+                "expected_chp": ["衣原體感染"]
+            },
+            {
+                "name": "Syphilis - Adult Male",
+                "symptoms": ["生殖器潰瘍", "皮疹", "淋巴結腫大"],
+                "age": "30",
+                "gender": "male",
+                "location": "Islands",
+                "expected_chp": ["梅毒"]
             }
         ]
 
