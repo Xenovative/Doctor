@@ -57,18 +57,34 @@ class AIAnalysisTester:
         try:
             # Try to fetch configuration from admin panel
             response = requests.get(f"{self.base_url}/admin/api/medical-search-config", timeout=5)
+
             if response.status_code == 200:
-                data = response.json()
-                if data.get("success", False):
-                    print("✅ Loaded medical search configuration from admin panel")
-                    return data.get("config", {})
-                else:
-                    print("⚠️ Admin panel returned success=false for medical search config")
+                try:
+                    data = response.json()
+                    if data.get("success", False):
+                        print("✅ Loaded medical search configuration from admin panel")
+                        return data.get("config", {})
+                    else:
+                        print(f"⚠️ Admin panel returned success=false: {data.get('error', 'Unknown error')}")
+                except json.JSONDecodeError as json_error:
+                    print(f"⚠️ Admin panel returned invalid JSON: {json_error}")
+                    print(f"   Response content: {response.text[:200]}...")
             else:
-                print(f"⚠️ Admin panel returned status {response.status_code} for medical search config")
+                print(f"⚠️ Admin panel returned HTTP {response.status_code}")
+                if response.status_code == 404:
+                    print("   Medical search config endpoint not found - admin panel may not be updated")
+                elif response.status_code == 401 or response.status_code == 403:
+                    print("   Authentication required - admin panel access denied")
+                else:
+                    print(f"   Response: {response.text[:200]}...")
+
+        except requests.exceptions.ConnectionError:
+            print("⚠️ Could not connect to admin panel - server may not be running")
+        except requests.exceptions.Timeout:
+            print("⚠️ Admin panel request timed out")
         except Exception as e:
-            print(f"⚠️ Could not load medical search config from admin panel: {e}")
-        
+            print(f"⚠️ Unexpected error loading medical search config: {e}")
+
         print("📋 Using default medical search configuration")
         return None
 
