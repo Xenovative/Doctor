@@ -1432,6 +1432,9 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Extracted symptoms from AI analysis:', analysisSymptoms);
             console.log('About to call generateEvidenceHTML with analysis-based symptoms:', analysisSymptoms, recommendedSpecialty);
             
+            // Store current symptoms globally for CHP reference
+            window.currentSymptoms = analysisSymptoms;
+            
             window.medicalEvidenceSystem.generateEvidenceHTML(analysisSymptoms, recommendedSpecialty)
                 .then(evidenceHTML => {
                     console.log('Got evidence HTML:', evidenceHTML ? 'success' : 'empty');
