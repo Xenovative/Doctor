@@ -72,6 +72,17 @@ class AIAnalysisTester:
         print("📋 Using default medical search configuration")
         return None
 
+    def load_chp_content(self):
+        """Load CHP content database for reference"""
+        try:
+            with open('assets/content.json', 'r', encoding='utf-8') as f:
+                self.chp_content = json.load(f)
+                print(f"✅ Loaded {len(self.chp_content)} CHP entries")
+        except Exception as e:
+            print(f"❌ Failed to load CHP content: {e}")
+            return False
+        return True
+
     def test_ai_analysis(self, symptoms, expected_chp_topics=None, test_name=""):
         """Test single AI analysis with symptom set"""
         print(f"\n🧪 Testing: {test_name}")
