@@ -329,19 +329,22 @@ class MedicalEvidenceSystem {
             '高血壓': ['心臟病'], // High BP is covered under heart disease
             
             // Respiratory symptoms (common conditions first)
-            '流感': ['乙型流感嗜血桿菌感染'], // Influenza
-            '感冒': ['2019冠狀病毒病'], // Common cold/COVID
-            '咳嗽': ['2019冠狀病毒病', '肺炎球菌感染'], // Cough - COVID first, then pneumonia
-            '發燒': ['2019冠狀病毒病', '水痘'], // Fever - COVID first, then chickenpox
-            '喉嚨痛': ['2019冠狀病毒病', '猩紅熱'], // Sore throat - COVID first
-            '呼吸困難': ['2019冠狀病毒病', '肺炎球菌感染'], // Breathing difficulty
+            '流感': ['乙型流感嗜血桿菌感染', '季節性流感', '季節流行性感冒'], // Include seasonal influenza
+            '感冒': ['2019冠狀病毒病', '季節流行性感冒'], // Include seasonal influenza for common cold
+            '咳嗽': ['2019冠狀病毒病', '肺炎球菌感染', '季節流行性感冒'], // Include seasonal influenza
+            '發燒': ['2019冠狀病毒病', '水痘', '季節流行性感冒'], // Include seasonal influenza
+            '喉嚨痛': ['2019冠狀病毒病', '猩紅熱', '季節流行性感冒'], // Include seasonal influenza
+            '呼吸困難': ['2019冠狀病毒病', '肺炎球菌感染'],
             '肺炎': ['肺炎球菌感染', '肺炎支原體感染'],
+            '鼻塞': ['2019冠狀病毒病', '季節流行性感冒'], // Include seasonal influenza
             
             // Gastrointestinal (common first)
-            '腹痛': ['諾如病毒感染'], // Norovirus is more common than cholera
-            '腹瀉': ['諾如病毒感染'], // Norovirus is more common
-            '嘔吐': ['諾如病毒感染'],
-            '胃痛': ['諾如病毒感染'],
+            '腹痛': ['諾如病毒感染', '食物中毒', '腸胃炎'],
+            '腹瀉': ['諾如病毒感染', '食物中毒', '腸胃炎'],
+            '嘔吐': ['諾如病毒感染', '食物中毒', '腸胃炎'],
+            '胃痛': ['腸胃炎', '消化不良'],
+            '噁心': ['腸胃炎', '食物中毒'],
+            '胃腸': ['腸胃炎'],
             
             // Cardiovascular
             '胸痛': ['心臟病'],
@@ -349,20 +352,23 @@ class MedicalEvidenceSystem {
             '心跳': ['心臟病'],
             
             // Diabetes symptoms
-            '疲倦': ['糖尿病', '心臟病'],
+            '疲倦': ['糖尿病', '心臟病', '貧血', '甲狀腺功能減退'],
             '多尿': ['糖尿病'],
             '多飲': ['糖尿病'],
             '口渴': ['糖尿病'],
             '體重': ['糖尿病'],
+            '體重減輕': ['糖尿病'],
             
             // Skin conditions (common first)
-            '皮疹': ['水痘', '手足口病'], // Chickenpox more common than scarlet fever
+            '皮疹': ['水痘', '手足口病', '麻疹'],
             '紅疹': ['水痘', '猩紅熱'],
             '水泡': ['水痘'],
+            '口腔潰瘍': ['手足口病'],
+            '手足皮疹': ['手足口病'],
             
             // Neurological (headache is common)
-            '頭痛': ['2019冠狀病毒病'], // COVID can cause headaches
-            '頭暈': ['心臟病', '糖尿病'],
+            '頭痛': ['2019冠狀病毒病', '偏頭痛'],
+            '頭暈': ['心臟病', '糖尿病', '貧血'],
             
             // Eye/ENT
             '結膜炎': ['傳染性急性結膜炎'],
@@ -373,14 +379,18 @@ class MedicalEvidenceSystem {
             '水痘': ['水痘'],
             
             // Mental health
-            '抑鬱': ['心理健康'],
-            '焦慮': ['心理健康'],
-            '壓力': ['心理健康'],
+            '抑鬱': ['心理健康', '抑鬱症', '精神健康'],
+            '焦慮': ['心理健康', '焦慮症', '精神健康'],
+            '壓力大': ['心理健康', '壓力管理', '精神健康'],
+            '精神': ['精神健康'],
+            '情緒': ['心理健康'],
             
             // General health
             '營養': ['飲食與營養'],
             '飲食': ['飲食與營養'],
-            '運動': ['環境健康與損傷預防']
+            '運動': ['環境健康與損傷預防'],
+            '貧血': ['貧血'],
+            '中風': ['中風']
         };
 
         // Find matching CHP content for each symptom

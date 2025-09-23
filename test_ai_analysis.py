@@ -34,11 +34,38 @@ class AIAnalysisTester:
         print(f"   Symptoms: {symptoms}")
 
         try:
-            # Make request to AI analysis endpoint
+            # Make request to the correct AI analysis endpoint
+            # Based on the frontend code, it uses /find_doctor endpoint
+            form_data = {
+                "age": 30,
+                "gender": "男",
+                "symptoms": symptoms,
+                "language": "zh-TW",
+                "location": "香港島",
+                "chronicConditions": "",
+                "locationDetails": {
+                    "region": "香港島",
+                    "district": "中西區",
+                    "area": "中環"
+                },
+                "detailedHealthInfo": {
+                    "height": "",
+                    "weight": "",
+                    "medications": "",
+                    "allergies": "",
+                    "surgeries": "",
+                    "bloodThinner": False,
+                    "recentVisit": False,
+                    "cpapMachine": False,
+                    "looseTeeth": False
+                },
+                "uiLanguage": "zh-TW"
+            }
+
             response = requests.post(
-                f"{self.base_url}/analyze",
-                json={"symptoms": symptoms},
-                timeout=30
+                f"{self.base_url}/find_doctor",
+                json=form_data,
+                timeout=60  # Increased timeout for AI processing
             )
 
             if response.status_code != 200:
@@ -51,6 +78,17 @@ class AIAnalysisTester:
                 }
 
             result = response.json()
+
+            # Check if we have analysis data
+            if 'analysis' not in result:
+                return {
+                    "test_name": test_name,
+                    "symptoms": symptoms,
+                    "status": "FAILED",
+                    "error": "No analysis data in response",
+                    "response": result
+                }
+
             analysis = result.get('analysis', '')
 
             # Extract symptoms from analysis for CHP mapping
@@ -335,6 +373,7 @@ class AIAnalysisTester:
 
         # CHP Relevance Analysis
         chp_scores = [r.get("chp_relevance", {}).get("score", 0) for r in results if r["status"] == "PASSED"]
+        avg_chp = 0.0
         if chp_scores:
             avg_chp = sum(chp_scores) / len(chp_scores)
             print("\n🏥 CHP GUIDELINES ANALYSIS:")
@@ -344,6 +383,7 @@ class AIAnalysisTester:
 
         # PubMed Relevance Analysis
         pubmed_scores = [r.get("pubmed_relevance", {}).get("score", 0) for r in results if r["status"] == "PASSED"]
+        avg_pubmed = 0.0
         if pubmed_scores:
             avg_pubmed = sum(pubmed_scores) / len(pubmed_scores)
             print("\n📚 PUBMED REFERENCES ANALYSIS:")

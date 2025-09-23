@@ -1,0 +1,291 @@
+{
+  "summary": {
+    "total_tests": 12,
+    "avg_score": 75.7,
+    "score_distribution": {
+      "excellent": 7,
+      "good": 1,
+      "fair": 3,
+      "poor": 1
+    }
+  },
+  "detailed_results": [
+    {
+      "test_name": "Common Cold Symptoms",
+      "input_symptoms": [
+        "喉嚨痛",
+        "鼻塞",
+        "輕微咳嗽"
+      ],
+      "matched_symptoms": [
+        "喉嚨痛",
+        "鼻塞",
+        "輕微咳嗽"
+      ],
+      "score": 80.0,
+      "matched_topics": [
+        "2019冠狀病毒病",
+        "猩紅熱",
+        "肺炎球菌感染"
+      ],
+      "total_entries": 3,
+      "expected_topics": [
+        "2019冠狀病毒病"
+      ]
+    },
+    {
+      "test_name": "Flu-like Symptoms",
+      "input_symptoms": [
+        "發燒",
+        "咳嗽",
+        "頭痛",
+        "喉嚨痛"
+      ],
+      "matched_symptoms": [
+        "發燒",
+        "咳嗽",
+        "頭痛",
+        "喉嚨痛"
+      ],
+      "score": 100.0,
+      "matched_topics": [
+        "2019冠狀病毒病",
+        "水痘",
+        "手足口病"
+      ],
+      "total_entries": 5,
+      "expected_topics": [
+        "2019冠狀病毒病"
+      ]
+    },
+    {
+      "test_name": "Severe Respiratory",
+      "input_symptoms": [
+        "高燒",
+        "劇烈咳嗽",
+        "呼吸困難"
+      ],
+      "matched_symptoms": [
+        "劇烈咳嗽",
+        "呼吸困難"
+      ],
+      "score": 70.0,
+      "matched_topics": [
+        "2019冠狀病毒病",
+        "肺炎球菌感染"
+      ],
+      "total_entries": 2,
+      "expected_topics": [
+        "2019冠狀病毒病",
+        "肺炎球菌感染"
+      ]
+    },
+    {
+      "test_name": "Food Poisoning",
+      "input_symptoms": [
+        "腹痛",
+        "腹瀉",
+        "嘔吐"
+      ],
+      "matched_symptoms": [
+        "腹痛",
+        "腹瀉",
+        "嘔吐"
+      ],
+      "score": 53.3,
+      "matched_topics": [
+        "諾如病毒感染",
+        "食物中毒"
+      ],
+      "total_entries": 2,
+      "expected_topics": [
+        "諾如病毒感染"
+      ]
+    },
+    {
+      "test_name": "Stomach Issues",
+      "input_symptoms": [
+        "胃痛",
+        "腹瀉",
+        "噁心"
+      ],
+      "matched_symptoms": [
+        "胃痛",
+        "腹瀉",
+        "噁心"
+      ],
+      "score": 53.3,
+      "matched_topics": [
+        "諾如病毒感染",
+        "食物中毒"
+      ],
+      "total_entries": 2,
+      "expected_topics": [
+        "諾如病毒感染"
+      ]
+    },
+    {
+      "test_name": "Diabetes Symptoms",
+      "input_symptoms": [
+        "口渴",
+        "多尿",
+        "疲倦",
+        "體重減輕"
+      ],
+      "matched_symptoms": [
+        "口渴",
+        "多尿",
+        "疲倦",
+        "體重減輕"
+      ],
+      "score": 45.0,
+      "matched_topics": [
+        "糖尿病",
+        "心臟病"
+      ],
+      "total_entries": 2,
+      "expected_topics": [
+        "糖尿病"
+      ]
+    },
+    {
+      "test_name": "Heart Disease",
+      "input_symptoms": [
+        "胸痛",
+        "呼吸困難",
+        "疲倦"
+      ],
+      "matched_symptoms": [
+        "胸痛",
+        "呼吸困難",
+        "疲倦"
+      ],
+      "score": 90.0,
+      "matched_topics": [
+        "心臟病",
+        "2019冠狀病毒病",
+        "肺炎球菌感染"
+      ],
+      "total_entries": 4,
+      "expected_topics": [
+        "心臟病"
+      ]
+    },
+    {
+      "test_name": "Hypertension",
+      "input_symptoms": [
+        "頭痛",
+        "頭暈",
+        "高血壓"
+      ],
+      "matched_symptoms": [
+        "頭痛",
+        "頭暈",
+        "高血壓"
+      ],
+      "score": 90.0,
+      "matched_topics": [
+        "2019冠狀病毒病",
+        "心臟病",
+        "糖尿病"
+      ],
+      "total_entries": 4,
+      "expected_topics": [
+        "心臟病"
+      ]
+    },
+    {
+      "test_name": "Chickenpox",
+      "input_symptoms": [
+        "發燒",
+        "皮疹",
+        "水泡"
+      ],
+      "matched_symptoms": [
+        "發燒",
+        "皮疹",
+        "水泡"
+      ],
+      "score": 100.0,
+      "matched_topics": [
+        "2019冠狀病毒病",
+        "水痘",
+        "手足口病"
+      ],
+      "total_entries": 5,
+      "expected_topics": [
+        "水痘"
+      ]
+    },
+    {
+      "test_name": "Hand Foot Mouth",
+      "input_symptoms": [
+        "發燒",
+        "口腔潰瘍",
+        "手足皮疹"
+      ],
+      "matched_symptoms": [
+        "發燒",
+        "口腔潰瘍",
+        "手足皮疹"
+      ],
+      "score": 100.0,
+      "matched_topics": [
+        "2019冠狀病毒病",
+        "水痘",
+        "手足口病"
+      ],
+      "total_entries": 5,
+      "expected_topics": [
+        "手足口病"
+      ]
+    },
+    {
+      "test_name": "Mental Health",
+      "input_symptoms": [
+        "抑鬱",
+        "焦慮",
+        "壓力大"
+      ],
+      "matched_symptoms": [
+        "抑鬱",
+        "焦慮",
+        "壓力大"
+      ],
+      "score": 26.7,
+      "matched_topics": [
+        "心理健康"
+      ],
+      "total_entries": 1,
+      "expected_topics": [
+        "心理健康"
+      ]
+    },
+    {
+      "test_name": "Complex Case",
+      "input_symptoms": [
+        "發燒",
+        "咳嗽",
+        "胸痛",
+        "疲倦"
+      ],
+      "matched_symptoms": [
+        "發燒",
+        "咳嗽",
+        "胸痛",
+        "疲倦"
+      ],
+      "score": 100.0,
+      "matched_topics": [
+        "2019冠狀病毒病",
+        "水痘",
+        "手足口病"
+      ],
+      "total_entries": 6,
+      "expected_topics": [
+        "2019冠狀病毒病",
+        "心臟病"
+      ]
+    }
+  ]
+}
