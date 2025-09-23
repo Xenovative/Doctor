@@ -12,7 +12,7 @@ import sys
 import os
 
 class AIAnalysisTester:
-    def __init__(self, base_url="http://localhost:5000"):
+    def __init__(self, base_url="http://localhost:7001"):
         self.base_url = base_url
         self.test_results = []
         self.chp_content = None
