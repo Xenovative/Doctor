@@ -1427,10 +1427,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const loadingHTML = window.medicalEvidenceSystem.generateLoadingHTML();
             card.innerHTML += loadingHTML;
             
-            // Then fetch and update with real evidence
-            console.log('About to call generateEvidenceHTML with:', symptomsArray, recommendedSpecialty);
+            // Extract symptoms from AI analysis instead of using raw user input
+            const analysisSymptoms = extractSymptomsFromAnalysis(analysis);
+            console.log('Extracted symptoms from AI analysis:', analysisSymptoms);
+            console.log('About to call generateEvidenceHTML with analysis-based symptoms:', analysisSymptoms, recommendedSpecialty);
             
-            window.medicalEvidenceSystem.generateEvidenceHTML(symptomsArray, recommendedSpecialty)
+            window.medicalEvidenceSystem.generateEvidenceHTML(analysisSymptoms, recommendedSpecialty)
                 .then(evidenceHTML => {
                     console.log('Got evidence HTML:', evidenceHTML ? 'success' : 'empty');
                     
@@ -1532,6 +1534,107 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         return symptomCount >= 3;
+    }
+
+    // Function to extract symptoms and medical terms from AI analysis
+    function extractSymptomsFromAnalysis(analysis) {
+        if (!analysis || typeof analysis !== 'string') {
+            return [];
+        }
+        
+        console.log('Analyzing AI text:', analysis.substring(0, 200) + '...');
+        
+        // Extract symptoms from different sections of the AI analysis
+        const extractedTerms = [];
+        
+        // Look for "症狀分析：" or "症狀：" sections
+        const symptomSections = [
+            /症狀分析[：:]\s*([^。\n]+)/g,
+            /主要症狀[：:]\s*([^。\n]+)/g,
+            /症狀[：:]\s*([^。\n]+)/g,
+            /臨床表現[：:]\s*([^。\n]+)/g,
+            /病徵[：:]\s*([^。\n]+)/g
+        ];
+        
+        symptomSections.forEach(regex => {
+            let match;
+            while ((match = regex.exec(analysis)) !== null) {
+                const symptomText = match[1].trim();
+                console.log('Found symptom section:', symptomText);
+                
+                // Extract individual symptoms from the text
+                const symptoms = extractMedicalTerms(symptomText);
+                extractedTerms.push(...symptoms);
+            }
+        });
+        
+        // Look for "可能診斷：" or "診斷：" sections
+        const diagnosisSections = [
+            /可能診斷[：:]\s*([^。\n]+)/g,
+            /診斷[：:]\s*([^。\n]+)/g,
+            /疾病[：:]\s*([^。\n]+)/g
+        ];
+        
+        diagnosisSections.forEach(regex => {
+            let match;
+            while ((match = regex.exec(analysis)) !== null) {
+                const diagnosisText = match[1].trim();
+                console.log('Found diagnosis section:', diagnosisText);
+                
+                // Extract medical conditions from diagnosis
+                const conditions = extractMedicalTerms(diagnosisText);
+                extractedTerms.push(...conditions);
+            }
+        });
+        
+        // Remove duplicates and filter out common words
+        const uniqueTerms = [...new Set(extractedTerms)]
+            .filter(term => term.length > 1)
+            .filter(term => !['可能', '建議', '需要', '應該', '或者', '包括'].includes(term))
+            .slice(0, 5); // Limit to top 5 terms
+        
+        console.log('Final extracted medical terms:', uniqueTerms);
+        return uniqueTerms;
+    }
+    
+    // Helper function to extract medical terms from text
+    function extractMedicalTerms(text) {
+        const terms = [];
+        
+        // Common medical symptom patterns
+        const medicalPatterns = [
+            /([^，,、。\s]+痛)/g,        // Pain symptoms: 頭痛, 胸痛, etc.
+            /([^，,、。\s]+炎)/g,        // Inflammation: 肺炎, 胃炎, etc.
+            /([^，,、。\s]+症)/g,        // Syndromes: 感冒症, etc.
+            /([^，,、。\s]+病)/g,        // Diseases: 心臟病, etc.
+            /(發燒|發熱)/g,             // Fever
+            /(咳嗽)/g,                  // Cough
+            /(頭暈|暈眩)/g,             // Dizziness
+            /(噁心|嘔吐)/g,             // Nausea/vomiting
+            /(疲勞|疲倦)/g,             // Fatigue
+            /(呼吸困難|氣喘)/g,         // Breathing issues
+            /(腹瀉|便秘)/g,             // GI issues
+            /(失眠|睡眠)/g,             // Sleep issues
+            /(焦慮|憂鬱|壓力)/g,        // Mental health
+            /(皮疹|紅腫|搔癢)/g,        // Skin issues
+        ];
+        
+        medicalPatterns.forEach(pattern => {
+            let match;
+            while ((match = pattern.exec(text)) !== null) {
+                terms.push(match[1] || match[0]);
+            }
+        });
+        
+        // Also extract simple comma/punctuation separated terms
+        const simpleTerms = text.split(/[，,、。；;]/)
+            .map(term => term.trim())
+            .filter(term => term.length > 1 && term.length < 10)
+            .filter(term => /[\u4e00-\u9fff]/.test(term)); // Contains Chinese characters
+        
+        terms.push(...simpleTerms);
+        
+        return terms;
     }
 
     // Function to track doctor clicks
