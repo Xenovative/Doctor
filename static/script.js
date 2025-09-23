@@ -701,7 +701,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // 顯示結果
-            displayResults(data);
+            displayResults(data, formData.symptoms);
             
         } catch (error) {
             console.error('錯誤:', error);
@@ -830,7 +830,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentlyDisplayed = 0;
     const doctorsPerPage = 5;
 
-    function displayResults(data) {
+    function displayResults(data, symptoms = '') {
         doctorList.innerHTML = '';
         
         // Reset pagination state
@@ -870,7 +870,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 `;
                 doctorList.appendChild(errorCard);
             } else {
-                const analysisCard = createAnalysisCard(data.analysis, data.recommended_specialty);
+                const analysisCard = createAnalysisCard(data.analysis, data.recommended_specialty, symptoms);
                 doctorList.appendChild(analysisCard);
             }
         }
@@ -1367,7 +1367,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return card;
     }
 
-    function createAnalysisCard(analysis, recommendedSpecialty) {
+    function createAnalysisCard(analysis, recommendedSpecialty, symptoms = '') {
         const card = document.createElement('div');
         card.className = 'analysis-card';
         
@@ -1402,7 +1402,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Add medical evidence section asynchronously
         if (window.medicalEvidenceSystem) {
-            const symptomsArray = symptoms.split(',').map(s => s.trim());
+            // Handle symptoms - could be string or array
+            let symptomsArray = [];
+            if (typeof symptoms === 'string') {
+                symptomsArray = symptoms.split(',').map(s => s.trim()).filter(s => s.length > 0);
+            } else if (Array.isArray(symptoms)) {
+                symptomsArray = symptoms;
+            } else {
+                console.warn('Symptoms parameter is neither string nor array:', symptoms);
+                symptomsArray = [];
+            }
             
             // First show loading state
             const loadingHTML = window.medicalEvidenceSystem.generateLoadingHTML();
