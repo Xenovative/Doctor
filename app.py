@@ -171,8 +171,8 @@ def get_medical_evidence():
             additional_evidence = fetch_additional_medical_sources(search_terms)
             evidence.extend(additional_evidence)
         
-        # Limit to top 6 most relevant results for scrollable display
-        evidence = evidence[:6]
+        # Limit to top 8 most relevant results for better symptom coverage
+        evidence = evidence[:8]
         
         return jsonify({
             'success': True,
@@ -321,22 +321,23 @@ def generate_medical_search_terms(symptoms, diagnosis):
     return search_terms
 
 def fetch_pubmed_evidence(search_terms, original_terms=None):
-    """Fetch evidence from PubMed database"""
+    """Fetch evidence from PubMed database with balanced symptom coverage"""
     try:
         evidence = []
+        symptom_coverage = {}  # Track which symptoms have articles
         
         # Ensure we have original terms for display
         if original_terms is None:
             original_terms = search_terms
         
-        for i, term in enumerate(search_terms[:3]):  # Increased to 3 terms for more comprehensive results
+        for i, term in enumerate(search_terms[:4]):  # Process up to 4 terms for better coverage
             original_term = original_terms[i] if i < len(original_terms) else term
             # PubMed E-utilities API
             search_url = f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
             search_params = {
                 'db': 'pubmed',
                 'term': f"{term}[Title/Abstract] AND (clinical[Title/Abstract] OR diagnosis[Title/Abstract] OR treatment[Title/Abstract])",
-                'retmax': 5,
+                'retmax': 3,  # Reduced per term to get more diverse results
                 'sort': 'relevance',
                 'retmode': 'xml'
             }
@@ -353,7 +354,7 @@ def fetch_pubmed_evidence(search_terms, original_terms=None):
                     fetch_url = f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
                     fetch_params = {
                         'db': 'pubmed',
-                        'id': ','.join(pmids[:3]),  # Get top 3 articles
+                        'id': ','.join(pmids[:2]),  # Get top 2 articles per term for better diversity
                         'retmode': 'xml'
                     }
                     
@@ -361,7 +362,19 @@ def fetch_pubmed_evidence(search_terms, original_terms=None):
                     
                     if fetch_response.status_code == 200:
                         articles = parse_pubmed_articles(fetch_response.content, term, original_term)
-                        evidence.extend(articles)
+                        if articles:
+                            evidence.extend(articles)
+                            symptom_coverage[original_term] = len(articles)
+                            logger.info(f"Found {len(articles)} articles for symptom: {original_term}")
+                        else:
+                            logger.warning(f"No articles found for symptom: {original_term}")
+                            symptom_coverage[original_term] = 0
+        
+        # Log final coverage summary
+        total_articles = len(evidence)
+        covered_symptoms = sum(1 for count in symptom_coverage.values() if count > 0)
+        logger.info(f"Medical evidence summary: {total_articles} articles covering {covered_symptoms}/{len(symptom_coverage)} symptoms")
+        logger.info(f"Symptom coverage: {symptom_coverage}")
         
         return evidence
         
@@ -445,7 +458,7 @@ def extract_relevant_excerpt(abstract_text, search_term):
         logger.error(f"Error extracting relevant excerpt: {e}")
         return abstract_text[:200] + "..." if len(abstract_text) > 200 else abstract_text
 
-def generate_relevance_explanation(search_term, title, abstract):
+def generate_relevance_explanation(display_term, title, abstract, search_term=None):
     """Generate a specific explanation of why this article is relevant (in Chinese)"""
     try:
         relevance_parts = []
@@ -453,13 +466,17 @@ def generate_relevance_explanation(search_term, title, abstract):
         # Check what aspects are covered
         title_lower = title.lower()
         abstract_lower = abstract.lower()
-        search_lower = search_term.lower()
         
-        # Direct term matches
-        if search_lower in title_lower:
-            relevance_parts.append(f"直接探討{search_term}")
-        elif search_lower in abstract_lower:
-            relevance_parts.append(f"討論{search_term}")
+        # Use search_term for matching (English) but display_term for output (Chinese)
+        if search_term:
+            search_lower = search_term.lower()
+            if search_lower in title_lower:
+                relevance_parts.append(f"直接探討{display_term}")
+            elif search_lower in abstract_lower:
+                relevance_parts.append(f"討論{display_term}")
+        else:
+            # Fallback: assume the article is relevant to the display term
+            relevance_parts.append(f"討論{display_term}")
         
         # Clinical aspects (Chinese translations)
         clinical_aspects = []
@@ -492,11 +509,11 @@ def generate_relevance_explanation(search_term, title, abstract):
         if relevance_parts:
             return f"此研究{', '.join(relevance_parts[:3])}，為您的症狀提供實證醫學參考。"
         else:
-            return f"此研究針對{search_term}提供相關醫學參考，有助於了解您的症狀。"
+            return f"此研究針對{display_term}提供相關醫學參考，有助於了解您的症狀。"
             
     except Exception as e:
         logger.error(f"Error generating relevance explanation: {e}")
-        return f"此研究針對{search_term}提供實證醫學參考，有助於了解您的症狀。"
+        return f"此研究針對{display_term}提供實證醫學參考，有助於了解您的症狀。"
 
 def parse_pubmed_articles(xml_content, search_term, original_term=None):
     """Parse PubMed XML response to extract article information"""
@@ -536,7 +553,7 @@ def parse_pubmed_articles(xml_content, search_term, original_term=None):
                         'title': title,
                         'source': f"{journal}, {year}",
                         'excerpt': abstract,
-                        'relevance': generate_relevance_explanation(display_term, title, abstract),
+                        'relevance': generate_relevance_explanation(display_term, title, abstract, search_term),
                         'url': f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/" if pmid else "",
                         'type': 'pubmed'
                     })
