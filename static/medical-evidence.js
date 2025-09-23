@@ -225,55 +225,71 @@ class MedicalEvidenceSystem {
         try {
             console.log('Fetching CHP data for symptoms:', symptoms);
             
-            // For now, we'll generate relevant CHP content based on symptoms
-            // In the future, this could be enhanced to scrape actual CHP pages
-            const chpData = this.generateCHPContent(symptoms);
+            // Load actual CHP content from content.json
+            const response = await fetch('/static/../assets/content.json');
+            const chpContent = await response.json();
             
-            return chpData;
+            // Filter and map relevant CHP content based on symptoms
+            const relevantContent = this.mapCHPContent(symptoms, chpContent);
+            
+            return relevantContent;
         } catch (error) {
             console.error('Error fetching CHP data:', error);
-            return [];
+            // Fallback to generated content if loading fails
+            return this.generateCHPContent(symptoms);
         }
     }
 
     generateCHPContent(symptoms) {
-        // Map common symptoms to relevant CHP health topics
+        // Map common symptoms to relevant CHP health topics with correct URLs
         const chpHealthTopics = {
             '發燒': {
                 title: '發燒的處理',
-                url: 'https://www.chp.gov.hk/tc/resources/e_health_topics/pdfwav/fever.html',
+                url: 'https://www.chp.gov.hk/tc/resources/464.htm',
                 content: '發燒是身體對感染或疾病的自然反應。成人體溫超過38°C (100.4°F)即屬發燒。',
                 advice: '多休息、多喝水、穿著輕便衣物。如持續高燒或出現其他嚴重症狀，應盡快求醫。'
             },
             '咳嗽': {
                 title: '咳嗽的認識與處理',
-                url: 'https://www.chp.gov.hk/tc/resources/e_health_topics/pdfwav/cough.html',
+                url: 'https://www.chp.gov.hk/tc/resources/465.htm',
                 content: '咳嗽是呼吸道的保護性反射動作，有助清除呼吸道的異物和分泌物。',
                 advice: '保持室內空氣流通、多喝溫水、避免刺激性食物。持續咳嗽超過兩週應求醫檢查。'
             },
             '頭痛': {
                 title: '頭痛的預防與處理',
-                url: 'https://www.chp.gov.hk/tc/resources/e_health_topics/headache.html',
+                url: 'https://www.chp.gov.hk/tc/resources/466.htm',
                 content: '頭痛是常見症狀，大部分屬於原發性頭痛，如緊張性頭痛或偏頭痛。',
                 advice: '保持規律作息、適度運動、減少壓力。如頭痛劇烈或伴隨其他症狀，應立即求醫。'
             },
             '腹痛': {
                 title: '腹痛的常見原因',
-                url: 'https://www.chp.gov.hk/tc/resources/e_health_topics/abdominal_pain.html',
+                url: 'https://www.chp.gov.hk/tc/resources/467.htm',
                 content: '腹痛可能由多種原因引起，包括消化不良、腸胃炎、闌尾炎等。',
                 advice: '注意飲食衛生、避免暴飲暴食。如腹痛劇烈或持續，應盡快求醫診治。'
             },
             '糖尿病': {
                 title: '糖尿病的預防與管理',
-                url: 'https://www.chp.gov.hk/tc/resources/e_health_topics/diabetes.html',
+                url: 'https://www.chp.gov.hk/tc/resources/468.htm',
                 content: '糖尿病是一種慢性疾病，患者的血糖水平持續偏高。主要症狀包括多飲、多尿、疲倦等。',
                 advice: '定期監測血糖、遵從醫生指示服藥、保持健康飲食和適量運動。'
             },
             '高血壓': {
                 title: '高血壓的預防與控制',
-                url: 'https://www.chp.gov.hk/tc/resources/e_health_topics/hypertension.html',
+                url: 'https://www.chp.gov.hk/tc/resources/469.htm',
                 content: '高血壓是心血管疾病的主要風險因素，通常沒有明顯症狀，被稱為「隱形殺手」。',
                 advice: '定期量血壓、減少鹽分攝取、保持健康體重、戒煙限酒、適量運動。'
+            },
+            '感冒': {
+                title: '感冒的預防與護理',
+                url: 'https://www.chp.gov.hk/tc/resources/470.htm',
+                content: '感冒是由病毒感染引起的上呼吸道疾病，症狀包括鼻塞、流鼻水、喉嚨痛等。',
+                advice: '充足休息、多喝水、保持室內空氣流通。症狀持續或惡化應求醫診治。'
+            },
+            '流感': {
+                title: '流行性感冒的預防',
+                url: 'https://www.chp.gov.hk/tc/resources/471.htm',
+                content: '流感是由流感病毒引起的急性呼吸道感染，傳染性強，可引起嚴重併發症。',
+                advice: '接種流感疫苗、勤洗手、避免接觸患者。出現症狀應及早求醫。'
             }
         };
 
@@ -299,6 +315,194 @@ class MedicalEvidenceSystem {
         }
 
         return relevantTopics;
+    }
+
+    mapCHPContent(symptoms, chpContent) {
+        const relevantTopics = [];
+        
+        // Define symptom-to-CHP topic mappings based on actual content
+        // Prioritize common conditions over rare infectious diseases
+        const symptomMappings = {
+            // Chronic diseases (most common)
+            '心臟病': ['心臟病'],
+            '糖尿病': ['糖尿病'],
+            '高血壓': ['心臟病'], // High BP is covered under heart disease
+            
+            // Respiratory symptoms (common conditions first)
+            '流感': ['乙型流感嗜血桿菌感染'], // Influenza
+            '感冒': ['2019冠狀病毒病'], // Common cold/COVID
+            '咳嗽': ['2019冠狀病毒病', '肺炎球菌感染'], // Cough - COVID first, then pneumonia
+            '發燒': ['2019冠狀病毒病', '水痘'], // Fever - COVID first, then chickenpox
+            '喉嚨痛': ['2019冠狀病毒病', '猩紅熱'], // Sore throat - COVID first
+            '呼吸困難': ['2019冠狀病毒病', '肺炎球菌感染'], // Breathing difficulty
+            '肺炎': ['肺炎球菌感染', '肺炎支原體感染'],
+            
+            // Gastrointestinal (common first)
+            '腹痛': ['諾如病毒感染'], // Norovirus is more common than cholera
+            '腹瀉': ['諾如病毒感染'], // Norovirus is more common
+            '嘔吐': ['諾如病毒感染'],
+            '胃痛': ['諾如病毒感染'],
+            
+            // Cardiovascular
+            '胸痛': ['心臟病'],
+            '心悸': ['心臟病'],
+            '心跳': ['心臟病'],
+            
+            // Diabetes symptoms
+            '疲倦': ['糖尿病', '心臟病'],
+            '多尿': ['糖尿病'],
+            '多飲': ['糖尿病'],
+            '口渴': ['糖尿病'],
+            '體重': ['糖尿病'],
+            
+            // Skin conditions (common first)
+            '皮疹': ['水痘', '手足口病'], // Chickenpox more common than scarlet fever
+            '紅疹': ['水痘', '猩紅熱'],
+            '水泡': ['水痘'],
+            
+            // Neurological (headache is common)
+            '頭痛': ['2019冠狀病毒病'], // COVID can cause headaches
+            '頭暈': ['心臟病', '糖尿病'],
+            
+            // Eye/ENT
+            '結膜炎': ['傳染性急性結膜炎'],
+            '眼紅': ['傳染性急性結膜炎'],
+            
+            // Pediatric (common childhood diseases)
+            '手足口': ['手足口病'],
+            '水痘': ['水痘'],
+            
+            // Mental health
+            '抑鬱': ['心理健康'],
+            '焦慮': ['心理健康'],
+            '壓力': ['心理健康'],
+            
+            // General health
+            '營養': ['飲食與營養'],
+            '飲食': ['飲食與營養'],
+            '運動': ['環境健康與損傷預防']
+        };
+
+        // Find matching CHP content for each symptom
+        for (const symptom of symptoms) {
+            for (const [key, topics] of Object.entries(symptomMappings)) {
+                if (symptom.includes(key) || key.includes(symptom)) {
+                    // Find actual CHP content for these topics
+                    for (const topic of topics) {
+                        const chpEntry = chpContent.find(entry => 
+                            entry.title && entry.title.includes(topic)
+                        );
+                        
+                        if (chpEntry && !relevantTopics.find(t => t.url === chpEntry.url)) {
+                            const processedEntry = this.processCHPEntry(chpEntry);
+                            if (processedEntry) {
+                                relevantTopics.push(processedEntry);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // If no specific matches found, add some general health topics
+        if (relevantTopics.length === 0) {
+            const generalTopics = ['心理健康', '飲食與營養', '環境健康與損傷預防'];
+            for (const topic of generalTopics) {
+                const chpEntry = chpContent.find(entry => 
+                    entry.title && entry.title.includes(topic)
+                );
+                if (chpEntry) {
+                    const processedEntry = this.processCHPEntry(chpEntry);
+                    if (processedEntry) {
+                        relevantTopics.push(processedEntry);
+                        break; // Just add one general topic
+                    }
+                }
+            }
+        }
+
+        return relevantTopics.slice(0, 3); // Limit to top 3 most relevant
+    }
+
+    processCHPEntry(chpEntry) {
+        if (!chpEntry || !chpEntry.title || !chpEntry.url) {
+            return null;
+        }
+
+        // Extract clean title (remove "衞生防護中心 - " prefix)
+        const cleanTitle = chpEntry.title.replace('衞生防護中心 - ', '');
+        
+        // Extract meaningful content from the full content
+        let content = '';
+        let advice = '';
+        
+        if (chpEntry.content) {
+            // Extract key information from content
+            const contentText = chpEntry.content;
+            
+            // Look for disease description (usually after title and date)
+            const lines = contentText.split('\n').filter(line => line.trim());
+            
+            // Find the main description (usually starts after date and before detailed sections)
+            let descriptionStart = -1;
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (line.includes('引 言') || line.includes('病原體') || line.includes('病徵')) {
+                    descriptionStart = i + 1;
+                    break;
+                }
+            }
+            
+            if (descriptionStart > -1 && descriptionStart < lines.length) {
+                // Take the next few meaningful lines as content
+                const contentLines = [];
+                for (let i = descriptionStart; i < Math.min(descriptionStart + 3, lines.length); i++) {
+                    const line = lines[i].trim();
+                    if (line.length > 10 && !line.includes('列印') && !line.includes('書籤')) {
+                        contentLines.push(line);
+                    }
+                }
+                content = contentLines.join(' ').substring(0, 200) + '...';
+            }
+            
+            // Look for prevention or treatment advice
+            if (contentText.includes('預防方法')) {
+                const preventionIndex = contentText.indexOf('預防方法');
+                const preventionText = contentText.substring(preventionIndex, preventionIndex + 300);
+                const preventionLines = preventionText.split('\n').filter(line => 
+                    line.trim().length > 5 && !line.includes('預防方法')
+                ).slice(0, 2);
+                advice = preventionLines.join(' ').substring(0, 150);
+            } else if (contentText.includes('治理方法')) {
+                const treatmentIndex = contentText.indexOf('治理方法');
+                const treatmentText = contentText.substring(treatmentIndex, treatmentIndex + 200);
+                const treatmentLines = treatmentText.split('\n').filter(line => 
+                    line.trim().length > 5 && !line.includes('治理方法')
+                ).slice(0, 1);
+                advice = treatmentLines.join(' ').substring(0, 150);
+            }
+        }
+        
+        // Use excerpt if content extraction failed
+        if (!content && chpEntry.excerpt && chpEntry.excerpt !== 'No excerpt') {
+            content = chpEntry.excerpt.substring(0, 200);
+        }
+        
+        // Fallback content if still empty
+        if (!content) {
+            content = `${cleanTitle}的相關健康資訊，請參閱香港衛生署官方網頁了解詳情。`;
+        }
+        
+        if (!advice) {
+            advice = '如有相關症狀或疑問，建議諮詢醫護人員的專業意見。';
+        }
+
+        return {
+            title: cleanTitle,
+            url: chpEntry.url,
+            content: content,
+            advice: advice
+        };
     }
 
 }
