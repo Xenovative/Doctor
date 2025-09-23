@@ -1,7 +1,23 @@
-#!/usr/bin/env python3
 """
 Comprehensive AI Analysis Unit Test Suite
 Tests medical reference relevance and CHP guideline mapping accuracy
+
+MODES:
+- AUTO: python test_ai_analysis.py (auto-detects server availability)
+- MOCK: python test_ai_analysis.py mock (server not required, uses simulated data)
+- REAL: python test_ai_analysis.py real (requires running Flask server)
+
+MOCK MODE:
+- Uses simulated AI analysis responses
+- Tests symptom extraction and relevance scoring logic
+- No server required, runs instantly
+- Perfect for development and debugging
+
+REAL MODE:
+- Makes actual API calls to running Flask server
+- Tests complete end-to-end functionality
+- Requires server to be running on localhost:7001
+- Provides real AI analysis and evidence gathering
 """
 
 import json
@@ -202,6 +218,7 @@ class AIAnalysisTester:
 
         test_result = {
             "test_name": test_name,
+            "symptoms": symptoms,  # Keep symptoms at top level for consistency
             "patient_data": {
                 "age": age,
                 "gender": gender,
@@ -729,9 +746,11 @@ class AIAnalysisTester:
                 evidence = result.get("medical_evidence", {})
 
                 print(f"   Patient: {patient_data.get('age', 'N/A')}歲 {patient_data.get('gender', 'N/A')}性")
-                print(f"   Symptoms: {', '.join(result['symptoms'])}")
+                symptoms = result.get('symptoms', [])
+                print(f"   Symptoms: {', '.join(symptoms) if symptoms else 'No symptoms'}")
                 print(f"   📄 AI Analysis: {result.get('analysis_preview', 'No analysis available')}")
-                print(f"   Extracted: {', '.join(result.get('extracted_symptoms', []))}")
+                extracted = result.get('extracted_symptoms', [])
+                print(f"   Extracted: {', '.join(extracted) if extracted else 'No extracted symptoms'}")
                 print(f"   CHP Score: {chp.get('score', 0)}/100")
                 print(f"   PubMed Score: {pubmed.get('score', 0)}/100")
 
@@ -788,10 +807,25 @@ class AIAnalysisTester:
         }
 
 
-def main():
+def main(mock_mode=None):
     """Main test runner"""
-    # Use mock mode by default since server may not be running
-    tester = AIAnalysisTester(mock_mode=True)
+    # Auto-detect mock mode if not specified
+    if mock_mode is None:
+        # Try to detect if server is running
+        try:
+            import requests
+            response = requests.get('http://localhost:7001/', timeout=2)
+            if response.status_code == 200:
+                mock_mode = False  # Server is running, use real mode
+                print("🔗 Server detected - running in REAL MODE")
+            else:
+                mock_mode = True   # Server not responding, use mock mode
+                print("🔌 Server not detected - running in MOCK MODE")
+        except:
+            mock_mode = True   # Server not accessible, use mock mode
+            print("🔌 Server not accessible - running in MOCK MODE")
+
+    tester = AIAnalysisTester(mock_mode=mock_mode)
 
     # Run comprehensive tests
     results = tester.run_comprehensive_tests()
@@ -804,9 +838,22 @@ def main():
         json.dump(report, f, ensure_ascii=False, indent=2)
 
     print("\n💾 Results saved to ai_analysis_test_results.json")
-    print("📝 Note: Tests ran in MOCK MODE (server not required)")
+    mode_text = "MOCK MODE (server not required)" if mock_mode else "REAL MODE (server required)"
+    print(f"📝 Note: Tests ran in {mode_text}")
     return report
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+
+    # Check command line arguments
+    mock_mode = None
+    if len(sys.argv) > 1:
+        if sys.argv[1].lower() == 'mock':
+            mock_mode = True
+            print("🎭 Forced MOCK MODE by command line argument")
+        elif sys.argv[1].lower() == 'real':
+            mock_mode = False
+            print("🔗 Forced REAL MODE by command line argument")
+
+    main(mock_mode)
