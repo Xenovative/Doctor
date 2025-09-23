@@ -195,10 +195,10 @@ def translate_medical_terms_with_ai(chinese_terms):
         logger.info(f"Translating medical terms: {terms_text}")
         
         # Use the same AI service as diagnosis
-        ai_response = diagnose_symptoms_ai(prompt, "", "", "", "")
+        ai_response = call_ai_api(prompt)
         
-        if ai_response and 'analysis' in ai_response:
-            english_terms = ai_response['analysis'].strip()
+        if ai_response and not ai_response.startswith("AI分析服務暫時不可用"):
+            english_terms = ai_response.strip()
             # Split by comma and clean up
             translated_terms = [term.strip() for term in english_terms.split(',') if term.strip()]
             logger.info(f"AI translated terms: {translated_terms}")
