@@ -97,8 +97,8 @@ class AIAnalysisTester:
             # Test CHP relevance
             chp_relevance = self.test_chp_relevance(extracted_symptoms, expected_chp_topics)
 
-            # Test PubMed relevance (if available)
-            pubmed_relevance = self.test_pubmed_relevance(analysis, symptoms)
+            # Test medical evidence gathering
+            medical_evidence = self.test_medical_evidence_gathering(symptoms)
 
             test_result = {
                 "test_name": test_name,
@@ -107,6 +107,7 @@ class AIAnalysisTester:
                 "status": "PASSED",
                 "chp_relevance": chp_relevance,
                 "pubmed_relevance": pubmed_relevance,
+                "medical_evidence": medical_evidence,
                 "analysis_preview": analysis[:200] + "..." if len(analysis) > 200 else analysis
             }
 
@@ -336,6 +337,50 @@ class AIAnalysisTester:
             }
         }
 
+    def test_medical_evidence_gathering(self, symptoms):
+        """Test actual medical evidence gathering from the system"""
+        try:
+            # Test the medical evidence API directly
+            evidence_response = requests.post(
+                f"{self.base_url}/api/medical-evidence",
+                json={"symptoms": symptoms},
+                timeout=30
+            )
+
+            if evidence_response.status_code == 200:
+                evidence_data = evidence_response.json()
+
+                return {
+                    "success": evidence_data.get("success", False),
+                    "evidence_count": len(evidence_data.get("evidence", [])),
+                    "evidence_titles": [entry.get("title", "") for entry in evidence_data.get("evidence", [])],
+                    "evidence_sources": [entry.get("source", "") for entry in evidence_data.get("evidence", [])],
+                    "has_pubmed": any("pubmed" in entry.get("url", "").lower() for entry in evidence_data.get("evidence", [])),
+                    "has_chp": any("chp.gov.hk" in entry.get("url", "") for entry in evidence_data.get("evidence", [])),
+                    "error": None
+                }
+            else:
+                return {
+                    "success": False,
+                    "evidence_count": 0,
+                    "evidence_titles": [],
+                    "evidence_sources": [],
+                    "has_pubmed": False,
+                    "has_chp": False,
+                    "error": f"API returned {evidence_response.status_code}"
+                }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "evidence_count": 0,
+                "evidence_titles": [],
+                "evidence_sources": [],
+                "has_pubmed": False,
+                "has_chp": False,
+                "error": str(e)
+            }
+
     def run_comprehensive_tests(self):
         """Run comprehensive test suite"""
         print("🚀 Starting Comprehensive AI Analysis Test Suite")
@@ -441,6 +486,25 @@ class AIAnalysisTester:
             print(f"   {status_emoji} CHP Relevance: {chp_score}/100")
             print(f"   {status_emoji} PubMed Relevance: {pubmed_score}/100")
 
+            # Show medical evidence gathering results
+            evidence = result.get("medical_evidence", {})
+            if evidence.get("success", False):
+                evidence_count = evidence.get("evidence_count", 0)
+                has_pubmed = evidence.get("has_pubmed", False)
+                has_chp = evidence.get("has_chp", False)
+                titles = evidence.get("evidence_titles", [])
+
+                print(f"   📚 Evidence Gathered: {evidence_count} articles")
+                if has_pubmed:
+                    print(f"   🔬 PubMed: ✅ ({sum(1 for t in titles if 'pubmed' in t.lower())} articles)")
+                if has_chp:
+                    print(f"   🏥 CHP: ✅ ({sum(1 for t in titles if 'chp' in t.lower() or '衞生' in t)} articles)")
+
+                if titles and len(titles) <= 3:
+                    print(f"   📖 Titles: {', '.join(titles[:2])}")
+            else:
+                print(f"   ❌ Evidence Error: {evidence.get('error', 'Unknown')}")
+
             if result["status"] == "FAILED":
                 print(f"   ❌ Error: {result.get('error', 'Unknown')}")
 
@@ -483,6 +547,30 @@ class AIAnalysisTester:
             print(f"   Highest: {max(pubmed_scores)}/100")
             print(f"   Lowest: {min(pubmed_scores)}/100")
 
+        # Medical Evidence Gathering Analysis
+        evidence_results = [r.get("medical_evidence", {}) for r in results if r["status"] == "PASSED"]
+        successful_evidence = [e for e in evidence_results if e.get("success", False)]
+        avg_evidence_count = 0.0
+        total_pubmed_articles = 0
+        total_chp_articles = 0
+
+        if successful_evidence:
+            evidence_counts = [e.get("evidence_count", 0) for e in successful_evidence]
+            avg_evidence_count = sum(evidence_counts) / len(evidence_counts)
+
+            # Count total articles from all evidence sources
+            for evidence in successful_evidence:
+                titles = evidence.get("evidence_titles", [])
+                total_pubmed_articles += sum(1 for t in titles if 'pubmed' in t.lower())
+                total_chp_articles += sum(1 for t in titles if 'chp' in t.lower() or '衞生' in t)
+
+            print("\n🔬 MEDICAL EVIDENCE GATHERING ANALYSIS:")
+            print(f"   Successful Evidence Gathering: {len(successful_evidence)}/{len(evidence_results)} tests")
+            print(f"   Average Articles per Test: {avg_evidence_count:.1f}")
+            print(f"   Total PubMed Articles: {total_pubmed_articles}")
+            print(f"   Total CHP Articles: {total_chp_articles}")
+            print(f"   Evidence Integration Rate: {(len(successful_evidence)/len(evidence_results)*100):.1f}%")
+
         # Detailed results
         print("\n📋 DETAILED TEST RESULTS:")
         print("-" * 80)
@@ -496,6 +584,7 @@ class AIAnalysisTester:
             if status == "PASSED":
                 chp = result.get("chp_relevance", {})
                 pubmed = result.get("pubmed_relevance", {})
+                evidence = result.get("medical_evidence", {})
 
                 print(f"   Symptoms: {', '.join(result['symptoms'])}")
                 print(f"   Extracted: {', '.join(result.get('extracted_symptoms', []))}")
@@ -504,6 +593,25 @@ class AIAnalysisTester:
 
                 if chp.get("matched_topics"):
                     print(f"   CHP Topics: {', '.join(chp['matched_topics'][:2])}")
+
+                # Show medical evidence gathering results
+                if evidence.get("success", False):
+                    evidence_count = evidence.get("evidence_count", 0)
+                    print(f"   📚 Evidence Count: {evidence_count} articles")
+
+                    titles = evidence.get("evidence_titles", [])
+                    if titles:
+                        print(f"   📖 Evidence Titles: {', '.join(titles[:2])}")
+
+                    if evidence.get("has_pubmed", False):
+                        pubmed_count = sum(1 for t in titles if 'pubmed' in t.lower())
+                        print(f"   🔬 PubMed Articles: {pubmed_count}")
+
+                    if evidence.get("has_chp", False):
+                        chp_count = sum(1 for t in titles if 'chp' in t.lower() or '衞生' in t)
+                        print(f"   🏥 CHP Articles: {chp_count}")
+                else:
+                    print(f"   ❌ Evidence Error: {evidence.get('error', 'API not available')}")
 
             else:
                 print(f"   Error: {result.get('error', 'Unknown')}")
