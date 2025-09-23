@@ -1597,21 +1597,51 @@ document.addEventListener('DOMContentLoaded', function() {
         return uniqueTerms;
     }
     
+    // Helper function to extract clean medical condition names from AI analysis
+    function extractConditionNames(text) {
+        const conditions = [];
+        
+        // Look for numbered diagnosis lists like "1. 糖尿病：..." 
+        const diagnosisPattern = /\d+\.\s*([^：\n]{2,12})：/g;
+        let match;
+        while ((match = diagnosisPattern.exec(text)) !== null) {
+            const condition = match[1].trim();
+            if (condition && !conditions.includes(condition)) {
+                conditions.push(condition);
+            }
+        }
+        
+        console.log('Extracted condition names:', conditions);
+        return conditions;
+    }
+
     // Helper function to extract medical terms from text
     function extractMedicalTerms(text) {
         const terms = [];
         
         console.log('Extracting from text:', text);
         
-        // Handle numbered lists (1. 上呼吸道感染, 2. 支氣管炎, etc.)
+        // First try to extract clean condition names
+        const conditionNames = extractConditionNames(text);
+        terms.push(...conditionNames);
+        
+        // Handle numbered lists - extract only the medical condition name before colon
         const numberedItems = text.match(/\d+\.\s*([^\n]+)/g);
         if (numberedItems) {
             numberedItems.forEach(item => {
                 let cleanItem = item.replace(/^\d+\.\s*/, '').trim();
-                // Remove parentheses content for the main term
+                
+                // Extract only the medical term before colon or first punctuation
+                const colonIndex = cleanItem.indexOf('：');
+                if (colonIndex > 0) {
+                    cleanItem = cleanItem.substring(0, colonIndex).trim();
+                }
+                
+                // Remove parentheses content
                 cleanItem = cleanItem.replace(/（[^）]*）/g, '').trim();
+                
                 console.log('Found numbered item:', cleanItem);
-                if (cleanItem.length > 1) {
+                if (cleanItem.length > 1 && cleanItem.length < 15) {
                     terms.push(cleanItem);
                 }
             });
@@ -1659,13 +1689,16 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         // Also extract simple comma/punctuation separated terms
-        const simpleTerms = text.split(/[，,、。；;\n]/)
+        const simpleTerms = text.split(/[，,、。；;\n：]/)
             .map(term => term.trim())
             .map(term => term.replace(/^\d+\.\s*/, '')) // Remove number prefixes
-            .filter(term => term.length > 1 && term.length < 20)
+            .filter(term => term.length > 1 && term.length < 12) // Shorter length limit
             .filter(term => /[\u4e00-\u9fff]/.test(term)) // Contains Chinese characters
             .filter(term => !term.match(/^\d+$/)) // Not just numbers
-            .filter(term => !term.match(/^[，,、。；;\s]+$/)); // Not just punctuation
+            .filter(term => !term.match(/^[，,、。；;\s]+$/)) // Not just punctuation
+            .filter(term => !term.includes('症狀')) // Avoid "symptom" descriptions
+            .filter(term => !term.includes('可能')) // Avoid "possible" descriptions
+            .filter(term => !term.includes('建議')); // Avoid "suggest" descriptions
         
         terms.push(...simpleTerms);
         
