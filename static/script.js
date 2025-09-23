@@ -1601,40 +1601,70 @@ document.addEventListener('DOMContentLoaded', function() {
     function extractMedicalTerms(text) {
         const terms = [];
         
+        console.log('Extracting from text:', text);
+        
+        // Handle numbered lists (1. 上呼吸道感染, 2. 支氣管炎, etc.)
+        const numberedItems = text.match(/\d+\.\s*([^（\n]+)/g);
+        if (numberedItems) {
+            numberedItems.forEach(item => {
+                const cleanItem = item.replace(/^\d+\.\s*/, '').trim();
+                console.log('Found numbered item:', cleanItem);
+                terms.push(cleanItem);
+            });
+        }
+        
+        // Extract content in parentheses (如普通感冒或流感)
+        const parenthesesContent = text.match(/（([^）]+)）/g);
+        if (parenthesesContent) {
+            parenthesesContent.forEach(content => {
+                const cleanContent = content.replace(/[（）]/g, '').replace(/^如/, '');
+                const subTerms = cleanContent.split(/或|、|，|,/).map(t => t.trim()).filter(t => t.length > 1);
+                console.log('Found parentheses content:', subTerms);
+                terms.push(...subTerms);
+            });
+        }
+        
         // Common medical symptom patterns
         const medicalPatterns = [
-            /([^，,、。\s]+痛)/g,        // Pain symptoms: 頭痛, 胸痛, etc.
-            /([^，,、。\s]+炎)/g,        // Inflammation: 肺炎, 胃炎, etc.
-            /([^，,、。\s]+症)/g,        // Syndromes: 感冒症, etc.
-            /([^，,、。\s]+病)/g,        // Diseases: 心臟病, etc.
-            /(發燒|發熱)/g,             // Fever
-            /(咳嗽)/g,                  // Cough
-            /(頭暈|暈眩)/g,             // Dizziness
-            /(噁心|嘔吐)/g,             // Nausea/vomiting
-            /(疲勞|疲倦)/g,             // Fatigue
-            /(呼吸困難|氣喘)/g,         // Breathing issues
-            /(腹瀉|便秘)/g,             // GI issues
-            /(失眠|睡眠)/g,             // Sleep issues
-            /(焦慮|憂鬱|壓力)/g,        // Mental health
-            /(皮疹|紅腫|搔癢)/g,        // Skin issues
+            /([^，,、。\s（）]+感染)/g,    // Infections: 上呼吸道感染, etc.
+            /([^，,、。\s（）]+炎)/g,      // Inflammation: 肺炎, 支氣管炎, etc.
+            /([^，,、。\s（）]+症)/g,      // Syndromes: 感冒症, etc.
+            /([^，,、。\s（）]+病)/g,      // Diseases: 心臟病, etc.
+            /([^，,、。\s（）]+痛)/g,      // Pain symptoms: 頭痛, 胸痛, etc.
+            /(發燒|發熱)/g,               // Fever
+            /(咳嗽)/g,                    // Cough
+            /(頭暈|暈眩)/g,               // Dizziness
+            /(噁心|嘔吐)/g,               // Nausea/vomiting
+            /(疲勞|疲倦)/g,               // Fatigue
+            /(呼吸困難|氣喘)/g,           // Breathing issues
+            /(腹瀉|便秘)/g,               // GI issues
+            /(失眠|睡眠)/g,               // Sleep issues
+            /(焦慮|憂鬱|壓力)/g,          // Mental health
+            /(皮疹|紅腫|搔癢)/g,          // Skin issues
+            /(普通感冒|流感)/g,           // Common conditions
+            /(支氣管炎|肺炎)/g,           // Respiratory conditions
         ];
         
         medicalPatterns.forEach(pattern => {
             let match;
             while ((match = pattern.exec(text)) !== null) {
-                terms.push(match[1] || match[0]);
+                const term = match[1] || match[0];
+                console.log('Found pattern match:', term);
+                terms.push(term);
             }
         });
         
         // Also extract simple comma/punctuation separated terms
-        const simpleTerms = text.split(/[，,、。；;]/)
+        const simpleTerms = text.split(/[，,、。；;\n]/)
             .map(term => term.trim())
-            .filter(term => term.length > 1 && term.length < 10)
-            .filter(term => /[\u4e00-\u9fff]/.test(term)); // Contains Chinese characters
+            .filter(term => term.length > 1 && term.length < 15)
+            .filter(term => /[\u4e00-\u9fff]/.test(term)) // Contains Chinese characters
+            .filter(term => !term.match(/^\d+$/)); // Not just numbers
         
         terms.push(...simpleTerms);
         
-        return terms;
+        console.log('All extracted terms:', terms);
+        return [...new Set(terms)]; // Remove duplicates
     }
 
     // Function to track doctor clicks

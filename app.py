@@ -142,6 +142,12 @@ def get_medical_evidence():
         if not symptoms and not diagnosis:
             return jsonify({'error': 'No symptoms or diagnosis provided'}), 400
         
+        # If symptoms contain Chinese text, translate them using AI
+        if any(isinstance(s, str) and any('\u4e00' <= c <= '\u9fff' for c in s) for s in symptoms):
+            logger.info("Detected Chinese medical terms, translating with AI...")
+            translated_symptoms = translate_medical_terms_with_ai(symptoms)
+            symptoms = translated_symptoms
+        
         # Generate search terms for medical databases
         search_terms = generate_medical_search_terms(symptoms, diagnosis)
         
@@ -171,6 +177,39 @@ def get_medical_evidence():
     except Exception as e:
         logger.error(f"Medical evidence API error: {e}")
         return jsonify({'error': 'Failed to fetch medical evidence'}), 500
+
+def translate_medical_terms_with_ai(chinese_terms):
+    """Use AI to translate Chinese medical terms to English"""
+    try:
+        if not chinese_terms:
+            return []
+        
+        # Create a prompt for medical translation
+        terms_text = ', '.join(str(term) for term in chinese_terms)
+        prompt = f"""請將以下中文醫學術語翻譯成英文醫學術語，只返回英文術語，用逗號分隔：
+
+中文醫學術語：{terms_text}
+
+請提供準確的醫學英文翻譯："""
+
+        logger.info(f"Translating medical terms: {terms_text}")
+        
+        # Use the same AI service as diagnosis
+        ai_response = diagnose_symptoms_ai(prompt, "", "", "", "")
+        
+        if ai_response and 'analysis' in ai_response:
+            english_terms = ai_response['analysis'].strip()
+            # Split by comma and clean up
+            translated_terms = [term.strip() for term in english_terms.split(',') if term.strip()]
+            logger.info(f"AI translated terms: {translated_terms}")
+            return translated_terms
+        else:
+            logger.warning("AI translation failed, using fallback")
+            return chinese_terms
+            
+    except Exception as e:
+        logger.error(f"Error translating medical terms: {e}")
+        return chinese_terms
 
 def generate_medical_search_terms(symptoms, diagnosis):
     """Generate appropriate search terms for medical databases"""
