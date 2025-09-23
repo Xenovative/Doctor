@@ -477,6 +477,7 @@ class AIAnalysisTester:
                     "evidence_count": len(evidence_list),
                     "evidence_titles": [entry.get("title", "") for entry in evidence_list],
                     "evidence_sources": [entry.get("source", "") for entry in evidence_list],
+                    "evidence_urls": [entry.get("url", "") for entry in evidence_list],  # Add URLs for counting
                     # Better detection logic - check for PubMed in title, source, or URL
                     "has_pubmed": any(
                         "pubmed" in entry.get("title", "").lower() or
@@ -500,6 +501,7 @@ class AIAnalysisTester:
                     "evidence_count": 0,
                     "evidence_titles": [],
                     "evidence_sources": [],
+                    "evidence_urls": [],  # Add URLs for consistency
                     "has_pubmed": False,
                     "has_chp": False,
                     "error": f"API returned {evidence_response.status_code}"
@@ -511,6 +513,7 @@ class AIAnalysisTester:
                 "evidence_count": 0,
                 "evidence_titles": [],
                 "evidence_sources": [],
+                "evidence_urls": [],  # Add URLs for consistency
                 "has_pubmed": False,
                 "has_chp": False,
                 "error": str(e)
@@ -774,11 +777,16 @@ class AIAnalysisTester:
 
                     titles = evidence.get("evidence_titles", [])
                     if titles:
-                        print(f"   📖 Evidence Titles: {', '.join(titles[:2])}")
+                        print(f"   📖 Titles: {', '.join(titles[:2])}")
 
                     if evidence.get("has_pubmed", False):
-                        pubmed_count = sum(1 for t in titles if 'pubmed' in t.lower())
-                        print(f"   🔬 PubMed Articles: {pubmed_count}")
+                        # Count PubMed articles by checking URLs
+                        urls = evidence.get("evidence_urls", [])
+                        pubmed_count = sum(1 for url in urls
+                                          if ("pubmed" in url.lower() or
+                                              "nih.gov" in url.lower() or
+                                              "ncbi.nlm.nih.gov" in url.lower()))
+                        print(f"   🔬 PubMed: ✅ ({pubmed_count} articles)")
 
                     if evidence.get("has_chp", False):
                         chp_count = sum(1 for t in titles if 'chp' in t.lower() or '衞生' in t)
