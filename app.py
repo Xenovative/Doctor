@@ -22,11 +22,10 @@ import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
 import pytz
 from pathlib import Path
-from dotenv import set_key
+from dotenv import load_dotenv, set_key
 import os
 from collections import deque
 import re
-import time
 import threading
 import pyotp
 import qrcode
@@ -34,11 +33,6 @@ import io
 import base64
 from functools import wraps
 import schedule
-import time
-import logging
-import io
-from collections import deque
-import xml.etree.ElementTree as ET
 from urllib.parse import quote
 
 # Set up logging with custom handler for console capture
