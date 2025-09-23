@@ -2884,3 +2884,227 @@ body::before {
         font-size: 0.9em;
     }
 }
+
+/* Medical Evidence Section */
+.medical-evidence-container {
+    margin-top: 20px;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.medical-evidence-container.expanded {
+    border-color: #805ad5;
+    box-shadow: 0 4px 15px rgba(128, 90, 213, 0.1);
+}
+
+.evidence-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 15px 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: all 0.3s ease;
+    user-select: none;
+}
+
+.evidence-header:hover {
+    background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+}
+
+.evidence-header-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.evidence-header h4 {
+    margin: 0;
+    font-size: 1.1em;
+    font-weight: 600;
+}
+
+.evidence-toggle-icon {
+    font-size: 1.2em;
+    transition: transform 0.3s ease;
+}
+
+.evidence-toggle-icon.expanded {
+    transform: rotate(180deg);
+}
+
+.evidence-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease, padding 0.4s ease;
+    background: white;
+}
+
+.evidence-content.expanded {
+    max-height: 800px;
+    padding: 20px;
+}
+
+.evidence-introduction {
+    color: #4a5568;
+    font-size: 0.95em;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: linear-gradient(135deg, #edf2f7 0%, #e2e8f0 100%);
+    border-radius: 8px;
+    border-left: 4px solid #805ad5;
+}
+
+.journal-entry {
+    margin-bottom: 20px;
+    padding: 18px;
+    background: linear-gradient(135deg, #ffffff 0%, #f7fafc 100%);
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    transition: all 0.3s ease;
+}
+
+.journal-entry:hover {
+    border-color: #805ad5;
+    box-shadow: 0 4px 12px rgba(128, 90, 213, 0.1);
+    transform: translateY(-2px);
+}
+
+.journal-entry:last-child {
+    margin-bottom: 0;
+}
+
+.journal-title {
+    font-weight: 600;
+    color: #2d3748;
+    margin-bottom: 8px;
+    font-size: 1em;
+}
+
+.journal-source {
+    color: #805ad5;
+    font-size: 0.85em;
+    font-weight: 500;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.journal-source i {
+    font-size: 0.9em;
+}
+
+.journal-excerpt {
+    color: #4a5568;
+    line-height: 1.6;
+    font-size: 0.9em;
+    font-style: italic;
+    padding: 12px;
+    background: rgba(128, 90, 213, 0.05);
+    border-radius: 6px;
+    border-left: 3px solid #805ad5;
+    margin-bottom: 10px;
+}
+
+.clinical-relevance {
+    color: #2d3748;
+    font-size: 0.9em;
+    line-height: 1.5;
+}
+
+.clinical-relevance strong {
+    color: #805ad5;
+}
+
+/* Loading state for medical evidence */
+.evidence-loading {
+    text-align: center;
+    padding: 30px 20px;
+    color: #666;
+}
+
+.evidence-loading i {
+    font-size: 1.5em;
+    margin-right: 10px;
+    color: #805ad5;
+}
+
+/* PubMed links */
+.pubmed-link {
+    margin-left: 10px;
+    color: #805ad5;
+    text-decoration: none;
+    font-size: 0.8em;
+    font-weight: 500;
+    transition: color 0.3s ease;
+}
+
+.pubmed-link:hover {
+    color: #6b46c1;
+    text-decoration: underline;
+}
+
+.pubmed-link i {
+    margin-right: 4px;
+    font-size: 0.9em;
+}
+
+/* Evidence disclaimer */
+.evidence-disclaimer {
+    margin-top: 20px;
+    padding: 12px;
+    background: rgba(128, 90, 213, 0.05);
+    border-radius: 6px;
+    border-left: 3px solid #805ad5;
+    color: #666;
+    font-size: 0.85em;
+}
+
+.evidence-disclaimer i {
+    margin-right: 6px;
+    color: #805ad5;
+}
+
+/* PubMed entry styling */
+.journal-entry.pubmed {
+    border-left: 4px solid #28a745;
+}
+
+.journal-entry.pubmed .journal-source {
+    color: #28a745;
+}
+
+/* Mobile responsiveness for medical evidence */
+@media (max-width: 768px) {
+    .evidence-header {
+        padding: 12px 15px;
+    }
+    
+    .evidence-header h4 {
+        font-size: 1em;
+    }
+    
+    .evidence-content.expanded {
+        padding: 15px;
+        max-height: 600px;
+    }
+    
+    .journal-entry {
+        padding: 15px;
+    }
+    
+    .journal-excerpt {
+        padding: 10px;
+        font-size: 0.85em;
+    }
+    
+    .evidence-introduction {
+        padding: 12px;
+        font-size: 0.9em;
+    }
+}

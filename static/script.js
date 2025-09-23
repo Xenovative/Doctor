@@ -1399,6 +1399,56 @@ document.addEventListener('DOMContentLoaded', function() {
                 <span data-translate="analysis_remark">以上分析是基於您提供的不適症狀和病史，可能還有其他因素會影響分析結果。</span>
             </div>
         `;
+
+        // Add medical evidence section asynchronously
+        if (window.medicalEvidenceSystem) {
+            const symptomsArray = symptoms.split(',').map(s => s.trim());
+            
+            // First show loading state
+            const loadingHTML = window.medicalEvidenceSystem.generateLoadingHTML();
+            card.innerHTML += loadingHTML;
+            
+            // Then fetch and update with real evidence
+            window.medicalEvidenceSystem.generateEvidenceHTML(symptomsArray, recommendedSpecialty)
+                .then(evidenceHTML => {
+                    if (evidenceHTML) {
+                        // Find and replace the loading section
+                        const evidenceContainer = card.querySelector('#medicalEvidenceContainer');
+                        if (evidenceContainer) {
+                            evidenceContainer.outerHTML = evidenceHTML;
+                            
+                            // Apply translations to the new evidence section
+                            setTimeout(() => {
+                                if (window.currentTranslations) {
+                                    const newContainer = card.querySelector('#medicalEvidenceContainer');
+                                    if (newContainer) {
+                                        newContainer.querySelectorAll('[data-translate]').forEach(element => {
+                                            const key = element.getAttribute('data-translate');
+                                            if (window.currentTranslations[key]) {
+                                                element.textContent = window.currentTranslations[key];
+                                            }
+                                        });
+                                    }
+                                }
+                            }, 100);
+                        }
+                    } else {
+                        // Remove loading section if no evidence found
+                        const evidenceContainer = card.querySelector('#medicalEvidenceContainer');
+                        if (evidenceContainer) {
+                            evidenceContainer.remove();
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading medical evidence:', error);
+                    // Remove loading section on error
+                    const evidenceContainer = card.querySelector('#medicalEvidenceContainer');
+                    if (evidenceContainer) {
+                        evidenceContainer.remove();
+                    }
+                });
+        }
         
         // Apply translations to newly created analysis card
         setTimeout(() => {

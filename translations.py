@@ -147,6 +147,16 @@ TRANSLATIONS = {
         'ai_disclaimer': '此AI分析僅供參考，不構成醫療建議或診斷。請務必諮詢合格醫生進行專業評估。',
         'analysis_remark': '以上分析是基於您提供的不適症狀和病史，可能還有其他因素會影響分析結果。',
         
+        # Medical Evidence Section
+        'medical_evidence_title': '📚 醫學文獻證據',
+        'evidence_introduction': '根據分析結果，您的症狀與以下醫學研究相關：',
+        'based_on_journals': '基於醫學期刊研究',
+        'show_evidence': '顯示醫學證據',
+        'hide_evidence': '隱藏醫學證據',
+        'journal_source': '期刊來源',
+        'study_findings': '研究發現',
+        'clinical_relevance': '臨床相關性',
+        
         # Medical Specialties
         '內科': 'Internal Medicine',
         '外科': 'Surgery', 
@@ -453,6 +463,16 @@ TRANSLATIONS = {
         'ai_disclaimer': '此AI分析仅供参考，不构成医疗建议或诊断。请务必咨询合格医生进行专业评估。',
         'analysis_remark': '以上分析是基于您提供的不适症状和病史，可能还有其他因素会影响分析结果。',
         
+        # Medical Evidence Section
+        'medical_evidence_title': '📚 医学文献证据',
+        'evidence_introduction': '根据分析结果，您的症状与以下医学研究相关：',
+        'based_on_journals': '基于医学期刊研究',
+        'show_evidence': '显示医学证据',
+        'hide_evidence': '隐藏医学证据',
+        'journal_source': '期刊来源',
+        'study_findings': '研究发现',
+        'clinical_relevance': '临床相关性',
+        
         # Medical Specialties
         '內科': '内科',
         '外科': '外科', 
@@ -713,6 +733,16 @@ TRANSLATIONS = {
         'important_reminder': 'Important Reminder:',
         'ai_disclaimer': 'This AI analysis is for reference only and cannot replace professional medical symptom analysis. Please consult a qualified physician for formal symptom analysis.',
         'analysis_remark': 'The above analysis is based on the discomforts and medical history you provided, there may be extra factors that contribute to the analysis result.',
+        
+        # Medical Evidence Section
+        'medical_evidence_title': '📚 Medical Literature Evidence',
+        'evidence_introduction': 'Based on the analysis results, your symptoms are correlated with the following medical research:',
+        'based_on_journals': 'Based on Medical Journal Studies',
+        'show_evidence': 'Show Medical Evidence',
+        'hide_evidence': 'Hide Medical Evidence',
+        'journal_source': 'Journal Source',
+        'study_findings': 'Study Findings',
+        'clinical_relevance': 'Clinical Relevance',
         
         # Medical Specialties
         '內科': 'Internal Medicine',
