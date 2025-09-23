@@ -463,24 +463,34 @@ class AIAnalysisTester:
             if evidence_response.status_code == 200:
                 evidence_data = evidence_response.json()
 
+                # Debug: Show what evidence was actually gathered
+                evidence_list = evidence_data.get("evidence", [])
+                print(f"   🔍 Evidence Details: {len(evidence_list)} items")
+                for i, entry in enumerate(evidence_list[:3]):  # Show first 3 for debugging
+                    title = entry.get("title", "No title")
+                    source = entry.get("source", "No source")
+                    url = entry.get("url", "No URL")
+                    print(f"      {i+1}. Title: '{title[:50]}...' | Source: '{source}' | URL: '{url[:50]}...'")
+
                 return {
                     "success": evidence_data.get("success", False),
-                    "evidence_count": len(evidence_data.get("evidence", [])),
-                    "evidence_titles": [entry.get("title", "") for entry in evidence_data.get("evidence", [])],
-                    "evidence_sources": [entry.get("source", "") for entry in evidence_data.get("evidence", [])],
+                    "evidence_count": len(evidence_list),
+                    "evidence_titles": [entry.get("title", "") for entry in evidence_list],
+                    "evidence_sources": [entry.get("source", "") for entry in evidence_list],
                     # Better detection logic - check for PubMed in title, source, or URL
                     "has_pubmed": any(
                         "pubmed" in entry.get("title", "").lower() or
                         "pubmed" in entry.get("source", "").lower() or
                         "pubmed" in entry.get("url", "").lower() or
-                        "nih.gov" in entry.get("url", "").lower()
-                        for entry in evidence_data.get("evidence", [])
+                        "nih.gov" in entry.get("url", "").lower() or
+                        "ncbi.nlm.nih.gov" in entry.get("url", "").lower()
+                        for entry in evidence_list
                     ),
                     "has_chp": any(
                         "chp.gov.hk" in entry.get("url", "") or
                         "衞生" in entry.get("title", "") or
                         "衛生" in entry.get("title", "")
-                        for entry in evidence_data.get("evidence", [])
+                        for entry in evidence_list
                     ),
                     "error": None
                 }
