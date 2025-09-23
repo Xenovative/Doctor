@@ -145,6 +145,7 @@ TRANSLATIONS = {
         'height_weight_format': 'cm / kg (BMI: )',
         'important_reminder': '重要提醒：',
         'ai_disclaimer': '此AI分析僅供參考，不構成醫療建議或診斷。請務必諮詢合格醫生進行專業評估。',
+        'analysis_remark': '以上分析是基於您提供的不適症狀和病史，可能還有其他因素會影響分析結果。',
         
         # Medical Specialties
         '內科': 'Internal Medicine',
@@ -450,6 +451,7 @@ TRANSLATIONS = {
         'height_weight_format': 'cm / kg (BMI: )',
         'important_reminder': '重要提醒：',
         'ai_disclaimer': '此AI分析仅供参考，不构成医疗建议或诊断。请务必咨询合格医生进行专业评估。',
+        'analysis_remark': '以上分析是基于您提供的不适症状和病史，可能还有其他因素会影响分析结果。',
         
         # Medical Specialties
         '內科': '内科',
@@ -710,6 +712,7 @@ TRANSLATIONS = {
         'height_weight_format': 'cm / kg (BMI: )',
         'important_reminder': 'Important Reminder:',
         'ai_disclaimer': 'This AI analysis is for reference only and cannot replace professional medical symptom analysis. Please consult a qualified physician for formal symptom analysis.',
+        'analysis_remark': 'The above analysis is based on the discomforts and medical history you provided, there may be extra factors that contribute to the analysis result.',
         
         # Medical Specialties
         '內科': 'Internal Medicine',

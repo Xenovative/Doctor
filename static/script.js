@@ -1394,6 +1394,9 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="analysis-disclaimer">
                 <i class="fas fa-exclamation-triangle"></i>
                 <strong data-translate="important_reminder">重要提醒：</strong><span data-translate="ai_disclaimer">此AI分析僅供參考，不能替代專業醫療診斷。請務必諮詢合格醫生進行正式診斷。</span>
+                <br><br>
+                <i class="fas fa-info-circle"></i>
+                <span data-translate="analysis_remark">以上分析是基於您提供的不適症狀和病史，可能還有其他因素會影響分析結果。</span>
             </div>
         `;
         
