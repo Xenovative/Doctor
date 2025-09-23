@@ -59,22 +59,30 @@ class AIAnalysisTester:
             response = requests.get(f"{self.base_url}/admin/api/medical-search-config", timeout=5)
 
             if response.status_code == 200:
-                try:
-                    data = response.json()
-                    if data.get("success", False):
-                        print("✅ Loaded medical search configuration from admin panel")
-                        return data.get("config", {})
-                    else:
-                        print(f"⚠️ Admin panel returned success=false: {data.get('error', 'Unknown error')}")
-                except json.JSONDecodeError as json_error:
-                    print(f"⚠️ Admin panel returned invalid JSON: {json_error}")
-                    print(f"   Response content: {response.text[:200]}...")
+                # Check if response is HTML (login page) instead of JSON
+                content_type = response.headers.get('content-type', '').lower()
+                if 'text/html' in content_type or response.text.strip().startswith('<!DOCTYPE html'):
+                    print("⚠️ Admin panel requires authentication - login page returned")
+                    print("   This is expected when server is running but no admin session exists")
+                else:
+                    try:
+                        data = response.json()
+                        if data.get("success", False):
+                            print("✅ Loaded medical search configuration from admin panel")
+                            return data.get("config", {})
+                        else:
+                            print(f"⚠️ Admin panel returned success=false: {data.get('error', 'Unknown error')}")
+                    except json.JSONDecodeError as json_error:
+                        print(f"⚠️ Admin panel returned invalid JSON: {json_error}")
+                        print(f"   Response content: {response.text[:200]}...")
             else:
                 print(f"⚠️ Admin panel returned HTTP {response.status_code}")
-                if response.status_code == 404:
+                if response.status_code == 401:
+                    print("   Authentication required - admin login needed")
+                elif response.status_code == 403:
+                    print("   Access forbidden - insufficient admin privileges")
+                elif response.status_code == 404:
                     print("   Medical search config endpoint not found - admin panel may not be updated")
-                elif response.status_code == 401 or response.status_code == 403:
-                    print("   Authentication required - admin panel access denied")
                 else:
                     print(f"   Response: {response.text[:200]}...")
 
