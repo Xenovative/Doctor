@@ -176,35 +176,103 @@ def generate_medical_search_terms(symptoms, diagnosis):
     """Generate appropriate search terms for medical databases"""
     search_terms = []
     
-    # Symptom mapping to medical terms
+    # Comprehensive symptom mapping to medical terms
     symptom_mapping = {
+        # Cardiovascular
         '胸痛': 'chest pain',
         '胸悶': 'chest tightness',
         '心悸': 'palpitations',
+        '心跳快': 'tachycardia',
+        '心律不整': 'arrhythmia',
+        
+        # Respiratory
         '呼吸困難': 'dyspnea',
         '氣喘': 'asthma',
         '咳嗽': 'cough',
+        '咳血': 'hemoptysis',
+        '喘息': 'wheezing',
+        
+        # Neurological
         '頭痛': 'headache',
         '頭暈': 'dizziness',
         '暈眩': 'vertigo',
+        '偏頭痛': 'migraine',
+        '失眠': 'insomnia',
+        '癲癇': 'seizure',
+        
+        # Gastrointestinal
         '腹痛': 'abdominal pain',
         '噁心': 'nausea',
         '嘔吐': 'vomiting',
+        '腹瀉': 'diarrhea',
+        '便秘': 'constipation',
+        '胃痛': 'stomach pain',
+        
+        # General symptoms
         '疲勞': 'fatigue',
         '發燒': 'fever',
+        '發熱': 'fever',
+        '體重減輕': 'weight loss',
+        '食慾不振': 'loss of appetite',
+        '盜汗': 'night sweats',
+        
+        # Mental health
         '焦慮': 'anxiety',
-        '憂鬱': 'depression'
+        '憂鬱': 'depression',
+        '壓力': 'stress',
+        '恐慌': 'panic',
+        
+        # Musculoskeletal
+        '關節痛': 'joint pain',
+        '肌肉痛': 'muscle pain',
+        '背痛': 'back pain',
+        '頸痛': 'neck pain',
+        
+        # Dermatological
+        '皮疹': 'rash',
+        '搔癢': 'itching',
+        '紅腫': 'swelling',
+        
+        # Specialties (for diagnosis parameter)
+        '普通科醫生': 'general practitioner',
+        '內科': 'internal medicine',
+        '外科': 'surgery',
+        '心臟科': 'cardiology',
+        '神經科': 'neurology',
+        '腸胃科': 'gastroenterology',
+        '呼吸科': 'pulmonology',
+        '精神科': 'psychiatry'
     }
     
+    # Process symptoms - handle both array and string formats
+    symptoms_list = []
+    if isinstance(symptoms, list):
+        for item in symptoms:
+            if isinstance(item, str):
+                # Split comma-separated symptoms within each item
+                individual_symptoms = [s.strip() for s in item.replace('、', ',').split(',') if s.strip()]
+                symptoms_list.extend(individual_symptoms)
+            else:
+                symptoms_list.append(str(item))
+    elif isinstance(symptoms, str):
+        # Split comma-separated symptoms
+        symptoms_list = [s.strip() for s in symptoms.replace('、', ',').split(',') if s.strip()]
+    
+    logger.info(f"Processed symptoms list: {symptoms_list}")
+    
     # Convert symptoms to English medical terms
-    for symptom in symptoms:
+    for symptom in symptoms_list:
         english_term = symptom_mapping.get(symptom.strip(), symptom.strip())
         search_terms.append(english_term)
+        logger.info(f"Mapped '{symptom}' -> '{english_term}'")
     
-    # Add diagnosis if provided
-    if diagnosis:
-        search_terms.append(diagnosis)
+    # Add diagnosis if provided and not already a symptom
+    if diagnosis and diagnosis not in search_terms:
+        # Try to translate diagnosis too
+        diagnosis_english = symptom_mapping.get(diagnosis.strip(), diagnosis.strip())
+        search_terms.append(diagnosis_english)
     
+    logger.info(f"Final search terms: {search_terms}")
     return search_terms
 
 def fetch_pubmed_evidence(search_terms):
