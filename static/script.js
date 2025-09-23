@@ -1368,6 +1368,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function createAnalysisCard(analysis, recommendedSpecialty, symptoms = '') {
+        // Safety check for symptoms parameter
+        if (symptoms === null || symptoms === undefined) {
+            symptoms = '';
+        }
+        
         const card = document.createElement('div');
         card.className = 'analysis-card';
         
@@ -1402,9 +1407,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Add medical evidence section asynchronously
         if (window.medicalEvidenceSystem) {
+            // Debug logging
+            console.log('createAnalysisCard received symptoms:', symptoms, 'type:', typeof symptoms);
+            
             // Handle symptoms - could be string or array
             let symptomsArray = [];
-            if (typeof symptoms === 'string') {
+            if (typeof symptoms === 'string' && symptoms.length > 0) {
                 symptomsArray = symptoms.split(',').map(s => s.trim()).filter(s => s.length > 0);
             } else if (Array.isArray(symptoms)) {
                 symptomsArray = symptoms;
@@ -1412,6 +1420,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.warn('Symptoms parameter is neither string nor array:', symptoms);
                 symptomsArray = [];
             }
+            
+            console.log('Processed symptomsArray:', symptomsArray);
             
             // First show loading state
             const loadingHTML = window.medicalEvidenceSystem.generateLoadingHTML();
@@ -1475,7 +1485,23 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function validateSymptoms(symptoms) {
-        if (!symptoms || symptoms.trim().length === 0) {
+        // Handle different types of symptoms input
+        if (!symptoms) {
+            return false;
+        }
+        
+        // Convert to string if it's not already
+        let symptomsStr = '';
+        if (typeof symptoms === 'string') {
+            symptomsStr = symptoms;
+        } else if (Array.isArray(symptoms)) {
+            symptomsStr = symptoms.join(',');
+        } else {
+            console.warn('validateSymptoms received unexpected type:', typeof symptoms, symptoms);
+            return false;
+        }
+        
+        if (symptomsStr.trim().length === 0) {
             return false;
         }
         
@@ -1490,7 +1516,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let symptomCount = 1;
         
         for (const separator of separators) {
-            const parts = symptoms.split(separator);
+            const parts = symptomsStr.split(separator);
             if (parts.length > symptomCount) {
                 symptomCount = parts.filter(part => part.trim().length > 0).length;
             }
