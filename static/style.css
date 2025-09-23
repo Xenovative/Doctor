@@ -2942,6 +2942,8 @@ body::before {
     overflow: hidden;
     transition: max-height 0.4s ease, padding 0.4s ease;
     background: white;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .evidence-content.expanded {
@@ -3063,6 +3065,11 @@ body::before {
     border-left: 3px solid #805ad5;
     color: #666;
     font-size: 0.85em;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    line-height: 1.4;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .evidence-disclaimer i {

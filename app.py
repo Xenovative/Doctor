@@ -441,7 +441,7 @@ def extract_relevant_excerpt(abstract_text, search_term):
         return abstract_text[:200] + "..." if len(abstract_text) > 200 else abstract_text
 
 def generate_relevance_explanation(search_term, title, abstract):
-    """Generate a specific explanation of why this article is relevant"""
+    """Generate a specific explanation of why this article is relevant (in Chinese)"""
     try:
         relevance_parts = []
         
@@ -452,42 +452,46 @@ def generate_relevance_explanation(search_term, title, abstract):
         
         # Direct term matches
         if search_lower in title_lower:
-            relevance_parts.append(f"directly addresses {search_term}")
+            relevance_parts.append(f"直接探討{search_term}")
         elif search_lower in abstract_lower:
-            relevance_parts.append(f"discusses {search_term}")
+            relevance_parts.append(f"討論{search_term}")
         
-        # Clinical aspects
+        # Clinical aspects (Chinese translations)
         clinical_aspects = []
         if 'diagnosis' in abstract_lower or 'diagnostic' in abstract_lower:
-            clinical_aspects.append('diagnosis')
+            clinical_aspects.append('診斷')
         if 'treatment' in abstract_lower or 'therapy' in abstract_lower:
-            clinical_aspects.append('treatment')
+            clinical_aspects.append('治療')
         if 'management' in abstract_lower:
-            clinical_aspects.append('management')
+            clinical_aspects.append('管理')
         if 'risk' in abstract_lower or 'factor' in abstract_lower:
-            clinical_aspects.append('risk factors')
+            clinical_aspects.append('風險因子')
         if 'outcome' in abstract_lower or 'prognosis' in abstract_lower:
-            clinical_aspects.append('outcomes')
+            clinical_aspects.append('預後')
         
         if clinical_aspects:
-            relevance_parts.append(f"covers {', '.join(clinical_aspects[:2])}")
+            relevance_parts.append(f"涵蓋{', '.join(clinical_aspects[:2])}")
         
-        # Study type
+        # Study type (Chinese translations)
+        study_type = ""
         if 'randomized' in abstract_lower or 'controlled trial' in abstract_lower:
-            relevance_parts.append("from a controlled clinical trial")
+            study_type = "來自隨機對照試驗"
         elif 'systematic review' in abstract_lower or 'meta-analysis' in abstract_lower:
-            relevance_parts.append("from a systematic review")
+            study_type = "來自系統性回顧"
         elif 'cohort' in abstract_lower or 'longitudinal' in abstract_lower:
-            relevance_parts.append("from a longitudinal study")
+            study_type = "來自縱向研究"
+        
+        if study_type:
+            relevance_parts.append(study_type)
         
         if relevance_parts:
-            return f"This research {', '.join(relevance_parts[:3])} and provides evidence-based insights for your condition."
+            return f"此研究{', '.join(relevance_parts[:3])}，為您的症狀提供實證醫學依據。"
         else:
-            return f"This research on {search_term} provides relevant medical evidence for your symptoms."
+            return f"此研究針對{search_term}提供相關醫學證據，有助於了解您的症狀。"
             
     except Exception as e:
         logger.error(f"Error generating relevance explanation: {e}")
-        return f"This research on {search_term} provides evidence-based insights relevant to your symptoms."
+        return f"此研究針對{search_term}提供實證醫學依據，有助於了解您的症狀。"
 
 def parse_pubmed_articles(xml_content, search_term):
     """Parse PubMed XML response to extract article information"""
