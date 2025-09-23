@@ -456,6 +456,86 @@
         </div>
     </div>
     
+    <!-- AI Disclaimer Modal -->
+    <div id="aiDisclaimerModal" class="modal disclaimer-modal">
+        <div class="modal-content disclaimer-content">
+            <div class="modal-header disclaimer-header">
+                <h3 id="disclaimerTitle">
+                    <i class="fas fa-robot"></i>
+                    <span data-translate="ai_disclaimer_title">AI醫療配對系統聲明</span>
+                </h3>
+            </div>
+            <div class="modal-body disclaimer-body">
+                <div class="disclaimer-content-wrapper">
+                    <div class="disclaimer-section">
+                        <div class="disclaimer-icon">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div class="disclaimer-text">
+                            <h4 data-translate="not_medical_advice_title">⚠️ 非醫療建議</h4>
+                            <p data-translate="not_medical_advice_desc">
+                                本系統僅為AI輔助工具，提供的資訊和建議<strong>不構成專業醫療建議、診斷或治療</strong>。
+                                所有醫療決定應諮詢合格的醫療專業人員。
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="disclaimer-section">
+                        <div class="disclaimer-icon">
+                            <i class="fas fa-brain"></i>
+                        </div>
+                        <div class="disclaimer-text">
+                            <h4 data-translate="ai_limitations_title">🤖 AI系統限制</h4>
+                            <p data-translate="ai_limitations_desc">
+                                AI分析基於您提供的症狀描述，可能存在誤差或遺漏。
+                                系統無法替代醫生的專業判斷和實際檢查。
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="disclaimer-section">
+                        <div class="disclaimer-icon">
+                            <i class="fas fa-user-md"></i>
+                        </div>
+                        <div class="disclaimer-text">
+                            <h4 data-translate="doctor_matching_title">👨‍⚕️ 醫生配對服務</h4>
+                            <p data-translate="doctor_matching_desc">
+                                本系統協助您找到合適的醫療專業人員，但最終的醫療服務質量
+                                取決於個別醫生和診所。我們不對醫療結果承擔責任。
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="disclaimer-section emergency-notice">
+                        <div class="disclaimer-icon emergency-icon">
+                            <i class="fas fa-ambulance"></i>
+                        </div>
+                        <div class="disclaimer-text">
+                            <h4 data-translate="emergency_notice_title">🚨 緊急情況</h4>
+                            <p data-translate="emergency_notice_desc">
+                                如遇緊急醫療情況，請立即撥打<strong>999</strong>或前往最近的急診室，
+                                切勿依賴本系統進行緊急醫療決定。
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="disclaimer-footer">
+                        <p data-translate="disclaimer_agreement">
+                            繼續使用本系統即表示您已理解並同意以上聲明。
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="modal-actions disclaimer-actions">
+                    <button type="button" class="btn-primary disclaimer-accept" id="acceptDisclaimer">
+                        <i class="fas fa-check"></i>
+                        <span data-translate="understand_continue">我已理解，繼續使用</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <footer class="footer">
         
         <div class="footer-bottom">
@@ -474,6 +554,7 @@
     <script src="static/symptom-input.js"></script>
     <script src="static/form-validation.js"></script>
     <script src="static/severe-warning.js"></script>
+    <script src="static/ai-disclaimer.js"></script>
     <script src="static/script.js"></script>
     <script src="static/bug-report.js"></script>
 </body>

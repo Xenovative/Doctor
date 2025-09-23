@@ -243,6 +243,19 @@ TRANSLATIONS = {
         'emergency_care_needed': '🚨 可能需要緊急醫療關注',
         'urgent_consultation': '可能需要緊急醫療諮詢',
         
+        # AI Disclaimer Modal
+        'ai_disclaimer_title': 'AI醫療配對系統聲明',
+        'not_medical_advice_title': '⚠️ 非醫療建議',
+        'not_medical_advice_desc': '本系統僅為AI輔助工具，提供的資訊和建議不構成專業醫療建議、診斷或治療。所有醫療決定應諮詢合格的醫療專業人員。',
+        'ai_limitations_title': '🤖 AI系統限制',
+        'ai_limitations_desc': 'AI分析基於您提供的症狀描述，可能存在誤差或遺漏。系統無法替代醫生的專業判斷和實際檢查。',
+        'doctor_matching_title': '👨‍⚕️ 醫生配對服務',
+        'doctor_matching_desc': '本系統協助您找到合適的醫療專業人員，但最終的醫療服務質量取決於個別醫生和診所。我們不對醫療結果承擔責任。',
+        'emergency_notice_title': '🚨 緊急情況',
+        'emergency_notice_desc': '如遇緊急醫療情況，請立即撥打999或前往最近的急診室，切勿依賴本系統進行緊急醫療決定。',
+        'disclaimer_agreement': '繼續使用本系統即表示您已理解並同意以上聲明。',
+        'understand_continue': '我已理解，繼續使用',
+        
         # Location translations - Districts
         '中西區': '中西區',
         '東區': '東區', 
@@ -483,6 +496,19 @@ TRANSLATIONS = {
         'general_specialist': '专科医生',
         'emergency_care_needed': '🚨 可能需要紧急医疗关注',
         'urgent_consultation': '可能需要紧急医疗咨询',
+        
+        # AI Disclaimer Modal
+        'ai_disclaimer_title': 'AI医疗配对系统声明',
+        'not_medical_advice_title': '⚠️ 非医疗建议',
+        'not_medical_advice_desc': '本系统仅为AI辅助工具，提供的资讯和建议不构成专业医疗建议、诊断或治疗。所有医疗决定应咨询合格的医疗专业人员。',
+        'ai_limitations_title': '🤖 AI系统限制',
+        'ai_limitations_desc': 'AI分析基于您提供的症状描述，可能存在误差或遗漏。系统无法替代医生的专业判断和实际检查。',
+        'doctor_matching_title': '👨‍⚕️ 医生配对服务',
+        'doctor_matching_desc': '本系统协助您找到合适的医疗专业人员，但最终的医疗服务质量取决于个别医生和诊所。我们不对医疗结果承担责任。',
+        'emergency_notice_title': '🚨 紧急情况',
+        'emergency_notice_desc': '如遇紧急医疗情况，请立即拨打999或前往最近的急诊室，切勿依赖本系统进行紧急医疗决定。',
+        'disclaimer_agreement': '继续使用本系统即表示您已理解并同意以上声明。',
+        'understand_continue': '我已理解，继续使用',
         
         # Location translations - Districts
         '中西區': '中西区',
@@ -730,6 +756,19 @@ TRANSLATIONS = {
         'general_specialist': 'General Practitioner',
         'emergency_care_needed': '🚨 Emergency Care Recommended',
         'urgent_consultation': 'Urgent Medical Consultation Required',
+        
+        # AI Disclaimer Modal
+        'ai_disclaimer_title': 'AI Medical Matching System Disclaimer',
+        'not_medical_advice_title': '⚠️ Not Medical Advice',
+        'not_medical_advice_desc': 'This system is an AI-assisted tool only. The information and recommendations provided do not constitute professional medical advice, diagnosis, or treatment. All medical decisions should be made in consultation with qualified healthcare professionals.',
+        'ai_limitations_title': '🤖 AI System Limitations',
+        'ai_limitations_desc': 'AI analysis is based on the symptom descriptions you provide and may contain errors or omissions. The system cannot replace a doctor\'s professional judgment and physical examination.',
+        'doctor_matching_title': '👨‍⚕️ Doctor Matching Service',
+        'doctor_matching_desc': 'This system helps you find suitable healthcare professionals, but the quality of medical services ultimately depends on individual doctors and clinics. We are not responsible for medical outcomes.',
+        'emergency_notice_title': '🚨 Emergency Situations',
+        'emergency_notice_desc': 'In case of medical emergencies, please immediately call 999 or go to the nearest emergency room. Do not rely on this system for emergency medical decisions.',
+        'disclaimer_agreement': 'By continuing to use this system, you acknowledge that you have read and agree to the above disclaimer.',
+        'understand_continue': 'I Understand, Continue',
         
         # Geolocation messages
         'geolocation_auto_selected': 'Automatically selected nearby area',
