@@ -97,6 +97,9 @@ class AIAnalysisTester:
             # Test CHP relevance
             chp_relevance = self.test_chp_relevance(extracted_symptoms, expected_chp_topics)
 
+            # Test PubMed relevance
+            pubmed_relevance = self.test_pubmed_relevance(analysis, symptoms)
+
             # Test medical evidence gathering
             medical_evidence = self.test_medical_evidence_gathering(symptoms)
 
