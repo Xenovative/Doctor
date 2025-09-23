@@ -327,30 +327,33 @@ class AIAnalysisTester:
         passed_tests = sum(1 for r in results if r["status"] == "PASSED")
         failed_tests = total_tests - passed_tests
 
-        print("
-🎯 OVERALL RESULTS:"        print(f"   Total Tests: {total_tests}")
+        print("\n🎯 OVERALL RESULTS:")
+        print(f"   Total Tests: {total_tests}")
         print(f"   ✅ Passed: {passed_tests}")
         print(f"   ❌ Failed: {failed_tests}")
-        print(".1f"
+        print(f"   Success Rate: {(passed_tests/total_tests*100):.1f}%")
+
         # CHP Relevance Analysis
         chp_scores = [r.get("chp_relevance", {}).get("score", 0) for r in results if r["status"] == "PASSED"]
         if chp_scores:
             avg_chp = sum(chp_scores) / len(chp_scores)
-            print("
-🏥 CHP GUIDELINES ANALYSIS:"            print(".1f"            print(f"   Highest: {max(chp_scores)}/100")
+            print("\n🏥 CHP GUIDELINES ANALYSIS:")
+            print(f"   Average Score: {avg_chp:.1f}/100")
+            print(f"   Highest: {max(chp_scores)}/100")
             print(f"   Lowest: {min(chp_scores)}/100")
 
         # PubMed Relevance Analysis
         pubmed_scores = [r.get("pubmed_relevance", {}).get("score", 0) for r in results if r["status"] == "PASSED"]
         if pubmed_scores:
             avg_pubmed = sum(pubmed_scores) / len(pubmed_scores)
-            print("
-📚 PUBMED REFERENCES ANALYSIS:"            print(".1f"            print(f"   Highest: {max(pubmed_scores)}/100")
+            print("\n📚 PUBMED REFERENCES ANALYSIS:")
+            print(f"   Average Score: {avg_pubmed:.1f}/100")
+            print(f"   Highest: {max(pubmed_scores)}/100")
             print(f"   Lowest: {min(pubmed_scores)}/100")
 
         # Detailed results
-        print("
-📋 DETAILED TEST RESULTS:"        print("-" * 80)
+        print("\n📋 DETAILED TEST RESULTS:")
+        print("-" * 80)
 
         for i, result in enumerate(results, 1):
             status = result["status"]
@@ -374,8 +377,8 @@ class AIAnalysisTester:
                 print(f"   Error: {result.get('error', 'Unknown')}")
 
         # Recommendations
-        print("
-💡 RECOMMENDATIONS:"        print("-" * 80)
+        print("\n💡 RECOMMENDATIONS:")
+        print("-" * 80)
 
         if avg_chp < 70:
             print("⚠️  CHP mapping needs improvement - consider expanding symptom coverage")
@@ -386,8 +389,8 @@ class AIAnalysisTester:
         if failed_tests > 0:
             print(f"⚠️  {failed_tests} tests failed - check AI analysis endpoint")
 
-        print("
-✅ Testing completed!"        print(f"Report generated at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print("\n✅ Testing completed!")
+        print(f"Report generated at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
         return {
             "summary": {
@@ -415,8 +418,8 @@ def main():
     with open('ai_analysis_test_results.json', 'w', encoding='utf-8') as f:
         json.dump(report, f, ensure_ascii=False, indent=2)
 
-    print("
-💾 Results saved to ai_analysis_test_results.json"    return report
+    print("\n💾 Results saved to ai_analysis_test_results.json")
+    return report
 
 
 if __name__ == "__main__":
