@@ -125,24 +125,36 @@ class AIAnalysisTester:
         """Extract medical terms from AI analysis text"""
         symptoms = []
 
-        # Look for symptom sections in Chinese analysis
+        # Look for symptom sections in both Chinese and English analysis
         import re
 
-        # Common patterns for symptom extraction
+        # Common patterns for symptom extraction - both languages
         patterns = [
+            # Chinese patterns
             r'症狀分析：(.*?)(?=相關專科|緊急程度|資訊|$)',
             r'主要症狀包括：(.*?)(?=相關專科|緊急程度|資訊|$)',
-            r'患者出現(.*?)(?=相關專科|緊急程度|資訊|$)'
+            r'患者出現(.*?)(?=相關專科|緊急程度|資訊|$)',
+            # English patterns
+            r'Symptoms include:(.*?)(?=Specialty|Emergency|Information|$)',
+            r'Patient presents with(.*?)(?=Specialty|Emergency|Information|$)',
+            r'Key symptoms:(.*?)(?=Specialty|Emergency|Information|$)'
         ]
 
         for pattern in patterns:
-            match = re.search(pattern, analysis_text, re.DOTALL)
+            match = re.search(pattern, analysis_text, re.DOTALL | re.IGNORECASE)
             if match:
                 symptom_text = match.group(1)
-                # Extract individual symptoms
-                symptom_list = re.findall(r'[\u4e00-\u9fff]{2,6}', symptom_text)
-                symptoms.extend(symptom_list)
+                # Extract medical terms - both Chinese and English
+                medical_terms = re.findall(r'[\u4e00-\u9fff]{2,10}|[A-Za-z][a-z]+(?: [a-z]+)*', symptom_text)
+                symptoms.extend(medical_terms)
                 break
+
+        # If no structured patterns found, extract all medical-sounding terms
+        if not symptoms:
+            # Look for common medical terms in the text
+            medical_terms = re.findall(r'\b(?:acute|chronic|severe|mild|viral|bacterial|infection|syndrome|disease|disorder|condition)\b', analysis_text, re.IGNORECASE)
+            chinese_medical = re.findall(r'[\u4e00-\u9fff]{2,6}(?:症|炎|病|毒|痛|瀉|熱)', analysis_text)
+            symptoms.extend(medical_terms + chinese_medical)
 
         return list(set(symptoms))  # Remove duplicates
 
@@ -156,32 +168,78 @@ class AIAnalysisTester:
 
         # Symptom to CHP topic mapping (same as in medical-evidence.js)
         symptom_mappings = {
+            # Cardiovascular
             '心臟病': ['心臟病'],
-            '糖尿病': ['糖尿病'],
-            '高血壓': ['心臟病'],
-            '流感': ['乙型流感嗜血桿菌感染'],
-            '感冒': ['2019冠狀病毒病'],
-            '咳嗽': ['2019冠狀病毒病', '肺炎球菌感染'],
-            '發燒': ['2019冠狀病毒病', '水痘'],
-            '喉嚨痛': ['2019冠狀病毒病', '猩紅熱'],
-            '呼吸困難': ['2019冠狀病毒病', '肺炎球菌感染'],
-            '肺炎': ['肺炎球菌感染', '肺炎支原體感染'],
-            '腹痛': ['諾如病毒感染'],
-            '腹瀉': ['諾如病毒感染'],
-            '嘔吐': ['諾如病毒感染'],
+            '高血壓': ['心臟病', '高血壓'],
             '胸痛': ['心臟病'],
-            '疲倦': ['糖尿病', '心臟病'],
+            'heart': ['心臟病'],
+            'cardiac': ['心臟病'],
+
+            # Metabolic/Diabetes
+            '糖尿病': ['糖尿病'],
+            '口渴': ['糖尿病'],
             '多尿': ['糖尿病'],
             '多飲': ['糖尿病'],
-            '皮疹': ['水痘', '手足口病'],
-            '頭痛': ['2019冠狀病毒病'],
-            '頭暈': ['心臟病', '糖尿病'],
-            '手足口': ['手足口病'],
-            '水痘': ['水痘'],
-            '抑鬱': ['心理健康'],
-            '焦慮': ['心理健康'],
+            '體重減輕': ['糖尿病'],
+            'diabetes': ['糖尿病'],
+            'diabetic': ['糖尿病'],
+
+            # Respiratory/Infectious
+            '流感': ['乙型流感嗜血桿菌感染', '季節性流感', '季節流行性感冒'],
+            '感冒': ['2019冠狀病毒病', '季節流行性感冒'],
+            '咳嗽': ['2019冠狀病毒病', '肺炎球菌感染', '季節流行性感冒'],
+            '發燒': ['2019冠狀病毒病', '水痘', '手足口病', '季節流行性感冒'],
+            '喉嚨痛': ['2019冠狀病毒病', '猩紅熱', '季節流行性感冒'],
+            '呼吸困難': ['2019冠狀病毒病', '肺炎球菌感染'],
+            '肺炎': ['肺炎球菌感染', '肺炎支原體感染'],
+            '鼻塞': ['2019冠狀病毒病', '季節流行性感冒'],
+            'influenza': ['季節性流感', '季節流行性感冒'],
+            'flu': ['季節性流感', '季節流行性感冒'],
+
+            # Gastrointestinal
+            '腹痛': ['諾如病毒感染', '食物中毒', '腸胃炎'],
+            '腹瀉': ['諾如病毒感染', '食物中毒', '腸胃炎'],
+            '嘔吐': ['諾如病毒感染', '食物中毒', '腸胃炎'],
+            '胃痛': ['腸胃炎', '消化不良'],
+            '噁心': ['腸胃炎', '食物中毒'],
+            '胃腸': ['腸胃炎'],
+            'food poisoning': ['食物中毒'],
+            'gastroenteritis': ['腸胃炎'],
+            'diarrhea': ['諾如病毒感染'],
+            'vomiting': ['諾如病毒感染'],
+
+            # Skin conditions
+            '皮疹': ['水痘', '手足口病', '麻疹'],
+            '水泡': ['水痘'],
+            '口腔潰瘍': ['手足口病'],
+            '手足皮疹': ['手足口病'],
+            'rash': ['水痘', '手足口病'],
+            'blister': ['水痘'],
+
+            # Mental Health
+            '抑鬱': ['心理健康', '抑鬱症', '精神健康'],
+            '焦慮': ['心理健康', '焦慮症', '精神健康'],
+            '壓力大': ['心理健康', '壓力管理', '精神健康'],
+            '精神': ['精神健康'],
+            '情緒': ['心理健康'],
+            'depression': ['心理健康', '抑鬱症'],
+            'anxiety': ['心理健康', '焦慮症'],
+            'stress': ['心理健康', '壓力管理'],
+
+            # Neurological
+            '頭痛': ['2019冠狀病毒病', '偏頭痛'],
+            '頭暈': ['心臟病', '糖尿病', '貧血'],
+            '中風': ['中風'],
+            'headache': ['2019冠狀病毒病', '偏頭痛'],
+            'dizziness': ['心臟病', '糖尿病'],
+
+            # Other
+            '疲倦': ['糖尿病', '心臟病', '貧血', '甲狀腺功能減退'],
+            '體重': ['糖尿病', '營養'],
             '營養': ['飲食與營養'],
-            '飲食': ['飲食與營養']
+            '貧血': ['貧血'],
+            'fatigue': ['糖尿病', '心臟病'],
+            'tired': ['糖尿病', '心臟病']
         }
 
         for symptom in symptoms:
@@ -225,23 +283,57 @@ class AIAnalysisTester:
 
     def test_pubmed_relevance(self, analysis_text, original_symptoms):
         """Test PubMed reference relevance"""
-        # This is a simplified check - in reality we'd need to test the actual PubMed integration
-        pubmed_mentions = analysis_text.count('PubMed') + analysis_text.count('醫學文獻')
+        # Enhanced scoring based on evidence quality indicators
 
-        # Check if analysis mentions medical literature
-        has_medical_refs = pubmed_mentions > 0
+        # Evidence quality indicators
+        pubmed_mentions = analysis_text.count('PubMed') + analysis_text.count('醫學文獻') + analysis_text.count('研究')
+        evidence_indicators = [
+            '臨床試驗', '臨床研究', '醫學證據', '系統性回顧', 'meta分析',
+            'clinical trial', 'clinical study', 'medical evidence', 'systematic review', 'meta-analysis',
+            '研究結果', '證據顯示', '文獻支持', '醫學期刊', 'peer-reviewed'
+        ]
 
-        # Basic relevance scoring based on medical terminology
-        medical_terms = ['臨床', '研究', '證據', '醫學', '治療', '診斷', '臨床試驗']
+        # Count evidence quality indicators
+        evidence_count = sum(1 for indicator in evidence_indicators if indicator in analysis_text)
+
+        # Medical terminology indicators (shows scientific rigor)
+        medical_terms = [
+            '病因', '病理', '診斷', '治療', '預後', '預防', '風險因素',
+            'etiology', 'pathology', 'diagnosis', 'treatment', 'prognosis', 'prevention', 'risk factors',
+            '臨床特徵', '流行病學', '生物標記', '治療方案', '療效',
+            'clinical features', 'epidemiology', 'biomarkers', 'treatment protocol', 'efficacy'
+        ]
         medical_term_count = sum(1 for term in medical_terms if term in analysis_text)
 
-        relevance_score = min(medical_term_count * 15 + (pubmed_mentions * 20), 100)
+        # Statistical and research methodology terms
+        research_terms = [
+            '統計', '顯著', '相關', '預測', '分析', '模型', '數據',
+            'statistics', 'significant', 'correlation', 'prediction', 'analysis', 'model', 'data',
+            'p-value', 'confidence interval', 'odds ratio', 'relative risk'
+        ]
+        research_term_count = sum(1 for term in research_terms if term in analysis_text)
+
+        # Calculate comprehensive score
+        base_score = min(pubmed_mentions * 10, 30)  # Max 30 for mentions
+        evidence_bonus = min(evidence_count * 8, 25)  # Max 25 for quality indicators
+        medical_bonus = min(medical_term_count * 5, 20)  # Max 20 for medical terminology
+        research_bonus = min(research_term_count * 3, 15)  # Max 15 for research methodology
+
+        total_score = min(base_score + evidence_bonus + medical_bonus + research_bonus, 100)
 
         return {
-            "score": round(relevance_score, 1),
-            "has_medical_references": has_medical_refs,
+            "score": round(total_score, 1),
+            "has_medical_references": pubmed_mentions > 0,
             "pubmed_mentions": pubmed_mentions,
-            "medical_terms_found": medical_term_count
+            "evidence_indicators": evidence_count,
+            "medical_terms": medical_term_count,
+            "research_terms": research_term_count,
+            "components": {
+                "base_mentions": min(pubmed_mentions * 10, 30),
+                "evidence_quality": evidence_bonus,
+                "medical_terminology": medical_bonus,
+                "research_methodology": research_bonus
+            }
         }
 
     def run_comprehensive_tests(self):
