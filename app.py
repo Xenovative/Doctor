@@ -1783,8 +1783,48 @@ def validate_symptoms_with_llm(symptoms: str, user_language: str = 'zh-TW') -> d
         logger.error(f"Error validating symptoms: {e}")
         return {'valid': True, 'message': '症狀驗證過程中出現錯誤，將繼續處理'}
 
+def analyze_symptoms_with_evidence(age: int, gender: str, symptoms: str, chronic_conditions: str = '', detailed_health_info: dict = None, user_language: str = 'zh-TW') -> dict:
+    """使用AI分析症狀並結合醫學文獻證據"""
+    
+    # First, get medical evidence for cross-referencing
+    medical_evidence = ""
+    try:
+        # Extract key medical terms from symptoms for evidence search
+        symptom_terms = [s.strip() for s in symptoms.replace('、', ',').split(',') if s.strip()]
+        
+        # Translate terms if they're in Chinese
+        if any(any('\u4e00' <= c <= '\u9fff' for c in term) for term in symptom_terms):
+            translated_terms = translate_medical_terms_with_ai(symptom_terms)
+            search_terms = translated_terms if translated_terms else symptom_terms
+        else:
+            search_terms = symptom_terms
+        
+        # Fetch evidence from PubMed
+        evidence_results = fetch_pubmed_evidence(search_terms[:3])  # Limit to top 3 terms
+        
+        if evidence_results:
+            medical_evidence = "\n\n**醫學文獻參考資料 (Medical Literature References):**\n"
+            for i, evidence in enumerate(evidence_results[:2], 1):  # Use top 2 articles
+                medical_evidence += f"{i}. {evidence['title']}\n"
+                medical_evidence += f"   來源: {evidence['source']}\n"
+                medical_evidence += f"   摘要: {evidence['excerpt']}\n\n"
+            
+            logger.info(f"Added medical evidence to AI analysis: {len(evidence_results)} articles")
+        else:
+            logger.info("No medical evidence found for AI cross-referencing")
+            
+    except Exception as e:
+        logger.error(f"Error fetching medical evidence for AI analysis: {e}")
+        medical_evidence = ""
+    
+    return analyze_symptoms_with_context(age, gender, symptoms, chronic_conditions, detailed_health_info, user_language, medical_evidence)
+
 def analyze_symptoms(age: int, gender: str, symptoms: str, chronic_conditions: str = '', detailed_health_info: dict = None, user_language: str = 'zh-TW') -> dict:
-    """使用AI分析症狀"""
+    """使用AI分析症狀 (保持向後兼容性)"""
+    return analyze_symptoms_with_context(age, gender, symptoms, chronic_conditions, detailed_health_info, user_language, "")
+
+def analyze_symptoms_with_context(age: int, gender: str, symptoms: str, chronic_conditions: str = '', detailed_health_info: dict = None, user_language: str = 'zh-TW', medical_evidence: str = '') -> dict:
+    """使用AI分析症狀並可選擇性包含醫學證據"""
     
     if detailed_health_info is None:
         detailed_health_info = {}
@@ -1850,6 +1890,10 @@ def analyze_symptoms(age: int, gender: str, symptoms: str, chronic_conditions: s
     - {t('age_label')}{age}{t('years_old')}
     - {t('main_symptoms')}{symptoms}
     - {health_info}
+    {medical_evidence}
+    
+    **分析要求 (Analysis Requirements):**
+    請參考上述醫學文獻證據進行診斷分析，確保診斷建議與現有醫學研究一致。請將文獻作為內部參考依據，但不需要在回應中明確引用或提及這些文獻來源，因為用戶會在其他地方看到完整的醫學證據。
 
     {t('please_provide')}
     1. {t('possible_diagnosis')}
@@ -1952,8 +1996,8 @@ def analyze_symptoms_and_match(age: int, gender: str, symptoms: str, chronic_con
             'validation_confidence': symptom_validation.get('confidence', 0.5)
         }
     
-    # 第二步：AI分析 (pass user language)
-    diagnosis_result = analyze_symptoms(age, gender, symptoms, chronic_conditions, detailed_health_info, user_language)
+    # 第二步：AI分析結合醫學文獻證據 (pass user language)
+    diagnosis_result = analyze_symptoms_with_evidence(age, gender, symptoms, chronic_conditions, detailed_health_info, user_language)
     
     # 第二步：檢查是否需要緊急醫療處理
     print(f"DEBUG - Emergency check: emergency_needed={diagnosis_result.get('emergency_needed', False)}, severity_level={diagnosis_result.get('severity_level')}")
