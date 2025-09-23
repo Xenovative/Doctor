@@ -28,22 +28,49 @@ import sys
 import os
 
 class AIAnalysisTester:
-    def __init__(self, base_url="http://localhost:7001", mock_mode=False):
-        self.base_url = base_url
+    def __init__(self, mock_mode=False):
+        """Initialize the tester"""
         self.mock_mode = mock_mode
-        self.test_results = []
-        self.chp_content = None
+        self.base_url = "http://localhost:7001"
+        self.chp_content = []
+        self.medical_search_config = self.load_medical_search_config()
+        
+        # Set default configuration if not available
+        if not self.medical_search_config:
+            self.medical_search_config = {
+                'primary_search_api': 'pubmed',
+                'secondary_search_api': 'none',
+                'articles_per_symptom': 2,
+                'max_symptoms_processed': 4,
+                'max_total_articles': 8,
+                'search_timeout': 10,
+                'pubmed_retmax': 3,
+                'enable_cochrane': False,
+                'enable_google_scholar': False,
+                'search_filters': 'clinical,diagnosis,treatment',
+                'relevance_threshold': 0.5,
+                'cache_duration': 3600
+            }
 
-    def load_chp_content(self):
-        """Load CHP content database for reference"""
+    def load_medical_search_config(self):
+        """Load medical search configuration from admin panel"""
         try:
-            with open('assets/content.json', 'r', encoding='utf-8') as f:
-                self.chp_content = json.load(f)
-                print(f"✅ Loaded {len(self.chp_content)} CHP entries")
+            # Try to fetch configuration from admin panel
+            response = requests.get(f"{self.base_url}/admin/api/medical-search-config", timeout=5)
+            if response.status_code == 200:
+                data = response.json()
+                if data.get("success", False):
+                    print("✅ Loaded medical search configuration from admin panel")
+                    return data.get("config", {})
+                else:
+                    print("⚠️ Admin panel returned success=false for medical search config")
+            else:
+                print(f"⚠️ Admin panel returned status {response.status_code} for medical search config")
         except Exception as e:
-            print(f"❌ Failed to load CHP content: {e}")
-            return False
-        return True
+            print(f"⚠️ Could not load medical search config from admin panel: {e}")
+        
+        print("📋 Using default medical search configuration")
+        return None
 
     def test_ai_analysis(self, symptoms, expected_chp_topics=None, test_name=""):
         """Test single AI analysis with symptom set"""
@@ -651,6 +678,94 @@ class AIAnalysisTester:
                 "research_methodology": research_bonus
             }
         }
+
+    def test_ai_analysis_mock(self, symptoms, expected_chp_topics, test_name, age, gender):
+        """Mock version of AI analysis for testing without server"""
+        try:
+            # Mock patient data with proper gender handling
+            patient_data = {
+                "age": age,
+                "gender": gender
+            }
+
+            # Mock AI analysis result
+            mock_analysis = f"患者{age}歲{gender}性，症狀包括：{', '.join(symptoms)}。建議進一步檢查。"
+
+            # Extract symptoms (mock)
+            extracted_symptoms = symptoms.copy()
+
+            # Test CHP relevance
+            chp_result = self.test_chp_relevance(symptoms, expected_chp_topics)
+
+            # Mock PubMed relevance (deprecated)
+            pubmed_result = {"score": 0}
+
+            # Mock medical evidence gathering using actual configuration settings
+            evidence_count = min(
+                self.medical_search_config.get('articles_per_symptom', 2) * len(symptoms),
+                self.medical_search_config.get('max_total_articles', 8)
+            )
+            
+            # Determine sources based on configuration
+            sources = []
+            titles = []
+            
+            primary_api = self.medical_search_config.get('primary_search_api', 'pubmed')
+            secondary_api = self.medical_search_config.get('secondary_search_api', 'none')
+            
+            if primary_api == 'pubmed':
+                sources.extend(['PubMed'] * (evidence_count // 2))
+                titles.extend([f"PubMed Article {i+1}" for i in range(evidence_count // 2)])
+            
+            if secondary_api == 'pubmed' and len(sources) < evidence_count:
+                additional = evidence_count - len(sources)
+                sources.extend(['PubMed'] * additional)
+                titles.extend([f"Secondary PubMed Article {i+1}" for i in range(additional)])
+            
+            # Always include CHP content based on configuration
+            if len(sources) < evidence_count:
+                additional = evidence_count - len(sources)
+                sources.extend(['CHP'] * additional)
+                titles.extend([f"CHP Medical Content {i+1}" for i in range(additional)])
+
+            evidence_result = {
+                "success": True,
+                "evidence_count": evidence_count,
+                "evidence_titles": titles,
+                "evidence_sources": sources,
+                "evidence_urls": [f"https://{source.lower().replace(' ', '')}.example.com/article{i+1}" 
+                                for i, source in enumerate(sources)],
+                "has_pubmed": 'PubMed' in sources,
+                "has_chp": 'CHP' in sources,
+                "error": None
+            }
+
+            # Calculate evidence relevance using actual configuration
+            evidence_relevance = self.calculate_evidence_relevance(evidence_result, symptoms)
+
+            # Determine if test passed (CHP score >= 70)
+            status = "PASSED" if chp_result["score"] >= 70 else "FAILED"
+
+            return {
+                "status": status,
+                "test_name": test_name,
+                "patient_data": patient_data,
+                "symptoms": symptoms,
+                "extracted_symptoms": extracted_symptoms,
+                "analysis_preview": mock_analysis[:100] + "..." if len(mock_analysis) > 100 else mock_analysis,
+                "chp_relevance": chp_result,
+                "pubmed_relevance": pubmed_result,
+                "medical_evidence": evidence_result,
+                "evidence_relevance": evidence_relevance,
+                "error": None
+            }
+
+        except Exception as e:
+            return {
+                "status": "FAILED",
+                "test_name": test_name,
+                "error": str(e)
+            }
 
     def test_medical_evidence_gathering(self, symptoms):
         """Test actual medical evidence gathering from the system"""
