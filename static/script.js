@@ -1440,6 +1440,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         if (evidenceContainer) {
                             evidenceContainer.outerHTML = evidenceHTML;
                             
+                            // Ensure evidence starts collapsed
+                            if (typeof ensureEvidenceCollapsed === 'function') {
+                                ensureEvidenceCollapsed();
+                            }
+                            
                             // Apply translations to the new evidence section
                             setTimeout(() => {
                                 if (window.currentTranslations) {

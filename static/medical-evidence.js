@@ -199,23 +199,57 @@ class MedicalEvidenceSystem {
 
 // Global function to toggle medical evidence
 function toggleMedicalEvidence() {
+    console.log('toggleMedicalEvidence called');
+    
     const container = document.getElementById('medicalEvidenceContainer');
     const content = document.getElementById('evidenceContent');
     const icon = document.getElementById('evidenceToggleIcon');
     
+    console.log('Elements found:', {
+        container: !!container,
+        content: !!content,
+        icon: !!icon
+    });
+    
     if (container && content && icon) {
         const isExpanded = content.classList.contains('expanded');
+        console.log('Current state - isExpanded:', isExpanded);
         
         if (isExpanded) {
             content.classList.remove('expanded');
             container.classList.remove('expanded');
             icon.classList.remove('expanded');
+            console.log('Collapsed evidence');
         } else {
             content.classList.add('expanded');
             container.classList.add('expanded');
             icon.classList.add('expanded');
+            console.log('Expanded evidence');
         }
+    } else {
+        console.error('Missing elements for toggle:', {
+            container: container,
+            content: content,
+            icon: icon
+        });
     }
+}
+
+// Helper function to ensure evidence starts collapsed
+function ensureEvidenceCollapsed() {
+    setTimeout(() => {
+        const container = document.getElementById('medicalEvidenceContainer');
+        const content = document.getElementById('evidenceContent');
+        const icon = document.getElementById('evidenceToggleIcon');
+        
+        if (container && content && icon) {
+            // Ensure it starts collapsed
+            content.classList.remove('expanded');
+            container.classList.remove('expanded');
+            icon.classList.remove('expanded');
+            console.log('Ensured evidence starts collapsed');
+        }
+    }, 100);
 }
 
 // Initialize global instance
