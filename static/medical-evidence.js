@@ -159,11 +159,6 @@ class MedicalEvidenceSystem {
         return div.innerHTML;
     }
 
-    // Method for backward compatibility with existing code
-    generateEvidenceHTML(symptoms) {
-        // This method now returns a promise
-        return this.generateEvidenceHTML(symptoms);
-    }
 }
 
 // Global function to toggle medical evidence
