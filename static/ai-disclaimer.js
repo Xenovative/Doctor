@@ -26,9 +26,15 @@ class AIDisclaimerModal {
     }
 
     bindEvents() {
-        // Accept button click
+        // Accept button click (add touch events for mobile)
         if (this.acceptBtn) {
             this.acceptBtn.addEventListener('click', () => {
+                this.acceptDisclaimer();
+            });
+            
+            // Add touch event for mobile devices
+            this.acceptBtn.addEventListener('touchend', (e) => {
+                e.preventDefault();
                 this.acceptDisclaimer();
             });
         }

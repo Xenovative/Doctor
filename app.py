@@ -13,16 +13,19 @@ from flask_login import LoginManager, UserMixin, login_user, login_required, log
 from translations import get_translation, get_available_languages, TRANSLATIONS
 import pandas as pd
 import sqlite3
-import json
 import hashlib
-import secrets
-import os
+import json
+import time
+import logging
+import requests
+import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
 import pytz
-from dotenv import load_dotenv
-import pandas as pd
-import requests
-import schedule
+from pathlib import Path
+from dotenv import set_key
+import os
+from collections import deque
+import re
 import time
 import threading
 import pyotp
@@ -185,14 +188,84 @@ def get_medical_evidence():
         logger.error(f"Medical evidence API error: {e}")
         return jsonify({'error': 'Failed to fetch medical evidence'}), 500
 
+def extract_diagnoses_from_ai_analysis(ai_analysis):
+    """Extract potential diagnoses from AI analysis for targeted medical evidence search"""
+    try:
+        if not ai_analysis:
+            return []
+        
+        # More precise patterns for diagnoses in AI analysis
+        diagnosis_patterns = [
+            r'可能的診斷[：:]\s*([^。\n，、]{2,15}(?:症|病|炎|癌|瘤|綜合症|失調|感染|中毒))',
+            r'初步診斷[：:]\s*([^。\n，、]{2,15}(?:症|病|炎|癌|瘤|綜合症|失調|感染|中毒))',
+            r'疑似([^。\n，、]{2,15}(?:症|病|炎|癌|瘤|綜合症|失調|感染|中毒))',
+            r'可能患有([^。\n，、]{2,15}(?:症|病|炎|癌|瘤|綜合症|失調|感染|中毒))',
+            r'懷疑是([^。\n，、]{2,15}(?:症|病|炎|癌|瘤|綜合症|失調|感染|中毒))',
+            r'診斷為([^。\n，、]{2,15}(?:症|病|炎|癌|瘤|綜合症|失調|感染|中毒))',
+            r'可能是([^。\n，、]{2,15}(?:症|病|炎|癌|瘤|綜合症|失調|感染|中毒))',
+            # English patterns - more restrictive
+            r'possible diagnosis[：:]\s*([a-zA-Z\s]{3,20}(?:syndrome|disease|disorder|infection|condition))',
+            r'suspected\s+([a-zA-Z\s]{3,20}(?:syndrome|disease|disorder|infection|condition))',
+            r'likely\s+([a-zA-Z\s]{3,20}(?:syndrome|disease|disorder|infection|condition))',
+        ]
+        
+        extracted_conditions = []
+        
+        for pattern in diagnosis_patterns:
+            try:
+                matches = re.findall(pattern, ai_analysis, re.IGNORECASE)
+                for match in matches:
+                    condition = match.strip()
+                    # More strict validation
+                    if (len(condition) >= 3 and len(condition) <= 18 and 
+                        not condition.isdigit() and 
+                        not any(char in condition for char in ['?', '!', '@', '#', '$', '%'])):
+                        extracted_conditions.append(condition)
+            except re.error as e:
+                logger.warning(f"Regex pattern error: {pattern} - {e}")
+                continue
+        
+        # Remove duplicates while preserving order
+        unique_conditions = []
+        for condition in extracted_conditions:
+            if condition not in unique_conditions:
+                unique_conditions.append(condition)
+        
+        # Translate to English for PubMed search (limit to prevent excessive API calls)
+        if unique_conditions:
+            logger.info(f"Extracted diagnoses from AI analysis: {unique_conditions}")
+            # Limit to top 3 conditions to prevent excessive translation calls
+            limited_conditions = unique_conditions[:3]
+            try:
+                translated_diagnoses = translate_medical_terms_with_ai(limited_conditions)
+                return translated_diagnoses if translated_diagnoses else limited_conditions
+            except Exception as e:
+                logger.error(f"Error translating diagnoses: {e}")
+                return limited_conditions
+        
+        return []
+        
+    except Exception as e:
+        logger.error(f"Error extracting diagnoses from AI analysis: {e}")
+        return []
+
 def translate_medical_terms_with_ai(chinese_terms):
     """Use AI to translate Chinese medical terms to English"""
     try:
-        if not chinese_terms:
+        if not chinese_terms or not isinstance(chinese_terms, list):
+            return []
+        
+        # Filter out invalid terms
+        valid_terms = []
+        for term in chinese_terms:
+            if isinstance(term, str) and len(term.strip()) > 1 and len(term.strip()) < 50:
+                valid_terms.append(term.strip())
+        
+        if not valid_terms:
             return []
         
         # Create a prompt for medical translation
-        terms_text = ', '.join(str(term) for term in chinese_terms)
+        terms_text = ', '.join(str(term) for term in valid_terms)
         prompt = f"""請將以下中文醫學術語翻譯成英文醫學術語，只返回英文術語，用逗號分隔：
 
 中文醫學術語：{terms_text}
@@ -401,11 +474,23 @@ def fetch_pubmed_evidence(search_terms, original_terms=None):
                 logger.info(f"Skipping PubMed search, primary API is: {config.get('primary_search_api')}")
                 break
                 
+            # Construct improved search query to reduce irrelevant results
+            # Exclude rare disease and experimental studies
+            exclusions = "NOT (rare[Title/Abstract] OR case report[Publication Type] OR animal[MeSH Terms] OR in vitro[Title/Abstract])"
+            
+            # Focus on clinical relevance
+            clinical_focus = "(clinical[Title/Abstract] OR diagnosis[Title/Abstract] OR treatment[Title/Abstract] OR management[Title/Abstract] OR therapy[Title/Abstract])"
+            
+            # Prefer recent publications and systematic reviews
+            quality_boost = "(systematic review[Publication Type] OR meta-analysis[Publication Type] OR randomized controlled trial[Publication Type] OR guideline[Publication Type])"
+            
+            search_query = f"({term}[Title/Abstract] AND {clinical_focus}) {exclusions}"
+            
             # PubMed E-utilities API
             search_url = f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
             search_params = {
                 'db': 'pubmed',
-                'term': f"{term}[Title/Abstract] AND (clinical[Title/Abstract] OR diagnosis[Title/Abstract] OR treatment[Title/Abstract])",
+                'term': search_query,
                 'retmax': retmax,  # Use configurable retmax
                 'sort': 'relevance',
                 'retmode': 'xml'
@@ -432,18 +517,42 @@ def fetch_pubmed_evidence(search_terms, original_terms=None):
                     if fetch_response.status_code == 200:
                         articles = parse_pubmed_articles(fetch_response.content, term, original_term)
                         if articles:
-                            evidence.extend(articles)
-                            symptom_coverage[original_term] = len(articles)
-                            logger.info(f"Found {len(articles)} articles for symptom: {original_term}")
+                            # Filter articles by relevance score
+                            config = get_medical_search_config()
+                            min_relevance = config.get('relevance_threshold', 2.0)
+                            
+                            filtered_articles = []
+                            for article in articles:
+                                score = article.get('relevance_score', 0)
+                                if score >= min_relevance:
+                                    filtered_articles.append(article)
+                                    logger.info(f"Article accepted: '{article['title'][:50]}...' (score: {score:.1f})")
+                                else:
+                                    logger.info(f"Article filtered out: '{article['title'][:50]}...' (score: {score:.1f}, threshold: {min_relevance})")
+                            
+                            if filtered_articles:
+                                evidence.extend(filtered_articles)
+                                symptom_coverage[original_term] = len(filtered_articles)
+                                logger.info(f"Found {len(filtered_articles)}/{len(articles)} relevant articles for symptom: {original_term}")
+                            else:
+                                logger.warning(f"No relevant articles found for symptom: {original_term} (all filtered out)")
+                                symptom_coverage[original_term] = 0
                         else:
                             logger.warning(f"No articles found for symptom: {original_term}")
                             symptom_coverage[original_term] = 0
+        
+        # Sort evidence by relevance score (highest first)
+        evidence.sort(key=lambda x: x.get('relevance_score', 0), reverse=True)
         
         # Log final coverage summary
         total_articles = len(evidence)
         covered_symptoms = sum(1 for count in symptom_coverage.values() if count > 0)
         logger.info(f"Medical evidence summary: {total_articles} articles covering {covered_symptoms}/{len(symptom_coverage)} symptoms")
         logger.info(f"Symptom coverage: {symptom_coverage}")
+        
+        if evidence:
+            avg_score = sum(article.get('relevance_score', 0) for article in evidence) / len(evidence)
+            logger.info(f"Average relevance score: {avg_score:.2f}")
         
         return evidence
         
@@ -526,6 +635,92 @@ def extract_relevant_excerpt(abstract_text, search_term):
     except Exception as e:
         logger.error(f"Error extracting relevant excerpt: {e}")
         return abstract_text[:200] + "..." if len(abstract_text) > 200 else abstract_text
+
+def calculate_clinical_relevance_score(title, abstract, search_term):
+    """Calculate clinical relevance score to filter out rare/fringe diseases"""
+    try:
+        title_lower = title.lower()
+        abstract_lower = abstract.lower()
+        search_lower = search_term.lower()
+        
+        score = 0
+        
+        # High relevance indicators (common clinical terms)
+        high_relevance_terms = [
+            'diagnosis', 'treatment', 'management', 'therapy', 'clinical',
+            'patient', 'symptoms', 'prevalence', 'common', 'frequent',
+            'primary care', 'emergency', 'acute', 'chronic', 'systematic review',
+            'meta-analysis', 'randomized', 'controlled trial', 'guidelines',
+            'evidence-based', 'standard care', 'first-line', 'routine'
+        ]
+        
+        # Medium relevance indicators
+        medium_relevance_terms = [
+            'case study', 'cohort', 'observational', 'retrospective',
+            'prospective', 'multicenter', 'population', 'epidemiology'
+        ]
+        
+        # Low relevance indicators (rare/fringe disease markers)
+        low_relevance_terms = [
+            'rare', 'unusual', 'atypical', 'novel', 'first case', 'case report',
+            'syndrome', 'genetic', 'hereditary', 'congenital', 'familial',
+            'orphan disease', 'zebra', 'exotic', 'tropical', 'endemic'
+        ]
+        
+        # Very low relevance (research/experimental)
+        very_low_relevance_terms = [
+            'in vitro', 'animal model', 'mouse', 'rat', 'laboratory',
+            'experimental', 'molecular', 'cellular', 'biochemical',
+            'pathophysiology', 'mechanism', 'hypothesis'
+        ]
+        
+        # Score based on term presence
+        for term in high_relevance_terms:
+            if term in title_lower:
+                score += 3
+            elif term in abstract_lower:
+                score += 2
+        
+        for term in medium_relevance_terms:
+            if term in title_lower:
+                score += 1
+            elif term in abstract_lower:
+                score += 0.5
+        
+        for term in low_relevance_terms:
+            if term in title_lower:
+                score -= 2
+            elif term in abstract_lower:
+                score -= 1
+        
+        for term in very_low_relevance_terms:
+            if term in title_lower:
+                score -= 3
+            elif term in abstract_lower:
+                score -= 1.5
+        
+        # Boost score if search term appears in title (direct relevance)
+        if search_lower in title_lower:
+            score += 5
+        elif search_lower in abstract_lower:
+            score += 2
+        
+        # Boost for recent publications (prefer current medical knowledge)
+        import re
+        year_match = re.search(r'20\d{2}', abstract_lower)
+        if year_match:
+            year = int(year_match.group())
+            current_year = 2024
+            if year >= current_year - 5:  # Last 5 years
+                score += 2
+            elif year >= current_year - 10:  # Last 10 years
+                score += 1
+        
+        return max(0, score)  # Ensure non-negative score
+        
+    except Exception as e:
+        logger.error(f"Error calculating clinical relevance score: {e}")
+        return 1  # Default neutral score
 
 def generate_relevance_explanation(display_term, title, abstract, search_term=None):
     """Generate a specific explanation of why this article is relevant (in Chinese)"""
@@ -618,11 +813,16 @@ def parse_pubmed_articles(xml_content, search_term, original_term=None):
                 if title and abstract:
                     # Use original term for display, search term for analysis
                     display_term = original_term if original_term else search_term
+                    
+                    # Calculate clinical relevance score
+                    relevance_score = calculate_clinical_relevance_score(title, abstract, search_term)
+                    
                     articles.append({
                         'title': title,
                         'source': f"{journal}, {year}",
                         'excerpt': abstract,
                         'relevance': generate_relevance_explanation(display_term, title, abstract, search_term),
+                        'relevance_score': relevance_score,
                         'url': f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/" if pmid else "",
                         'type': 'pubmed'
                     })
@@ -1881,10 +2081,11 @@ def validate_symptoms_with_llm(symptoms: str, user_language: str = 'zh-TW') -> d
         return {'valid': True, 'message': '症狀驗證過程中出現錯誤，將繼續處理'}
 
 def analyze_symptoms_with_evidence(age: int, gender: str, symptoms: str, chronic_conditions: str = '', detailed_health_info: dict = None, user_language: str = 'zh-TW') -> dict:
-    """使用AI分析症狀並結合醫學文獻證據"""
+    """使用AI分析症狀並結合醫學文獻證據 - 優化版本避免重複AI調用"""
     
-    # First, get medical evidence for cross-referencing
+    # Extract medical evidence based on symptoms only (avoid double AI calls)
     medical_evidence = ""
+    
     try:
         # Extract key medical terms from symptoms for evidence search
         symptom_terms = [s.strip() for s in symptoms.replace('、', ',').split(',') if s.strip()]
@@ -1896,15 +2097,31 @@ def analyze_symptoms_with_evidence(age: int, gender: str, symptoms: str, chronic
         else:
             search_terms = symptom_terms
         
-        # Fetch evidence from PubMed (pass both English for search and Chinese for display)
-        evidence_results = fetch_pubmed_evidence(search_terms[:4], symptom_terms[:4])  # Increased to 4 terms for more comprehensive results
+        # Use symptom-based search only to avoid infinite recursion
+        # Limit to top 3 symptoms for focused search
+        focused_search_terms = search_terms[:3]
+        focused_display_terms = symptom_terms[:3]
+        
+        logger.info(f"Symptom-based medical evidence search: {focused_search_terms}")
+        
+        # Fetch evidence from PubMed
+        evidence_results = fetch_pubmed_evidence(focused_search_terms, focused_display_terms)
         
         if evidence_results:
             medical_evidence = "\n\n**醫學文獻參考資料 (Medical Literature References):**\n"
-            for i, evidence in enumerate(evidence_results[:2], 1):  # Use top 2 articles
-                medical_evidence += f"{i}. {evidence['title']}\n"
-                medical_evidence += f"   來源: {evidence['source']}\n"
-                medical_evidence += f"   摘要: {evidence['excerpt']}\n\n"
+            medical_evidence += "以下文獻支持此診斷分析：\n\n"
+            
+            for i, evidence in enumerate(evidence_results[:3], 1):  # Use top 3 articles
+                medical_evidence += f"{i}. **{evidence['title']}**\n"
+                medical_evidence += f"   📚 來源: {evidence['source']}\n"
+                medical_evidence += f"   🔍 相關性: {evidence['relevance']}\n"
+                medical_evidence += f"   📄 摘要: {evidence['excerpt']}\n"
+                if evidence.get('url'):
+                    medical_evidence += f"   🔗 連結: {evidence['url']}\n"
+                medical_evidence += "\n"
+            
+            # Add instruction for AI to reference the evidence
+            medical_evidence += "**請在診斷分析中參考上述醫學文獻，並在相關部分引用這些研究支持您的診斷結論。**\n"
             
             logger.info(f"Added medical evidence to AI analysis: {len(evidence_results)} articles")
         else:
@@ -1914,6 +2131,7 @@ def analyze_symptoms_with_evidence(age: int, gender: str, symptoms: str, chronic
         logger.error(f"Error fetching medical evidence for AI analysis: {e}")
         medical_evidence = ""
     
+    # Single AI call with medical evidence included
     return analyze_symptoms_with_context(age, gender, symptoms, chronic_conditions, detailed_health_info, user_language, medical_evidence)
 
 def analyze_symptoms(age: int, gender: str, symptoms: str, chronic_conditions: str = '', detailed_health_info: dict = None, user_language: str = 'zh-TW') -> dict:

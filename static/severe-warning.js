@@ -18,15 +18,32 @@ class SevereWarningSystem {
     }
     
     initEventListeners() {
-        // Close modal events
+        // Close modal events (add touch events for mobile)
         this.closeBtn.addEventListener('click', () => this.closeModal());
+        this.closeBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            this.closeModal();
+        });
+        
         this.cancelBtn.addEventListener('click', () => this.closeModal());
+        this.cancelBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            this.closeModal();
+        });
         
-        // Emergency call button
+        // Emergency call button (add touch events for mobile)
         this.callEmergencyBtn.addEventListener('click', () => this.callEmergency());
+        this.callEmergencyBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            this.callEmergency();
+        });
         
-        // Proceed anyway button
+        // Proceed anyway button (add touch events for mobile)
         this.proceedBtn.addEventListener('click', () => this.proceedWithDiagnosis());
+        this.proceedBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            this.proceedWithDiagnosis();
+        });
         
         // Close modal when clicking outside
         window.addEventListener('click', (event) => {

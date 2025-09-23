@@ -45,7 +45,7 @@ def add_medical_search_config_table():
             ('enable_cochrane', 'false', 'Enable Cochrane Library search', 'boolean'),
             ('enable_google_scholar', 'false', 'Enable Google Scholar search', 'boolean'),
             ('search_filters', 'clinical,diagnosis,treatment', 'Search filters to apply', 'text'),
-            ('relevance_threshold', '0.5', 'Minimum relevance score for articles', 'number'),
+            ('relevance_threshold', '2.0', 'Minimum relevance score for articles (0-10 scale)', 'number'),
             ('cache_duration', '3600', 'Cache duration for search results (seconds)', 'number')
         ]
         

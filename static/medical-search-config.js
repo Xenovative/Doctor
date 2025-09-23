@@ -101,10 +101,22 @@ class MedicalSearchConfig {
                 }
                 break;
             case 'number':
+                let min = '1';
+                let max = '20';
+                let step = '1';
+                
+                if (key.includes('timeout')) {
+                    max = '60';
+                } else if (key === 'relevance_threshold') {
+                    min = '0';
+                    max = '10';
+                    step = '0.5';
+                }
+                
                 inputHtml = `
                     <input type="number" class="form-control config-input" 
                            data-key="${key}" value="${value}" 
-                           min="1" max="${key.includes('timeout') ? '60' : '20'}">
+                           min="${min}" max="${max}" step="${step}">
                 `;
                 break;
             case 'boolean':
@@ -148,7 +160,7 @@ class MedicalSearchConfig {
             'enable_cochrane': '啟用 Cochrane',
             'enable_google_scholar': '啟用 Google Scholar',
             'search_filters': '搜尋過濾器',
-            'relevance_threshold': '相關性門檻',
+            'relevance_threshold': '相關性門檻 (0-10)',
             'cache_duration': '快取持續時間 (秒)'
         };
         return displayNames[key] || key;

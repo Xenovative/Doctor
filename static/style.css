@@ -1330,12 +1330,25 @@ body::before {
     box-shadow: 0 6px 20px rgba(37, 211, 102, 0.4);
 }
 
+/* Prevent zoom on input focus for mobile */
+@media screen and (max-width: 768px) {
+    input[type="text"],
+    input[type="number"],
+    input[type="email"],
+    textarea,
+    select {
+        font-size: 16px !important;
+        transform: scale(1);
+    }
+}
+
 /* Mobile responsiveness for modal */
 @media (max-width: 768px) {
     .modal-content {
         width: 95%;
-        margin: 10% auto;
-        max-height: 85vh;
+        margin: 5% auto;
+        max-height: 90vh;
+        border-radius: 12px;
     }
     
     .modal-header h2 {
@@ -1344,6 +1357,33 @@ body::before {
     
     .modal-body {
         padding: 20px;
+    }
+    
+    /* Ensure buttons are large enough for touch */
+    .modal-actions button,
+    .contact-btn-modal,
+    .btn-primary,
+    .btn-secondary,
+    .btn-warning,
+    .btn-emergency {
+        min-height: 48px;
+        min-width: 120px;
+        padding: 12px 20px;
+        font-size: 16px;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Fix close button touch target */
+    .close {
+        font-size: 28px;
+        padding: 8px;
+        min-width: 44px;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        touch-action: manipulation;
     }
     
     .card-actions {
@@ -2319,9 +2359,24 @@ body::before {
         right: 15px;
     }
     
+    .close {
+        top: 15px;
+        right: 15px;
+        min-width: 44px;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+    }
+    
     .modal-content {
         width: 95%;
-        margin: 10% auto;
+        margin: 5% auto;
+        max-height: 90vh;
+        border-radius: 12px;
     }
     
     .modal-header {
@@ -2334,7 +2389,19 @@ body::before {
     
     .modal-actions {
         flex-direction: column;
-        gap: 10px;
+        gap: 12px;
+        padding: 20px;
+    }
+    
+    /* Ensure all modal buttons are touch-friendly */
+    .modal-actions button {
+        min-height: 48px;
+        padding: 14px 20px;
+        font-size: 16px;
+        border-radius: 8px;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+        width: 100%;
     }
     
     .btn-primary, .btn-secondary {
@@ -2499,6 +2566,12 @@ body::before {
 
 /* Mobile responsiveness for severe warning modal */
 @media (max-width: 768px) {
+    .severe-warning {
+        width: 95% !important;
+        margin: 5% auto !important;
+        max-height: 90vh !important;
+    }
+    
     .severe-actions {
         flex-direction: column;
         gap: 10px;
@@ -2802,30 +2875,41 @@ body::before {
     .disclaimer-content {
         width: 95%;
         margin: 5% auto;
-        max-height: 95vh;
+        max-height: 90vh;
+        border-radius: 12px;
     }
     
     .disclaimer-header {
-        padding: 20px 15px;
-    }
-    
-    .disclaimer-header h3 {
-        font-size: 1.3em;
+        padding: 15px 20px;
         flex-direction: column;
-        gap: 8px;
+        align-items: flex-start;
+        gap: 10px;
     }
     
-    .disclaimer-language-selector {
-        position: static;
-        transform: none;
-        margin-top: 15px;
-        display: flex;
+    .disclaimer-body {
+        padding: 20px;
+    }
+    
+    .disclaimer-actions {
+        padding: 20px;
         justify-content: center;
+    }
+    
+    .disclaimer-accept {
+        min-height: 48px;
+        padding: 14px 24px;
+        font-size: 16px;
+        width: 100%;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
     }
     
     .modal-language-btn {
         font-size: 0.85em;
-        padding: 6px 10px;
+        padding: 8px 12px;
+        min-height: 36px;
+        touch-action: manipulation;
     }
     
     .modal-language-dropdown {
