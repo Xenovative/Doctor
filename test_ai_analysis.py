@@ -122,8 +122,8 @@ class AIAnalysisTester:
             # Test CHP relevance
             chp_relevance = self.test_chp_relevance(extracted_symptoms, expected_chp_topics)
 
-            # Test PubMed relevance
-            pubmed_relevance = self.test_pubmed_relevance(analysis, symptoms)
+            # Test PubMed relevance (removed - now handled by evidence relevance)
+            # pubmed_relevance = self.test_pubmed_relevance(analysis, symptoms)
 
             # Test medical evidence gathering
             medical_evidence = self.test_medical_evidence_gathering(symptoms)
@@ -137,7 +137,7 @@ class AIAnalysisTester:
                 "extracted_symptoms": extracted_symptoms,
                 "status": "PASSED",
                 "chp_relevance": chp_relevance,
-                "pubmed_relevance": pubmed_relevance,
+                # "pubmed_relevance": pubmed_relevance,  # Removed
                 "evidence_relevance": evidence_relevance,
                 "medical_evidence": medical_evidence,
                 "analysis_preview": analysis[:200] + "..." if len(analysis) > 200 else analysis
@@ -214,15 +214,15 @@ class AIAnalysisTester:
         # Test CHP relevance
         chp_relevance = self.test_chp_relevance(extracted_symptoms, expected_chp_topics)
 
-        # Test PubMed relevance
-        pubmed_relevance = self.test_pubmed_relevance(mock_analysis, symptoms)
-
         # Test medical evidence gathering
         medical_evidence = self.test_medical_evidence_gathering(symptoms)
 
+        # Calculate evidence relevance score
+        evidence_relevance = self.calculate_evidence_relevance(medical_evidence, symptoms)
+
         test_result = {
             "test_name": test_name,
-            "symptoms": symptoms,  # Keep symptoms at top level for consistency
+            "symptoms": symptoms,
             "patient_data": {
                 "age": age,
                 "gender": gender,
@@ -232,7 +232,7 @@ class AIAnalysisTester:
             "extracted_symptoms": extracted_symptoms,
             "status": "PASSED",
             "chp_relevance": chp_relevance,
-            "pubmed_relevance": pubmed_relevance,
+            "evidence_relevance": evidence_relevance,
             "medical_evidence": medical_evidence,
             "analysis_preview": mock_analysis[:200] + "..." if len(mock_analysis) > 200 else mock_analysis
         }
@@ -703,10 +703,10 @@ class AIAnalysisTester:
             # Show immediate results
             status_emoji = "✅" if result["status"] == "PASSED" else "❌"
             chp_score = result.get("chp_relevance", {}).get("score", 0)
-            pubmed_score = result.get("pubmed_relevance", {}).get("score", 0)
+            # Removed pubmed_score variable
 
             print(f"   {status_emoji} CHP Relevance: {chp_score}/100")
-            print(f"   {status_emoji} PubMed Relevance: {pubmed_score}/100")
+            # Removed PubMed relevance display
 
             # Show evidence relevance
             evidence = result.get("evidence_relevance", {})
@@ -772,15 +772,15 @@ class AIAnalysisTester:
             print(f"   Highest: {max(chp_scores)}/100")
             print(f"   Lowest: {min(chp_scores)}/100")
 
-        # PubMed Relevance Analysis
-        pubmed_scores = [r.get("pubmed_relevance", {}).get("score", 0) for r in results if r["status"] == "PASSED"]
-        avg_pubmed = 0.0
-        if pubmed_scores:
-            avg_pubmed = sum(pubmed_scores) / len(pubmed_scores)
-            print("\n📚 PUBMED REFERENCES ANALYSIS:")
-            print(f"   Average Score: {avg_pubmed:.1f}/100")
-            print(f"   Highest: {max(pubmed_scores)}/100")
-            print(f"   Lowest: {min(pubmed_scores)}/100")
+        # PubMed Relevance Analysis (removed - now handled by evidence relevance)
+        # pubmed_scores = [r.get("pubmed_relevance", {}).get("score", 0) for r in results if r["status"] == "PASSED"]
+        # avg_pubmed = 0.0
+        # if pubmed_scores:
+        #     avg_pubmed = sum(pubmed_scores) / len(pubmed_scores)
+        #     print("\n📚 PUBMED REFERENCES ANALYSIS:")
+        #     print(f"   Average Score: {avg_pubmed:.1f}/100")
+        #     print(f"   Highest: {max(pubmed_scores)}/100")
+        #     print(f"   Lowest: {min(pubmed_scores)}/100")
 
         # Medical Evidence Gathering Analysis
         evidence_results = [r.get("evidence_relevance", {}) for r in results if r["status"] == "PASSED"]
@@ -817,7 +817,7 @@ class AIAnalysisTester:
                 extracted = result.get('extracted_symptoms', [])
                 print(f"   Extracted: {', '.join(extracted) if extracted else 'No extracted symptoms'}")
                 print(f"   CHP Score: {chp.get('score', 0)}/100")
-                print(f"   PubMed Score: {pubmed.get('score', 0)}/100")
+                # Removed PubMed score display
 
                 # Show evidence relevance
                 evidence_rel = result.get("evidence_relevance", {})
@@ -872,7 +872,7 @@ class AIAnalysisTester:
                 "passed_tests": passed_tests,
                 "failed_tests": failed_tests,
                 "avg_chp_score": round(sum(chp_scores) / len(chp_scores), 1) if chp_scores else 0,
-                "avg_pubmed_score": round(sum(pubmed_scores) / len(pubmed_scores), 1) if pubmed_scores else 0
+                # "avg_pubmed_score": round(sum(pubmed_scores) / len(pubmed_scores), 1) if pubmed_scores else 0  # Removed
             },
             "detailed_results": results
         }
