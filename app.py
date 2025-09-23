@@ -320,12 +320,17 @@ def generate_medical_search_terms(symptoms, diagnosis):
     logger.info(f"Final search terms: {search_terms}")
     return search_terms
 
-def fetch_pubmed_evidence(search_terms):
+def fetch_pubmed_evidence(search_terms, original_terms=None):
     """Fetch evidence from PubMed database"""
     try:
         evidence = []
         
-        for term in search_terms[:2]:  # Limit to avoid too many API calls
+        # Ensure we have original terms for display
+        if original_terms is None:
+            original_terms = search_terms
+        
+        for i, term in enumerate(search_terms[:2]):  # Limit to avoid too many API calls
+            original_term = original_terms[i] if i < len(original_terms) else term
             # PubMed E-utilities API
             search_url = f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
             search_params = {
@@ -355,7 +360,7 @@ def fetch_pubmed_evidence(search_terms):
                     fetch_response = requests.get(fetch_url, params=fetch_params, timeout=10)
                     
                     if fetch_response.status_code == 200:
-                        articles = parse_pubmed_articles(fetch_response.content, term)
+                        articles = parse_pubmed_articles(fetch_response.content, term, original_term)
                         evidence.extend(articles)
         
         return evidence
@@ -485,15 +490,15 @@ def generate_relevance_explanation(search_term, title, abstract):
             relevance_parts.append(study_type)
         
         if relevance_parts:
-            return f"此研究{', '.join(relevance_parts[:3])}，為您的症狀提供實證醫學依據。"
+            return f"此研究{', '.join(relevance_parts[:3])}，為您的症狀提供實證醫學參考。"
         else:
-            return f"此研究針對{search_term}提供相關醫學證據，有助於了解您的症狀。"
+            return f"此研究針對{search_term}提供相關醫學參考，有助於了解您的症狀。"
             
     except Exception as e:
         logger.error(f"Error generating relevance explanation: {e}")
-        return f"此研究針對{search_term}提供實證醫學依據，有助於了解您的症狀。"
+        return f"此研究針對{search_term}提供實證醫學參考，有助於了解您的症狀。"
 
-def parse_pubmed_articles(xml_content, search_term):
+def parse_pubmed_articles(xml_content, search_term, original_term=None):
     """Parse PubMed XML response to extract article information"""
     try:
         articles = []
@@ -525,11 +530,13 @@ def parse_pubmed_articles(xml_content, search_term):
                 pmid = pmid_elem.text if pmid_elem is not None else ""
                 
                 if title and abstract:
+                    # Use original term for display, search term for analysis
+                    display_term = original_term if original_term else search_term
                     articles.append({
                         'title': title,
                         'source': f"{journal}, {year}",
                         'excerpt': abstract,
-                        'relevance': generate_relevance_explanation(search_term, title, abstract),
+                        'relevance': generate_relevance_explanation(display_term, title, abstract),
                         'url': f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/" if pmid else "",
                         'type': 'pubmed'
                     })
@@ -1803,8 +1810,8 @@ def analyze_symptoms_with_evidence(age: int, gender: str, symptoms: str, chronic
         else:
             search_terms = symptom_terms
         
-        # Fetch evidence from PubMed
-        evidence_results = fetch_pubmed_evidence(search_terms[:3])  # Limit to top 3 terms
+        # Fetch evidence from PubMed (pass both English for search and Chinese for display)
+        evidence_results = fetch_pubmed_evidence(search_terms[:3], symptom_terms[:3])  # Limit to top 3 terms
         
         if evidence_results:
             medical_evidence = "\n\n**醫學文獻參考資料 (Medical Literature References):**\n"

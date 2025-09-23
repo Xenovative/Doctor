@@ -129,7 +129,7 @@ class MedicalEvidenceSystem {
             <div class="medical-evidence-container" id="medicalEvidenceContainer">
                 <div class="evidence-header" onclick="toggleMedicalEvidence()">
                     <div class="evidence-header-content">
-                        <h4 data-translate="medical_evidence_title">📚 醫學文獻證據</h4>
+                        <h4 data-translate="medical_evidence_title">📚 醫學文獻參考</h4>
                     </div>
                     <i class="fas fa-chevron-down evidence-toggle-icon" id="evidenceToggleIcon"></i>
                 </div>
@@ -148,13 +148,13 @@ class MedicalEvidenceSystem {
             <div class="medical-evidence-container" id="medicalEvidenceContainer">
                 <div class="evidence-header" onclick="toggleMedicalEvidence()">
                     <div class="evidence-header-content">
-                        <h4 data-translate="medical_evidence_title">📚 醫學文獻證據</h4>
+                        <h4 data-translate="medical_evidence_title">📚 醫學文獻參考</h4>
                     </div>
                     <i class="fas fa-chevron-down evidence-toggle-icon" id="evidenceToggleIcon"></i>
                 </div>
                 <div class="evidence-content" id="evidenceContent">
                     <div class="evidence-introduction">
-                        <span data-translate="evidence_introduction">根據分析結果，您的症狀與以下醫學研究相關：</span>
+                        <span data-translate="evidence_introduction">根據分析結果，您的症狀與以下醫學研究參考相關：</span>
                     </div>
         `;
 
