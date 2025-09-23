@@ -171,8 +171,9 @@ def get_medical_evidence():
             additional_evidence = fetch_additional_medical_sources(search_terms)
             evidence.extend(additional_evidence)
         
-        # Limit to top 8 most relevant results for better symptom coverage
-        evidence = evidence[:8]
+        # Use configurable limit for total articles
+        max_total = get_medical_search_config().get('max_total_articles', 8)
+        evidence = evidence[:max_total]
         
         return jsonify({
             'success': True,
@@ -320,9 +321,66 @@ def generate_medical_search_terms(symptoms, diagnosis):
     logger.info(f"Final search terms: {search_terms}")
     return search_terms
 
-def fetch_pubmed_evidence(search_terms, original_terms=None):
-    """Fetch evidence from PubMed database with balanced symptom coverage"""
+# Medical Search Configuration Management
+def get_medical_search_config():
+    """Get medical search configuration from database"""
     try:
+        conn = sqlite3.connect('doctor_ai.db')
+        cursor = conn.cursor()
+        
+        cursor.execute('SELECT config_key, config_value, config_type FROM medical_search_config')
+        configs = cursor.fetchall()
+        
+        config_dict = {}
+        for key, value, config_type in configs:
+            if config_type == 'number':
+                config_dict[key] = int(value) if value.isdigit() else float(value)
+            elif config_type == 'boolean':
+                config_dict[key] = value.lower() == 'true'
+            else:
+                config_dict[key] = value
+        
+        conn.close()
+        return config_dict
+        
+    except Exception as e:
+        logger.error(f"Error loading medical search config: {e}")
+        # Return default values if config loading fails
+        return {
+            'primary_search_api': 'pubmed',
+            'articles_per_symptom': 2,
+            'max_symptoms_processed': 4,
+            'max_total_articles': 8,
+            'search_timeout': 10,
+            'pubmed_retmax': 3
+        }
+
+def update_medical_search_config(config_key, config_value):
+    """Update medical search configuration"""
+    try:
+        conn = sqlite3.connect('doctor_ai.db')
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            UPDATE medical_search_config 
+            SET config_value = ?, updated_at = CURRENT_TIMESTAMP 
+            WHERE config_key = ?
+        ''', (str(config_value), config_key))
+        
+        conn.commit()
+        conn.close()
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error updating medical search config: {e}")
+        return False
+
+def fetch_pubmed_evidence(search_terms, original_terms=None):
+    """Fetch evidence from PubMed database with configurable parameters"""
+    try:
+        # Load configuration
+        config = get_medical_search_config()
+        
         evidence = []
         symptom_coverage = {}  # Track which symptoms have articles
         
@@ -330,19 +388,30 @@ def fetch_pubmed_evidence(search_terms, original_terms=None):
         if original_terms is None:
             original_terms = search_terms
         
-        for i, term in enumerate(search_terms[:4]):  # Process up to 4 terms for better coverage
+        max_symptoms = config.get('max_symptoms_processed', 4)
+        articles_per_symptom = config.get('articles_per_symptom', 2)
+        timeout = config.get('search_timeout', 10)
+        retmax = config.get('pubmed_retmax', 3)
+        
+        for i, term in enumerate(search_terms[:max_symptoms]):  # Use configurable limit
             original_term = original_terms[i] if i < len(original_terms) else term
+            
+            # Skip if primary API is not PubMed
+            if config.get('primary_search_api', 'pubmed') != 'pubmed':
+                logger.info(f"Skipping PubMed search, primary API is: {config.get('primary_search_api')}")
+                break
+                
             # PubMed E-utilities API
             search_url = f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
             search_params = {
                 'db': 'pubmed',
                 'term': f"{term}[Title/Abstract] AND (clinical[Title/Abstract] OR diagnosis[Title/Abstract] OR treatment[Title/Abstract])",
-                'retmax': 3,  # Reduced per term to get more diverse results
+                'retmax': retmax,  # Use configurable retmax
                 'sort': 'relevance',
                 'retmode': 'xml'
             }
             
-            search_response = requests.get(search_url, params=search_params, timeout=10)
+            search_response = requests.get(search_url, params=search_params, timeout=timeout)
             
             if search_response.status_code == 200:
                 # Parse XML response to get PMIDs
@@ -354,7 +423,7 @@ def fetch_pubmed_evidence(search_terms, original_terms=None):
                     fetch_url = f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
                     fetch_params = {
                         'db': 'pubmed',
-                        'id': ','.join(pmids[:2]),  # Get top 2 articles per term for better diversity
+                        'id': ','.join(pmids[:articles_per_symptom]),  # Use configurable articles per symptom
                         'retmode': 'xml'
                     }
                     
@@ -3904,6 +3973,66 @@ def admin_config():
         logger.error(f"Admin config error: {e}")
         flash('配置頁面載入失敗', 'error')
         return redirect(url_for('admin_dashboard'))
+
+# Medical Search Configuration API Endpoints
+@app.route('/admin/api/medical-search-config', methods=['GET'])
+@require_admin
+def get_medical_search_config_api():
+    """Get medical search configuration - Admin only"""
+    try:
+        config = get_medical_search_config()
+        
+        # Get config descriptions from database
+        conn = sqlite3.connect('doctor_ai.db')
+        cursor = conn.cursor()
+        cursor.execute('SELECT config_key, description, config_type FROM medical_search_config')
+        config_meta = {row[0]: {'description': row[1], 'type': row[2]} for row in cursor.fetchall()}
+        conn.close()
+        
+        # Combine config values with metadata
+        result = {}
+        for key, value in config.items():
+            result[key] = {
+                'value': value,
+                'description': config_meta.get(key, {}).get('description', ''),
+                'type': config_meta.get(key, {}).get('type', 'string')
+            }
+        
+        return jsonify({
+            'success': True,
+            'config': result
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting medical search config: {e}")
+        return jsonify({'error': 'Failed to get configuration'}), 500
+
+@app.route('/admin/api/medical-search-config', methods=['POST'])
+@require_admin
+def update_medical_search_config_api():
+    """Update medical search configuration - Admin only"""
+    try:
+        data = request.get_json()
+        config_key = data.get('config_key')
+        config_value = data.get('config_value')
+        
+        if not config_key or config_value is None:
+            return jsonify({'error': 'Missing config_key or config_value'}), 400
+        
+        success = update_medical_search_config(config_key, config_value)
+        
+        if success:
+            logger.info(f"Admin {session.get('username')} updated medical search config: {config_key} = {config_value}")
+            return jsonify({
+                'success': True,
+                'message': f'Configuration {config_key} updated successfully'
+            })
+        else:
+            return jsonify({'error': 'Failed to update configuration'}), 500
+            
+    except Exception as e:
+        logger.error(f"Error updating medical search config: {e}")
+        return jsonify({'error': 'Failed to update configuration'}), 500
 
 @app.route('/admin/api/console-logs')
 @require_admin
