@@ -1406,7 +1406,7 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
 
         // Add medical evidence section asynchronously
-        if (window.medicalEvidenceSystem) {
+        if (window.medicalEvidenceSystem && typeof window.medicalEvidenceSystem.generateEvidenceHTML === 'function') {
             // Debug logging
             console.log('createAnalysisCard received symptoms:', symptoms, 'type:', typeof symptoms);
             
@@ -1428,8 +1428,12 @@ document.addEventListener('DOMContentLoaded', function() {
             card.innerHTML += loadingHTML;
             
             // Then fetch and update with real evidence
+            console.log('About to call generateEvidenceHTML with:', symptomsArray, recommendedSpecialty);
+            
             window.medicalEvidenceSystem.generateEvidenceHTML(symptomsArray, recommendedSpecialty)
                 .then(evidenceHTML => {
+                    console.log('Got evidence HTML:', evidenceHTML ? 'success' : 'empty');
+                    
                     if (evidenceHTML) {
                         // Find and replace the loading section
                         const evidenceContainer = card.querySelector('#medicalEvidenceContainer');

@@ -69,6 +69,7 @@ class MedicalEvidenceSystem {
     }
 
     async generateEvidenceHTML(symptoms, diagnosis = '') {
+        console.log('generateEvidenceHTML called with:', symptoms, diagnosis);
         try {
             // Show loading state
             const loadingHTML = this.generateLoadingHTML();
