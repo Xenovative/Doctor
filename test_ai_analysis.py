@@ -360,7 +360,7 @@ class AIAnalysisTester:
             '心跳': ['心臟病', '心血管疾病'],
             '心律不整': ['心臟病', '心血管疾病'],
             '心臟衰竭': ['心臟病', '心血管疾病'],
-            '中風': ['中風', '腦血管疾病'],
+            '中風': ['中風', '腦血管疾病', '高血壓'],
             '心': ['心臟病', '心血管疾病'],
             'heart': ['心臟病'],
             'cardiac': ['心臟病'],
@@ -452,18 +452,13 @@ class AIAnalysisTester:
             # Neurological
             '頭痛': ['2019冠狀病毒病', '偏頭痛', '頭痛'],
             '頭暈': ['心臟病', '糖尿病', '貧血', '頭暈'],
-            '中風': ['中風'],
+            '中風': ['中風', '腦血管疾病', '高血壓'],
             '偏頭痛': ['偏頭痛'],
             '頭暈': ['頭暈'],
             '癲癇': ['癲癇'],
-            '帕金森病': ['帕金森病'],
-            '阿茲海默病': ['認知障礙症'],
-            'headache': ['2019冠狀病毒病', '偏頭痛'],
-            'dizziness': ['心臟病', '糖尿病'],
-            'stroke': ['中風'],
-            'migraine': ['偏頭痛'],
-            'epilepsy': ['癲癇'],
-            'parkinson': ['帕金森病'],
+            # Parkinson's and dementia handled externally via Elderly Commission
+            'parkinson': ['帕金森病'], # Keep English mapping but use external resource
+            'alzheimer': ['認知障礙症'], # Keep English mapping but use external resource
 
             # Cancer & Oncology
             '癌症': ['癌症'],
@@ -1064,7 +1059,7 @@ class AIAnalysisTester:
             '心跳': ['心臟病', '心血管疾病'],
             '心律不整': ['心臟病', '心血管疾病'],
             '心臟衰竭': ['心臟病', '心血管疾病'],
-            '中風': ['中風', '腦血管疾病'],
+            '中風': ['中風', '腦血管疾病', '高血壓'],
             '心': ['心臟病', '心血管疾病'],
             'heart': ['心臟病'],
             'cardiac': ['心臟病'],
@@ -1156,18 +1151,13 @@ class AIAnalysisTester:
             # Neurological
             '頭痛': ['2019冠狀病毒病', '偏頭痛', '頭痛'],
             '頭暈': ['心臟病', '糖尿病', '貧血', '頭暈'],
-            '中風': ['中風'],
+            '中風': ['中風', '腦血管疾病', '高血壓'],
             '偏頭痛': ['偏頭痛'],
             '頭暈': ['頭暈'],
             '癲癇': ['癲癇'],
-            '帕金森病': ['帕金森病'],
-            '阿茲海默病': ['認知障礙症'],
-            'headache': ['2019冠狀病毒病', '偏頭痛'],
-            'dizziness': ['心臟病', '糖尿病'],
-            'stroke': ['中風'],
-            'migraine': ['偏頭痛'],
-            'epilepsy': ['癲癇'],
-            'parkinson': ['帕金森病'],
+            # Parkinson's and dementia handled externally via Elderly Commission
+            'parkinson': ['帕金森病'], # Keep English mapping but use external resource
+            'alzheimer': ['認知障礙症'], # Keep English mapping but use external resource
 
             # Cancer & Oncology
             '癌症': ['癌症'],

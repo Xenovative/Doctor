@@ -331,7 +331,7 @@ class MedicalEvidenceSystem {
             '心跳': ['心臟病', '心血管疾病'],
             '心律不整': ['心臟病', '心血管疾病'],
             '心臟衰竭': ['心臟病', '心血管疾病'],
-            '中風': ['中風', '腦血管疾病'],
+            '中風': ['中風', '腦血管疾病', '高血壓'],
             '心': ['心臟病', '心血管疾病'],
             'heart': ['心臟病'],
             'cardiac': ['心臟病'],
@@ -423,7 +423,7 @@ class MedicalEvidenceSystem {
             // Neurological
             '頭痛': ['2019冠狀病毒病', '偏頭痛', '頭痛'],
             '頭暈': ['心臟病', '糖尿病', '貧血', '頭暈'],
-            '中風': ['中風'],
+            '中風': ['中風', '腦血管疾病', '高血壓'],
             '偏頭痛': ['偏頭痛'],
             '頭暈': ['頭暈'],
             '癲癇': ['癲癇'],
@@ -703,6 +703,47 @@ class MedicalEvidenceSystem {
 
         // Find matching CHP content for each symptom
         for (const symptom of symptoms) {
+            // Special handling for Parkinson's and dementia - use Elderly Commission resources
+            const parkinsonTerms = ['帕金森', 'parkinson'];
+            const dementiaTerms = ['阿茲海默', '認知障礙', '失智', '老人癡呆', 'dementia', 'alzheimer'];
+            
+            const hasParkinson = parkinsonTerms.some(term => 
+                symptom.includes(term) || term.includes(symptom)
+            );
+            const hasDementia = dementiaTerms.some(term => 
+                symptom.includes(term) || term.includes(symptom)
+            );
+            
+            if (hasParkinson) {
+                // Return Elderly Commission Parkinson's resource
+                const parkinsonEntry = {
+                    title: '長者服務 - 帕金森病',
+                    url: 'https://www.elderly.gov.hk/tc_chi/health_information/parkinsonsdisease/parkinsonsdisease.html',
+                    content: '帕金森病是一種慢性神經退化性疾病，主要影響運動功能。常見症狀包括震顫、僵硬、動作緩慢和平衡問題。早期診斷和適當治療可以有效控制病情。',
+                    advice: '建議尋求神經科專科醫生診斷，並考慮接受物理治療和藥物治療。家屬應提供支持和協助日常活動。'
+                };
+                
+                if (!relevantTopics.find(t => t.url === parkinsonEntry.url)) {
+                    relevantTopics.push(parkinsonEntry);
+                }
+                continue; // Skip regular CHP matching for these symptoms
+            }
+            
+            if (hasDementia) {
+                // Return Elderly Commission dementia resource
+                const dementiaEntry = {
+                    title: '長者服務 - 認知障礙症',
+                    url: 'https://www.elderly.gov.hk/tc_chi/health_information/dementia/dementia.html',
+                    content: '認知障礙症（失智症）是一種漸進性腦部退化疾病，主要影響長者的記憶、思考和行為能力。早期症狀包括忘記近期事件、混亂日期和方向、情緒波動等。',
+                    advice: '建議及早接受專業評估和治療。家屬應提供支持和照顧，並考慮加入相關支援團體。'
+                };
+                
+                if (!relevantTopics.find(t => t.url === dementiaEntry.url)) {
+                    relevantTopics.push(dementiaEntry);
+                }
+                continue; // Skip regular CHP matching for these symptoms
+            }
+
             for (const [key, topics] of Object.entries(symptomMappings)) {
                 if (symptom.includes(key) || key.includes(symptom)) {
                     // Find actual CHP content for these topics
