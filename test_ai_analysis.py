@@ -804,6 +804,10 @@ class AIAnalysisTester:
 
     def test_medical_evidence_gathering(self, symptoms):
         """Test actual medical evidence gathering from the system"""
+        # In mock mode, simulate evidence gathering based on symptom mappings
+        if self.mock_mode:
+            return self._mock_medical_evidence_gathering(symptoms)
+        
         try:
             # Test the medical evidence API directly
             evidence_response = requests.post(
@@ -870,6 +874,348 @@ class AIAnalysisTester:
                 "has_chp": False,
                 "error": str(e)
             }
+
+    def _mock_medical_evidence_gathering(self, symptoms):
+        """Mock medical evidence gathering based on symptom mappings"""
+        try:
+            # Use symptom mappings to find relevant CHP content
+            symptom_mappings = self._get_symptom_mappings()
+            
+            matched_topics = set()
+            for symptom in symptoms:
+                for key, topics in symptom_mappings.items():
+                    if key in symptom or symptom in key:
+                        matched_topics.update(topics)
+            
+            # Simulate finding CHP content based on matched topics
+            evidence_titles = []
+            evidence_sources = []
+            evidence_urls = []
+            
+            for topic in matched_topics:
+                # Find actual CHP entries for this topic
+                chp_entries = [entry for entry in self.chp_content 
+                             if entry.get('title', '').find(topic) >= 0]
+                
+                for entry in chp_entries[:2]:  # Limit to 2 entries per topic
+                    title = entry.get('title', 'CHP Content')
+                    evidence_titles.append(title)
+                    evidence_sources.append('CHP')
+                    evidence_urls.append(entry.get('url', f'https://chp.gov.hk/{topic}'))
+            
+            # Add some mock PubMed content if configured
+            if self.medical_search_config.get('primary_search_api') == 'pubmed':
+                articles_per_symptom = self.medical_search_config.get('articles_per_symptom', 2)
+                mock_pubmed_count = min(len(symptoms) * articles_per_symptom // 2, 3)  # Limit to 3
+                
+                for i in range(mock_pubmed_count):
+                    evidence_titles.append(f"PubMed Article {i+1}: {symptoms[0]}")
+                    evidence_sources.append('PubMed')
+                    evidence_urls.append(f"https://pubmed.ncbi.nlm.nih.gov/mock{i+1}")
+            
+            evidence_count = len(evidence_titles)
+            
+            print(f"   🔍 Evidence Details: {evidence_count} items (mock)")
+            for i, title in enumerate(evidence_titles[:3]):
+                print(f"      {i+1}. Title: '{title[:50]}...' | Source: '{evidence_sources[i]}'")
+            
+            return {
+                "success": evidence_count > 0,
+                "evidence_count": evidence_count,
+                "evidence_titles": evidence_titles,
+                "evidence_sources": evidence_sources,
+                "evidence_urls": evidence_urls,
+                "has_pubmed": 'PubMed' in evidence_sources,
+                "has_chp": 'CHP' in evidence_sources,
+                "error": None
+            }
+            
+        except Exception as e:
+            print(f"   ⚠️ Mock evidence gathering error: {e}")
+            return {
+                "success": False,
+                "evidence_count": 0,
+                "evidence_titles": [],
+                "evidence_sources": [],
+                "evidence_urls": [],
+                "has_pubmed": False,
+                "has_chp": False,
+                "error": str(e)
+            }
+
+    def _get_symptom_mappings(self):
+        """Get the symptom to CHP topic mappings used in test_chp_relevance"""
+        return {
+            # Cardiovascular & Heart
+            '心臟病': ['心臟病', '心血管疾病', '冠心病'],
+            '高血壓': ['心臟病', '高血壓', '心血管疾病'],
+            '胸痛': ['心臟病', '心血管疾病'],
+            '心悸': ['心臟病', '心血管疾病'],
+            '心跳': ['心臟病', '心血管疾病'],
+            '心律不整': ['心臟病', '心血管疾病'],
+            '心臟衰竭': ['心臟病', '心血管疾病'],
+            '中風': ['中風', '腦血管疾病'],
+            '心': ['心臟病', '心血管疾病'],
+            'heart': ['心臟病'],
+            'cardiac': ['心臟病'],
+            'cardiovascular': ['心血管疾病'],
+
+            # Respiratory & Infectious
+            '流感': ['乙型流感嗜血桿菌感染', '季節性流感', '季節流行性感冒', '流行性感冒'],
+            '感冒': ['2019冠狀病毒病', '季節流行性感冒', '流行性感冒'],
+            '咳嗽': ['2019冠狀病毒病', '肺炎球菌感染', '肺炎支原體感染', '季節流行性感冒'],
+            '發燒': ['2019冠狀病毒病', '水痘', '手足口病', '季節流行性感冒', '傷寒'],
+            '喉嚨痛': ['2019冠狀病毒病', '猩紅熱', '季節流行性感冒'],
+            '呼吸困難': ['2019冠狀病毒病', '肺炎球菌感染', '哮喘'],
+            '肺炎': ['肺炎球菌感染', '肺炎支原體感染', '肺炎'],
+            '鼻塞': ['2019冠狀病毒病', '季節流行性感冒'],
+            '支氣管炎': ['肺炎支原體感染'],
+            '哮喘': ['哮喘'],
+            '肺結核': ['肺結核'],
+            'tuberculosis': ['肺結核'],
+            'influenza': ['季節性流感', '季節流行性感冒'],
+            'flu': ['季節性流感', '季節流行性感冒'],
+            'cough': ['2019冠狀病毒病'],
+            'fever': ['2019冠狀病毒病'],
+            'sore throat': ['2019冠狀病毒病'],
+
+            # Gastrointestinal & Digestive
+            '腹痛': ['諾如病毒感染', '食物中毒', '腸胃炎', '腸胃炎', '霍亂', '傷寒'],
+            '腹瀉': ['諾如病毒感染', '食物中毒', '腸胃炎', '霍亂', '傷寒'],
+            '嘔吐': ['諾如病毒感染', '食物中毒', '腸胃炎', '霍亂', '傷寒'],
+            '胃痛': ['腸胃炎', '消化不良', '消化性潰瘍'],
+            '噁心': ['腸胃炎', '食物中毒'],
+            '胃腸': ['腸胃炎'],
+            '腸胃炎': ['腸胃炎'],
+            '食物中毒': ['食物中毒'],
+            '消化不良': ['消化不良'],
+            '消化性潰瘍': ['消化性潰瘍'],
+            '肝炎': ['病毒性肝炎'],
+            '膽石': ['膽石症'],
+            '胰臟炎': ['急性胰臟炎'],
+            'food poisoning': ['食物中毒'],
+            'gastroenteritis': ['腸胃炎'],
+            'diarrhea': ['諾如病毒感染'],
+            'vomiting': ['諾如病毒感染'],
+            'nausea': ['腸胃炎'],
+            'stomach': ['腸胃炎'],
+
+            # Skin & Dermatological
+            '皮疹': ['水痘', '手足口病', '麻疹', '猩紅熱', '德國麻疹'],
+            '水泡': ['水痘'],
+            '口腔潰瘍': ['手足口病'],
+            '手足皮疹': ['手足口病'],
+            '麻疹': ['麻疹'],
+            '德國麻疹': ['德國麻疹'],
+            '猩紅熱': ['猩紅熱'],
+            '帶狀皰疹': ['帶狀皰疹'],
+            '皮膚感染': ['皮膚感染'],
+            'rash': ['水痘', '手足口病'],
+            'blister': ['水痘'],
+            'measles': ['麻疹'],
+            'chickenpox': ['水痘'],
+            'shingles': ['帶狀皰疹'],
+
+            # Mental Health & Psychiatric
+            '抑鬱': ['心理健康', '抑鬱症', '精神健康'],
+            '焦慮': ['心理健康', '焦慮症', '精神健康'],
+            '壓力大': ['心理健康', '壓力管理', '精神健康'],
+            '精神': ['精神健康'],
+            '情緒': ['心理健康'],
+            '壓力': ['壓力管理'],
+            '焦慮症': ['焦慮症'],
+            '抑鬱症': ['抑鬱症'],
+            '精神健康': ['精神健康'],
+            'depression': ['心理健康', '抑鬱症'],
+            'anxiety': ['心理健康', '焦慮症'],
+            'stress': ['心理健康', '壓力管理'],
+            'mental': ['心理健康'],
+            'mood': ['心理健康'],
+
+            # Metabolic & Endocrine
+            '糖尿病': ['糖尿病', '糖尿病及其併發症'],
+            '口渴': ['糖尿病'],
+            '多尿': ['糖尿病'],
+            '多飲': ['糖尿病'],
+            '體重減輕': ['糖尿病'],
+            '甲狀腺': ['甲狀腺功能減退'],
+            'diabetes': ['糖尿病'],
+            'diabetic': ['糖尿病'],
+            'thyroid': ['甲狀腺功能減退'],
+
+            # Neurological
+            '頭痛': ['2019冠狀病毒病', '偏頭痛', '頭痛'],
+            '頭暈': ['心臟病', '糖尿病', '貧血', '頭暈'],
+            '中風': ['中風'],
+            '偏頭痛': ['偏頭痛'],
+            '頭暈': ['頭暈'],
+            '癲癇': ['癲癇'],
+            '帕金森病': ['帕金森病'],
+            '阿茲海默病': ['認知障礙症'],
+            'headache': ['2019冠狀病毒病', '偏頭痛'],
+            'dizziness': ['心臟病', '糖尿病'],
+            'stroke': ['中風'],
+            'migraine': ['偏頭痛'],
+            'epilepsy': ['癲癇'],
+            'parkinson': ['帕金森病'],
+
+            # Cancer & Oncology
+            '癌症': ['癌症預防'],
+            '腫瘤': ['癌症預防'],
+            '乳癌': ['乳癌'],
+            '大腸癌': ['大腸癌'],
+            '肺癌': ['肺癌'],
+            '肝癌': ['肝癌'],
+            '癌': ['癌症預防'],
+            'cancer': ['癌症預防'],
+            'tumor': ['癌症預防'],
+            'breast cancer': ['乳癌'],
+            'colorectal cancer': ['大腸癌'],
+            'lung cancer': ['肺癌'],
+            'liver cancer': ['肝癌'],
+            # Cancer symptoms mapping
+            '乳房腫塊': ['乳癌'],
+            '乳頭分泌': ['乳癌'],
+            '乳房': ['乳癌'],
+            '尿頻': ['攝護腺癌'],
+            '尿急': ['攝護腺癌'],
+            '夜尿': ['攝護腺癌'],
+            '攝護腺': ['攝護腺癌'],
+            '前列腺': ['攝護腺癌'],
+            '持續咳嗽': ['肺癌'],
+            '咳血': ['肺癌'],
+            '睪丸腫大': ['睪丸癌'],
+            '睪丸': ['睪丸癌'],
+            '疼痛': ['睪丸癌'],
+            '腹脹': ['卵巢癌'],
+            '腹痛': ['卵巢癌', '大腸癌'],
+            '不正常陰道出血': ['子宮頸癌'],
+            '骨盆痛': ['子宮頸癌', '卵巢癌'],
+            '大便習慣改變': ['大腸癌'],
+            '血便': ['大腸癌'],
+            '體重減輕': ['肺癌', '肝癌', '大腸癌'],
+
+            # Women's Health
+            '乳癌': ['乳癌'],
+            '子宮頸癌': ['子宮頸癌'],
+            '卵巢癌': ['卵巢癌'],
+            '子宮肌瘤': ['子宮肌瘤'],
+            '子宮內膜異位': ['子宮內膜異位症'],
+            '更年期': ['更年期'],
+            '經痛': ['經痛'],
+            '不孕': ['不育症'],
+            'pregnancy': ['懷孕與準備懷孕'],
+            'menopause': ['更年期'],
+            'dysmenorrhea': ['經痛'],
+
+            # Men's Health
+            '攝護腺': ['攝護腺癌'],
+            '前列腺': ['攝護腺癌'],
+            '睪丸癌': ['睪丸癌'],
+            'prostate': ['攝護腺癌'],
+            'testicular': ['睪丸癌'],
+
+            # Pediatric & Children's Health
+            '手足口': ['手足口病'],
+            '水痘': ['水痘'],
+            '麻疹': ['麻疹'],
+            '德國麻疹': ['德國麻疹'],
+            '百日咳': ['百日咳'],
+            '小兒麻痹': ['小兒麻痹症'],
+            'child': ['兒童健康'],
+            'infant': ['嬰兒健康'],
+            'pediatric': ['兒童健康'],
+
+            # Eye & ENT
+            '結膜炎': ['傳染性急性結膜炎'],
+            '眼紅': ['傳染性急性結膜炎'],
+            '青光眼': ['青光眼'],
+            '白內障': ['白內障'],
+            '中耳炎': ['中耳炎'],
+            '耳鳴': ['耳鳴'],
+            '眼': ['傳染性急性結膜炎'],
+            '耳': ['中耳炎'],
+            'conjunctivitis': ['傳染性急性結膜炎'],
+            'glaucoma': ['青光眼'],
+            'cataract': ['白內障'],
+            'otitis': ['中耳炎'],
+
+            # Bone & Joint
+            '骨質疏鬆': ['骨質疏鬆'],
+            '關節炎': ['關節炎'],
+            '骨折': ['骨折'],
+            'osteoporosis': ['骨質疏鬆'],
+            'arthritis': ['關節炎'],
+            'fracture': ['骨折'],
+
+            # Other Medical Conditions
+            '貧血': ['貧血'],
+            '腎病': ['慢性腎病'],
+            '肝病': ['病毒性肝炎'],
+            '腎結石': ['腎結石'],
+            '膽結石': ['膽石症'],
+            '腎': ['慢性腎病'],
+            '肝': ['病毒性肝炎'],
+            'anemia': ['貧血'],
+            'kidney': ['慢性腎病'],
+            'liver': ['病毒性肝炎'],
+
+            # Infectious Diseases
+            '愛滋病': ['人類免疫缺乏病毒感染'],
+            '艾滋病': ['人類免疫缺乏病毒感染'],
+            'HIV': ['人類免疫缺乏病毒感染'],
+            '愛滋': ['人類免疫缺乏病毒感染'],
+            '梅毒': ['梅毒'],
+            '淋病': ['淋病'],
+            '衣原體': ['衣原體感染'],
+            '生殖器皰疹': ['生殖器皰疹'],
+            'syphilis': ['梅毒'],
+            'gonorrhea': ['淋病'],
+            'chlamydia': ['衣原體感染'],
+            'herpes': ['生殖器皰疹'],
+            # STD symptoms mapping
+            '異常分泌物': ['淋病', '衣原體感染', '梅毒'],
+            '尿道痛': ['淋病', '衣原體感染'],
+            '陰部搔癢': ['淋病', '衣原體感染', '生殖器皰疹'],
+            '陰部痛': ['衣原體感染', '淋病'],
+            '無症狀感染': ['衣原體感染'],
+            '生殖器潰瘍': ['梅毒', '生殖器皰疹'],
+            '生殖器': ['梅毒', '生殖器皰疹', '淋病', '衣原體感染'],
+            '淋巴結腫大': ['梅毒', '人類免疫缺乏病毒感染'],
+            '分泌物': ['淋病', '衣原體感染'],
+            '尿道': ['淋病'],
+            '陰部': ['衣原體感染', '淋病', '生殖器皰疹'],
+
+            # Other Symptoms
+            '疲倦': ['糖尿病', '心臟病', '貧血', '甲狀腺功能減退'],
+            '體重': ['糖尿病', '營養'],
+            '營養': ['飲食與營養'],
+            '營養不良': ['營養不良'],
+            '肥胖': ['肥胖'],
+            '抽煙': ['戒煙'],
+            '酗酒': ['酗酒'],
+            '藥物': ['藥物濫用'],
+            'fatigue': ['糖尿病', '心臟病'],
+            'tired': ['糖尿病', '心臟病'],
+            'obesity': ['肥胖'],
+            'smoking': ['戒煙'],
+            'alcohol': ['酗酒'],
+            'drug': ['藥物濫用'],
+
+            # General Health & Prevention
+            '疫苗': ['疫苗'],
+            '預防': ['預防接種'],
+            '健康檢查': ['健康檢查'],
+            '運動': ['環境健康與損傷預防'],
+            '環境': ['環境健康與損傷預防'],
+            '職業安全': ['職業安全'],
+            '疫苗': ['疫苗'],
+            'vaccine': ['疫苗'],
+            'prevention': ['預防接種'],
+            'exercise': ['環境健康與損傷預防'],
+            'environment': ['環境健康與損傷預防'],
+            'occupational': ['職業安全']
+        }
 
     def calculate_evidence_relevance(self, evidence_data, original_symptoms):
         """Calculate overall evidence relevance score"""
