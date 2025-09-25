@@ -2910,6 +2910,7 @@ body::before {
         white-space: nowrap; /* Prevent text wrapping on mobile too */
         overflow: hidden;
         text-overflow: ellipsis;
+        font-size: 1.2em; /* Smaller font size for mobile */
     }
     
     .disclaimer-body {
