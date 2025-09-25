@@ -2933,13 +2933,11 @@ body::before {
         border-radius: 8px;
         justify-content: center;
         opacity: 0.5; /* Initially disabled appearance */
-        pointer-events: none; /* Disable clicks */
         cursor: not-allowed;
     }
     
     .disclaimer-accept.enabled {
         opacity: 1; /* Full opacity when enabled */
-        pointer-events: auto; /* Enable clicks */
         cursor: pointer;
     }
     

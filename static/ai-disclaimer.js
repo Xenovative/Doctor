@@ -13,6 +13,13 @@ class AIDisclaimerModal {
         this.modalCurrentLang = document.getElementById('modalCurrentLang');
         this.storageKey = 'doctor_ai_disclaimer_accepted';
         this.hasScrolledToBottom = false;
+        
+        console.log('AIDisclaimerModal constructor:', {
+            modal: !!this.modal,
+            acceptBtn: !!this.acceptBtn,
+            contentWrapper: !!this.contentWrapper
+        });
+        
         this.init();
     }
 
@@ -130,10 +137,15 @@ class AIDisclaimerModal {
     }
 
     acceptDisclaimer() {
+        console.log('acceptDisclaimer called, hasScrolledToBottom:', this.hasScrolledToBottom);
+        
         // Only allow acceptance if user has scrolled to bottom
         if (!this.hasScrolledToBottom) {
+            console.log('Button clicked but user has not scrolled to bottom');
             return;
         }
+        
+        console.log('Accepting disclaimer...');
         
         try {
             // Hide modal with animation
@@ -150,7 +162,10 @@ class AIDisclaimerModal {
     }
 
     checkScrollPosition() {
-        if (!this.contentWrapper) return;
+        if (!this.contentWrapper) {
+            console.log('Content wrapper not found');
+            return;
+        }
         
         const scrollTop = this.contentWrapper.scrollTop;
         const scrollHeight = this.contentWrapper.scrollHeight;
@@ -159,10 +174,14 @@ class AIDisclaimerModal {
         // Check if user has scrolled to within 10px of the bottom
         const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10;
         
+        console.log('Scroll check:', { scrollTop, scrollHeight, clientHeight, isAtBottom, hasScrolledToBottom: this.hasScrolledToBottom });
+        
         if (isAtBottom && !this.hasScrolledToBottom) {
+            console.log('Enabling button');
             this.hasScrolledToBottom = true;
             this.updateButtonState();
         } else if (!isAtBottom && this.hasScrolledToBottom) {
+            console.log('Disabling button');
             this.hasScrolledToBottom = false;
             this.updateButtonState();
         }
@@ -173,10 +192,8 @@ class AIDisclaimerModal {
         
         if (this.hasScrolledToBottom) {
             this.acceptBtn.classList.add('enabled');
-            this.acceptBtn.removeAttribute('disabled');
         } else {
             this.acceptBtn.classList.remove('enabled');
-            this.acceptBtn.setAttribute('disabled', 'true');
         }
     }
 
