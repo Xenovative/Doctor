@@ -2629,6 +2629,9 @@ body::before {
     gap: 12px;
     color: white !important;
     flex: 1;
+    white-space: nowrap; /* Prevent text wrapping */
+    overflow: hidden; /* Hide overflow if needed */
+    text-overflow: ellipsis; /* Add ellipsis if text is too long */
 }
 
 .disclaimer-header h3 span {
@@ -2904,6 +2907,9 @@ body::before {
     .disclaimer-header h3 {
         justify-content: flex-start; /* Left align title on mobile */
         text-align: left;
+        white-space: nowrap; /* Prevent text wrapping on mobile too */
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
     
     .disclaimer-body {
