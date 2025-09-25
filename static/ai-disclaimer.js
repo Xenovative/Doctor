@@ -3,8 +3,12 @@
  * Shows disclaimer modal on first visit and manages user acceptance
  */
 
+// Debug: Confirm file is loading
+console.log('ai-disclaimer.js loaded successfully');
+
 class AIDisclaimerModal {
     constructor() {
+        console.log('AIDisclaimerModal constructor called');
         this.modal = document.getElementById('aiDisclaimerModal');
         this.acceptBtn = document.getElementById('acceptDisclaimer');
         this.modalLanguageToggle = document.getElementById('modalLanguageToggle');
@@ -26,8 +30,10 @@ class AIDisclaimerModal {
     }
 
     bindEvents() {
+        console.log('bindEvents called, acceptBtn found:', !!this.acceptBtn);
         // Accept button click (add touch events for mobile)
         if (this.acceptBtn) {
+            console.log('Binding click event to accept button');
             this.acceptBtn.addEventListener('click', (e) => {
                 console.log('Accept button clicked', e);
                 e.preventDefault();
@@ -41,6 +47,8 @@ class AIDisclaimerModal {
                 e.preventDefault();
                 this.acceptDisclaimer();
             });
+        } else {
+            console.error('Accept button not found!');
         }
 
         // Modal language selector
