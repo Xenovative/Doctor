@@ -2870,13 +2870,22 @@ body::before {
     transform: translateY(0);
 }
 
-/* Mobile responsiveness for disclaimer modal */
+/* Mobile responsiveness for disclaimer modal - IMPROVED LAYOUT FOR BUTTON VISIBILITY */
 @media (max-width: 768px) {
+    .disclaimer-modal {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px;
+    }
+    
     .disclaimer-content {
         width: 95%;
-        margin: 5% auto;
-        max-height: 90vh;
+        margin: 0;
+        max-height: 95vh;
         border-radius: 12px;
+        display: flex;
+        flex-direction: column;
     }
     
     .disclaimer-header {
@@ -2884,25 +2893,43 @@ body::before {
         flex-direction: column;
         align-items: flex-start;
         gap: 10px;
+        flex-shrink: 0;
     }
     
     .disclaimer-body {
-        padding: 20px;
+        padding: 0;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+    }
+    
+    .disclaimer-content-wrapper {
+        padding: 20px 15px;
+        flex: 1;
+        overflow-y: auto;
+        min-height: 0;
+        max-height: none; /* Allow flex to control height */
     }
     
     .disclaimer-actions {
-        padding: 20px;
+        padding: 20px 15px;
+        background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+        border-radius: 0 0 12px 12px;
+        border-top: 1px solid rgba(128, 90, 213, 0.2);
         justify-content: center;
+        flex-shrink: 0; /* Prevent shrinking */
     }
     
     .disclaimer-accept {
-        min-height: 48px;
+        min-height: 50px;
         padding: 14px 24px;
         font-size: 16px;
         width: 100%;
         touch-action: manipulation;
         -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
         border-radius: 8px;
+        justify-content: center;
     }
     
     .modal-language-btn {
@@ -2917,11 +2944,6 @@ body::before {
         left: 50%;
         transform: translateX(-50%);
         min-width: 140px;
-    }
-    
-    .disclaimer-content-wrapper {
-        padding: 20px 15px;
-        max-height: 65vh;
     }
     
     .disclaimer-section {
@@ -2946,17 +2968,6 @@ body::before {
     
     .disclaimer-text p {
         font-size: 0.9em;
-    }
-    
-    .disclaimer-actions {
-        padding: 20px 15px;
-    }
-    
-    .disclaimer-accept {
-        width: 100%;
-        justify-content: center;
-        padding: 12px 30px;
-        font-size: 1em;
     }
     
     .disclaimer-footer {
