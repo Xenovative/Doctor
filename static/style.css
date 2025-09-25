@@ -2964,14 +2964,21 @@ body::before {
         transform: none; /* Remove vertical centering */
     }
     
-    /* Hide language selector on very small screens to prevent overlap */
+    /* Adjust language selector for very small screens */
     @media (max-width: 480px) {
         .disclaimer-language-selector {
-            display: none;
+            top: 10px;
+            right: 10px;
+        }
+        
+        .modal-language-btn {
+            font-size: 0.75em;
+            padding: 6px 8px;
+            min-height: 30px;
         }
         
         .disclaimer-header {
-            padding: 15px 25px; /* Reduce padding when language selector is hidden */
+            padding: 15px 50px 15px 15px; /* Adjust padding for smaller selector */
         }
         
         .disclaimer-header h3 {
