@@ -126,13 +126,14 @@ class AIDisclaimerModal {
     }
 
     hideModal() {
+        console.log('hideModal called');
         if (this.modal) {
+            console.log('Hiding modal immediately...');
+            this.modal.style.display = 'none';
             this.modal.classList.remove('show');
-            
-            setTimeout(() => {
-                this.modal.style.display = 'none';
-                document.body.style.overflow = ''; // Restore scrolling
-            }, 300);
+            document.body.style.overflow = ''; // Restore scrolling
+        } else {
+            console.log('Modal element not found');
         }
     }
 
@@ -171,8 +172,8 @@ class AIDisclaimerModal {
         const scrollHeight = this.contentWrapper.scrollHeight;
         const clientHeight = this.contentWrapper.clientHeight;
         
-        // Check if user has scrolled to within 10px of the bottom
-        const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10;
+        // Check if user has scrolled to within 50px of the bottom (more lenient)
+        const isAtBottom = scrollTop + clientHeight >= scrollHeight - 50;
         
         console.log('Scroll check:', { scrollTop, scrollHeight, clientHeight, isAtBottom, hasScrolledToBottom: this.hasScrolledToBottom });
         
