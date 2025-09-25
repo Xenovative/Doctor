@@ -7,10 +7,12 @@ class AIDisclaimerModal {
     constructor() {
         this.modal = document.getElementById('aiDisclaimerModal');
         this.acceptBtn = document.getElementById('acceptDisclaimer');
+        this.contentWrapper = document.querySelector('.disclaimer-content-wrapper');
         this.modalLanguageToggle = document.getElementById('modalLanguageToggle');
         this.modalLanguageDropdown = document.getElementById('modalLanguageDropdown');
         this.modalCurrentLang = document.getElementById('modalCurrentLang');
         this.storageKey = 'doctor_ai_disclaimer_accepted';
+        this.hasScrolledToBottom = false;
         this.init();
     }
 
@@ -36,6 +38,13 @@ class AIDisclaimerModal {
             this.acceptBtn.addEventListener('touchend', (e) => {
                 e.preventDefault();
                 this.acceptDisclaimer();
+            });
+        }
+
+        // Scroll event listener for content wrapper
+        if (this.contentWrapper) {
+            this.contentWrapper.addEventListener('scroll', () => {
+                this.checkScrollPosition();
             });
         }
 
@@ -88,6 +97,10 @@ class AIDisclaimerModal {
             this.modal.style.display = 'block';
             document.body.style.overflow = 'hidden'; // Prevent background scrolling
             
+            // Reset scroll state and disable button
+            this.hasScrolledToBottom = false;
+            this.updateButtonState();
+            
             // Sync modal language with current page language
             this.syncModalLanguage();
             
@@ -96,7 +109,7 @@ class AIDisclaimerModal {
                 this.modal.classList.add('show');
             }, 10);
 
-            // Focus on accept button for accessibility
+            // Focus on accept button for accessibility (but it will be disabled)
             setTimeout(() => {
                 if (this.acceptBtn) {
                     this.acceptBtn.focus();
@@ -117,6 +130,11 @@ class AIDisclaimerModal {
     }
 
     acceptDisclaimer() {
+        // Only allow acceptance if user has scrolled to bottom
+        if (!this.hasScrolledToBottom) {
+            return;
+        }
+        
         try {
             // Hide modal with animation
             this.hideModal();
@@ -131,17 +149,34 @@ class AIDisclaimerModal {
         }
     }
 
-    trackAcceptance() {
-        // Optional: Send analytics event
-        try {
-            if (typeof gtag !== 'undefined') {
-                gtag('event', 'disclaimer_accepted', {
-                    'event_category': 'user_interaction',
-                    'event_label': 'ai_disclaimer'
-                });
-            }
-        } catch (error) {
-            // Silently fail if analytics not available
+    checkScrollPosition() {
+        if (!this.contentWrapper) return;
+        
+        const scrollTop = this.contentWrapper.scrollTop;
+        const scrollHeight = this.contentWrapper.scrollHeight;
+        const clientHeight = this.contentWrapper.clientHeight;
+        
+        // Check if user has scrolled to within 10px of the bottom
+        const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10;
+        
+        if (isAtBottom && !this.hasScrolledToBottom) {
+            this.hasScrolledToBottom = true;
+            this.updateButtonState();
+        } else if (!isAtBottom && this.hasScrolledToBottom) {
+            this.hasScrolledToBottom = false;
+            this.updateButtonState();
+        }
+    }
+
+    updateButtonState() {
+        if (!this.acceptBtn) return;
+        
+        if (this.hasScrolledToBottom) {
+            this.acceptBtn.classList.add('enabled');
+            this.acceptBtn.removeAttribute('disabled');
+        } else {
+            this.acceptBtn.classList.remove('enabled');
+            this.acceptBtn.setAttribute('disabled', 'true');
         }
     }
 

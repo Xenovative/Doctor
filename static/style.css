@@ -2932,6 +2932,15 @@ body::before {
         -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
         border-radius: 8px;
         justify-content: center;
+        opacity: 0.5; /* Initially disabled appearance */
+        pointer-events: none; /* Disable clicks */
+        cursor: not-allowed;
+    }
+    
+    .disclaimer-accept.enabled {
+        opacity: 1; /* Full opacity when enabled */
+        pointer-events: auto; /* Enable clicks */
+        cursor: pointer;
     }
     
     .modal-language-btn {
