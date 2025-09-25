@@ -2595,8 +2595,6 @@ body::before {
 /* AI Disclaimer Modal Styles */
 .disclaimer-modal {
     z-index: 3000; /* Higher than other modals */
-    -webkit-overflow-scrolling: touch; /* Enable smooth scrolling on iOS */
-    overscroll-behavior: contain; /* Prevent pull-to-refresh and overscroll glow */
 }
 
 .disclaimer-content {
@@ -2880,17 +2878,6 @@ body::before {
         justify-content: center; /* Center horizontally */
         padding: 20px; /* Increase padding for better centering */
         min-height: 100vh; /* Ensure full viewport coverage */
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        -webkit-tap-highlight-color: rgba(0,0,0,0);
-        -webkit-tap-highlight-color: transparent;
-        touch-action: manipulation; /* Improve touch responsiveness */
-        overflow-y: auto; /* Enable scrolling if content is too tall */
-        -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
-        z-index: 9999; /* Ensure it's above everything */
     }
     
     .disclaimer-content {
@@ -2900,12 +2887,6 @@ body::before {
         border-radius: 12px;
         display: flex;
         flex-direction: column;
-        /* Ensure hardware acceleration and prevent touch issues */
-        transform: translateZ(0);
-        -webkit-transform: translateZ(0);
-        will-change: transform;
-        /* Prevent content from being cut off */
-        overflow: hidden;
     }
     
     .disclaimer-header {
@@ -2936,13 +2917,6 @@ body::before {
         padding: 20px 15px;
         background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
         border-radius: 0 0 12px 12px;
-        position: relative;
-        z-index: 2; /* Ensure it stays above other content */
-        /* Ensure button is clickable on mobile */
-        transform: translateZ(0);
-        -webkit-transform: translateZ(0);
-        /* Prevent tap highlight */
-        -webkit-tap-highlight-color: transparent;
         border-top: 1px solid rgba(128, 90, 213, 0.2);
         justify-content: center;
         flex-shrink: 0; /* Prevent shrinking */
@@ -2953,44 +2927,13 @@ body::before {
         min-height: 50px;
         padding: 14px 24px;
         font-size: 16px;
-        /* Make button more prominent and clickable */
-        position: relative;
-        z-index: 10000;
-        cursor: pointer;
-        -webkit-user-select: none;
-        -moz-user-select: none;
-        -ms-user-select: none;
-        user-select: none;
-        /* Visual feedback */
-        transition: all 0.2s ease-in-out;
-        /* Ensure it's above other elements */
-        transform: translateZ(100px);
-        /* Test border to ensure visibility */
-        border: 2px solid #2c7a5b !important;
+        width: 100%;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+        justify-content: center;
     }
-
-    /* Ensure button is clickable on all devices */
-    .disclaimer-accept,
-    .disclaimer-accept * {
-        pointer-events: auto !important;
-    }
-
-    /* Debug overlay to check for overlapping elements */
-    .disclaimer-modal *:not(.disclaimer-accept):not(.disclaimer-accept *) {
-        position: relative;
-    }
-
-    .disclaimer-modal *:not(.disclaimer-accept):not(.disclaimer-accept *)::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.1);
-        pointer-events: none;
-        z-index: 9998;
-    }
+    
     .modal-language-btn {
         font-size: 0.85em;
         padding: 8px 12px;

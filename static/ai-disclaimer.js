@@ -28,37 +28,15 @@ class AIDisclaimerModal {
     bindEvents() {
         // Accept button click (add touch events for mobile)
         if (this.acceptBtn) {
-            console.log('Binding events to accept button');
-            // Make button more responsive on mobile
-            this.acceptBtn.style.touchAction = 'manipulation';
-            this.acceptBtn.style.pointerEvents = 'auto';
-            
-            // Add test class for debugging
-            this.acceptBtn.classList.add('test-accept-button');
-            
-            // Use passive event listeners for better performance
-            const acceptHandler = (e) => {
-                console.log('Accept button clicked', e.type, e);
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('Calling acceptDisclaimer()');
+            this.acceptBtn.addEventListener('click', () => {
                 this.acceptDisclaimer();
-            };
+            });
             
-            // Clear any existing event listeners first
-            const newAcceptBtn = this.acceptBtn.cloneNode(true);
-            this.acceptBtn.parentNode.replaceChild(newAcceptBtn, this.acceptBtn);
-            this.acceptBtn = newAcceptBtn;
-            
-            // Add both click and touch events with capture phase
-            const options = { capture: true, passive: false };
-            this.acceptBtn.addEventListener('click', acceptHandler, options);
-            this.acceptBtn.addEventListener('touchend', acceptHandler, options);
-            
-            // Add pointer events as well
-            this.acceptBtn.addEventListener('pointerup', acceptHandler, options);
-            
-            console.log('Event listeners added to accept button');
+            // Add touch event for mobile devices
+            this.acceptBtn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                this.acceptDisclaimer();
+            });
         }
 
         // Modal language selector
@@ -121,55 +99,33 @@ class AIDisclaimerModal {
             // Focus on accept button for accessibility
             setTimeout(() => {
                 if (this.acceptBtn) {
-                    // Small delay to ensure the modal is fully visible
-                    setTimeout(() => {
-                        this.acceptBtn.focus();
-                        // Ensure button is clickable
-                        this.acceptBtn.style.pointerEvents = 'auto';
-                    }, 50);
+                    this.acceptBtn.focus();
                 }
             }, 300);
         }
     }
 
     hideModal() {
-        console.log('hideModal() called');
         if (this.modal) {
-            console.log('Removing show class from modal');
             this.modal.classList.remove('show');
             
-            // Force reflow/repaint
-            void this.modal.offsetHeight;
-            
             setTimeout(() => {
-                console.log('Hiding modal completely');
                 this.modal.style.display = 'none';
                 document.body.style.overflow = ''; // Restore scrolling
-                console.log('Modal hidden');
-                
-                // Dispatch custom event when modal is fully hidden
-                const event = new CustomEvent('disclaimerHidden', { detail: { timestamp: Date.now() } });
-                document.dispatchEvent(event);
             }, 300);
-        } else {
-            console.warn('Modal element not found in hideModal()');
         }
     }
 
     acceptDisclaimer() {
-        console.log('acceptDisclaimer() called');
         try {
-            console.log('Hiding modal...');
             // Hide modal with animation
             this.hideModal();
             
             // Optional: Track acceptance for analytics
-            console.log('Tracking acceptance...');
             this.trackAcceptance();
             
-            console.log('acceptDisclaimer() completed');
         } catch (error) {
-            console.error('Error in acceptDisclaimer:', error);
+            console.warn('Error in disclaimer acceptance:', error);
             // Still hide modal even if error occurs
             this.hideModal();
         }
