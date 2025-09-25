@@ -99,6 +99,8 @@ class AIDisclaimerModal {
 
     showModal() {
         if (this.modal) {
+            // Reset display property to allow CSS to control it
+            this.modal.style.removeProperty('display');
             this.modal.style.display = 'block';
             document.body.style.overflow = 'hidden'; // Prevent background scrolling
             
@@ -124,7 +126,8 @@ class AIDisclaimerModal {
             this.modal.classList.remove('show');
             
             setTimeout(() => {
-                this.modal.style.display = 'none';
+                // Force hide the modal by overriding CSS !important
+                this.modal.style.setProperty('display', 'none', 'important');
                 document.body.style.overflow = ''; // Restore scrolling
             }, 300);
         }
