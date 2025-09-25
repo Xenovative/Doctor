@@ -2881,9 +2881,9 @@ body::before {
     }
     
     .disclaimer-content {
-        width: 95%;
-        margin: 0;
-        max-height: calc(100vh - 10px); /* Account for modal padding */
+        width: 90%; /* Reduced from 95% */
+        margin: 10px auto; /* Add some top margin for breathing room */
+        max-height: calc(100vh - 40px); /* More conservative height */
         border-radius: 12px;
         display: flex;
         flex-direction: column;
