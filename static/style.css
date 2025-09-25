@@ -2964,6 +2964,21 @@ body::before {
         transform: none; /* Remove vertical centering */
     }
     
+    /* Hide language selector on very small screens to prevent overlap */
+    @media (max-width: 480px) {
+        .disclaimer-language-selector {
+            display: none;
+        }
+        
+        .disclaimer-header {
+            padding: 15px 25px; /* Reduce padding when language selector is hidden */
+        }
+        
+        .disclaimer-header h3 {
+            font-size: 1.1em; /* Even smaller font for very small screens */
+        }
+    }
+    
     .disclaimer-section {
         flex-direction: column;
         text-align: center;
