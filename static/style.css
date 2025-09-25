@@ -2881,9 +2881,9 @@ body::before {
     }
     
     .disclaimer-content {
-        width: 90%; /* Reduced from 95% */
-        margin: 10px auto; /* Add some top margin for breathing room */
-        max-height: calc(100vh - 40px); /* More conservative height */
+        width: 85%; /* Further reduced from 90% */
+        margin: 5px auto; /* Reduced margin */
+        max-height: calc(100vh - 20px); /* Even more conservative height */
         border-radius: 12px;
         display: flex;
         flex-direction: column;
@@ -2906,11 +2906,11 @@ body::before {
     }
     
     .disclaimer-content-wrapper {
-        padding: 20px 15px;
+        padding: 15px 12px; /* Reduced padding */
         flex: 1;
         overflow-y: auto;
         min-height: 0;
-        max-height: none; /* Allow flex to control height */
+        max-height: 250px; /* Further reduced max height */
     }
     
     .disclaimer-actions {
