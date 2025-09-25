@@ -2883,6 +2883,7 @@ body::before {
         justify-content: center; /* Center horizontally */
         padding: 20px; /* Increase padding for better centering */
         min-height: 100vh; /* Ensure full viewport coverage */
+        transform: translateY(-5%); /* Nudge modal upward */
     }
     
     .disclaimer-content {
