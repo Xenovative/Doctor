@@ -2953,13 +2953,44 @@ body::before {
         min-height: 50px;
         padding: 14px 24px;
         font-size: 16px;
-        width: 100%;
-        touch-action: manipulation;
-        -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
-        border-radius: 8px;
-        justify-content: center;
+        /* Make button more prominent and clickable */
+        position: relative;
+        z-index: 10000;
+        cursor: pointer;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        /* Visual feedback */
+        transition: all 0.2s ease-in-out;
+        /* Ensure it's above other elements */
+        transform: translateZ(100px);
+        /* Test border to ensure visibility */
+        border: 2px solid #2c7a5b !important;
     }
-    
+
+    /* Ensure button is clickable on all devices */
+    .disclaimer-accept,
+    .disclaimer-accept * {
+        pointer-events: auto !important;
+    }
+
+    /* Debug overlay to check for overlapping elements */
+    .disclaimer-modal *:not(.disclaimer-accept):not(.disclaimer-accept *) {
+        position: relative;
+    }
+
+    .disclaimer-modal *:not(.disclaimer-accept):not(.disclaimer-accept *)::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.1);
+        pointer-events: none;
+        z-index: 9998;
+    }
     .modal-language-btn {
         font-size: 0.85em;
         padding: 8px 12px;
