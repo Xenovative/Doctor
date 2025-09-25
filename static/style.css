@@ -2609,13 +2609,14 @@ body::before {
 .disclaimer-header {
     background: linear-gradient(135deg, #805ad5 0%, #667eea 100%);
     color: white !important;
-    padding: 25px;
+    padding: 25px 80px 25px 25px; /* Add more right padding to accommodate language selector */
     text-align: center;
     border-radius: 15px 15px 0 0;
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
+    min-height: 80px; /* Ensure minimum height */
 }
 
 .disclaimer-header h3 {
@@ -2645,6 +2646,7 @@ body::before {
     top: 50%;
     right: 20px;
     transform: translateY(-50%);
+    z-index: 10; /* Ensure it appears above other content */
 }
 
 .modal-language-toggle {
@@ -2890,11 +2892,18 @@ body::before {
     }
     
     .disclaimer-header {
-        padding: 15px 20px;
+        padding: 15px 60px 15px 15px; /* Adjust padding for mobile - more right padding for language selector */
         flex-direction: column;
         align-items: flex-start;
         gap: 10px;
         flex-shrink: 0;
+        min-height: 60px; /* Minimum height for mobile */
+        text-align: left; /* Left align on mobile */
+    }
+    
+    .disclaimer-header h3 {
+        justify-content: flex-start; /* Left align title on mobile */
+        text-align: left;
     }
     
     .disclaimer-body {
@@ -2941,11 +2950,11 @@ body::before {
         touch-action: manipulation;
     }
     
-    .modal-language-dropdown {
-        right: auto;
-        left: 50%;
-        transform: translateX(-50%);
-        min-width: 140px;
+    .disclaimer-language-selector {
+        position: absolute;
+        top: 15px; /* Position at top instead of center for mobile */
+        right: 15px;
+        transform: none; /* Remove vertical centering */
     }
     
     .disclaimer-section {
