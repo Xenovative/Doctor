@@ -28,15 +28,20 @@ class AIDisclaimerModal {
     bindEvents() {
         // Accept button click (add touch events for mobile)
         if (this.acceptBtn) {
-            this.acceptBtn.addEventListener('click', () => {
-                this.acceptDisclaimer();
-            });
+            // Make button more responsive on mobile
+            this.acceptBtn.style.touchAction = 'manipulation';
+            this.acceptBtn.style.pointerEvents = 'auto';
             
-            // Add touch event for mobile devices
-            this.acceptBtn.addEventListener('touchend', (e) => {
+            // Use passive event listeners for better performance
+            const acceptHandler = (e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 this.acceptDisclaimer();
-            });
+            };
+            
+            // Add both click and touch events
+            this.acceptBtn.addEventListener('click', acceptHandler, { passive: false });
+            this.acceptBtn.addEventListener('touchend', acceptHandler, { passive: false });
         }
 
         // Modal language selector
@@ -99,7 +104,12 @@ class AIDisclaimerModal {
             // Focus on accept button for accessibility
             setTimeout(() => {
                 if (this.acceptBtn) {
-                    this.acceptBtn.focus();
+                    // Small delay to ensure the modal is fully visible
+                    setTimeout(() => {
+                        this.acceptBtn.focus();
+                        // Ensure button is clickable
+                        this.acceptBtn.style.pointerEvents = 'auto';
+                    }, 50);
                 }
             }, 300);
         }
