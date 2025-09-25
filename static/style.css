@@ -2873,21 +2873,17 @@ body::before {
 /* Mobile responsiveness for disclaimer modal - IMPROVED LAYOUT FOR BUTTON VISIBILITY */
 @media (max-width: 768px) {
     .disclaimer-modal {
-        display: block !important; /* Use block instead of flex for better control */
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%); /* Perfect centering */
-        padding: 0;
-        width: 100%;
-        height: 100%;
-        max-width: none;
+        display: flex !important; /* Override base modal display */
+        align-items: center; /* Center vertically */
+        justify-content: center; /* Center horizontally */
+        padding: 10px; /* Slightly more padding */
+        min-height: 100vh; /* Ensure full viewport coverage */
     }
     
     .disclaimer-content {
         width: 92%; /* Increased from 85% */
         margin: 0;
-        max-height: calc(100vh - 40px); /* More conservative height */
+        max-height: calc(100vh - 30px); /* Increased height from -40px to -30px */
         border-radius: 12px;
         display: flex;
         flex-direction: column;
