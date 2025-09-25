@@ -2609,7 +2609,7 @@ body::before {
 .disclaimer-header {
     background: linear-gradient(135deg, #805ad5 0%, #667eea 100%);
     color: white !important;
-    padding: 25px 80px 25px 25px; /* Add more right padding to accommodate language selector */
+    padding: 25px 100px 25px 25px; /* Increase right padding further to 100px */
     text-align: center;
     border-radius: 15px 15px 0 0;
     position: relative;
@@ -2632,6 +2632,7 @@ body::before {
     white-space: nowrap; /* Prevent text wrapping */
     overflow: hidden; /* Hide overflow if needed */
     text-overflow: ellipsis; /* Add ellipsis if text is too long */
+    max-width: calc(100% - 120px); /* Leave space for language selector */
 }
 
 .disclaimer-header h3 span {
@@ -2647,7 +2648,7 @@ body::before {
 .disclaimer-language-selector {
     position: absolute;
     top: 50%;
-    right: 20px;
+    right: 25px; /* Move it 5px further from the right edge */
     transform: translateY(-50%);
     z-index: 10; /* Ensure it appears above other content */
 }
@@ -2910,6 +2911,7 @@ body::before {
         white-space: nowrap; /* Prevent text wrapping on mobile too */
         overflow: hidden;
         text-overflow: ellipsis;
+        max-width: calc(100% - 80px); /* Leave space for language selector on mobile */
     }
     
     .disclaimer-body {
