@@ -2874,16 +2874,16 @@ body::before {
 @media (max-width: 768px) {
     .disclaimer-modal {
         display: flex;
-        align-items: flex-start; /* Changed from center to start */
+        align-items: center; /* Center vertically */
         justify-content: center;
-        padding: 5px; /* Reduced padding */
+        padding: 10px; /* Slightly more padding */
         min-height: 100vh; /* Ensure full viewport coverage */
     }
     
     .disclaimer-content {
-        width: 85%; /* Further reduced from 90% */
-        margin: 5px auto; /* Reduced margin */
-        max-height: calc(100vh - 20px); /* Even more conservative height */
+        width: 92%; /* Increased from 85% */
+        margin: 0;
+        max-height: calc(100vh - 40px); /* More conservative height */
         border-radius: 12px;
         display: flex;
         flex-direction: column;
@@ -2910,7 +2910,7 @@ body::before {
         flex: 1;
         overflow-y: auto;
         min-height: 0;
-        max-height: 250px; /* Further reduced max height */
+        max-height: 350px; /* Increased from 250px for better readability */
     }
     
     .disclaimer-actions {
