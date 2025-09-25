@@ -28,7 +28,9 @@ class AIDisclaimerModal {
     bindEvents() {
         // Accept button click (add touch events for mobile)
         if (this.acceptBtn) {
-            this.acceptBtn.addEventListener('click', () => {
+            this.acceptBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 this.acceptDisclaimer();
             });
             
@@ -68,8 +70,10 @@ class AIDisclaimerModal {
         // Prevent modal from closing by clicking outside or ESC key
         if (this.modal) {
             this.modal.addEventListener('click', (e) => {
-                // Only allow closing by clicking the accept button
-                e.stopPropagation();
+                // Only allow closing by clicking the accept button - don't prevent button clicks
+                if (e.target !== this.acceptBtn && !this.acceptBtn.contains(e.target)) {
+                    e.stopPropagation();
+                }
             });
 
             // Disable ESC key for this modal
