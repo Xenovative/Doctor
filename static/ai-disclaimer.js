@@ -7,19 +7,10 @@ class AIDisclaimerModal {
     constructor() {
         this.modal = document.getElementById('aiDisclaimerModal');
         this.acceptBtn = document.getElementById('acceptDisclaimer');
-        this.contentWrapper = document.querySelector('.disclaimer-content-wrapper');
         this.modalLanguageToggle = document.getElementById('modalLanguageToggle');
         this.modalLanguageDropdown = document.getElementById('modalLanguageDropdown');
         this.modalCurrentLang = document.getElementById('modalCurrentLang');
         this.storageKey = 'doctor_ai_disclaimer_accepted';
-        this.hasScrolledToBottom = false;
-        
-        console.log('AIDisclaimerModal constructor:', {
-            modal: !!this.modal,
-            acceptBtn: !!this.acceptBtn,
-            contentWrapper: !!this.contentWrapper
-        });
-        
         this.init();
     }
 
@@ -45,13 +36,6 @@ class AIDisclaimerModal {
             this.acceptBtn.addEventListener('touchend', (e) => {
                 e.preventDefault();
                 this.acceptDisclaimer();
-            });
-        }
-
-        // Scroll event listener for content wrapper
-        if (this.contentWrapper) {
-            this.contentWrapper.addEventListener('scroll', () => {
-                this.checkScrollPosition();
             });
         }
 
@@ -104,10 +88,6 @@ class AIDisclaimerModal {
             this.modal.style.display = 'block';
             document.body.style.overflow = 'hidden'; // Prevent background scrolling
             
-            // Reset scroll state and disable button
-            this.hasScrolledToBottom = false;
-            this.updateButtonState();
-            
             // Sync modal language with current page language
             this.syncModalLanguage();
             
@@ -116,7 +96,7 @@ class AIDisclaimerModal {
                 this.modal.classList.add('show');
             }, 10);
 
-            // Focus on accept button for accessibility (but it will be disabled)
+            // Focus on accept button for accessibility
             setTimeout(() => {
                 if (this.acceptBtn) {
                     this.acceptBtn.focus();
@@ -126,34 +106,23 @@ class AIDisclaimerModal {
     }
 
     hideModal() {
-        console.log('hideModal called');
         if (this.modal) {
-            console.log('Hiding modal immediately...');
-            this.modal.style.display = 'none';
             this.modal.classList.remove('show');
-            document.body.style.overflow = ''; // Restore scrolling
-        } else {
-            console.log('Modal element not found');
+            
+            setTimeout(() => {
+                this.modal.style.display = 'none';
+                document.body.style.overflow = ''; // Restore scrolling
+            }, 300);
         }
     }
 
     acceptDisclaimer() {
-        console.log('acceptDisclaimer called, hasScrolledToBottom:', this.hasScrolledToBottom);
-        
-        // Only allow acceptance if user has scrolled to bottom
-        if (!this.hasScrolledToBottom) {
-            console.log('Button clicked but user has not scrolled to bottom');
-            return;
-        }
-        
-        console.log('Accepting disclaimer...');
-        
         try {
             // Hide modal with animation
             this.hideModal();
             
             // Optional: Track acceptance for analytics
-            // this.trackAcceptance(); // Temporarily commented out for debugging
+            this.trackAcceptance();
             
         } catch (error) {
             console.warn('Error in disclaimer acceptance:', error);
@@ -162,39 +131,17 @@ class AIDisclaimerModal {
         }
     }
 
-    checkScrollPosition() {
-        if (!this.contentWrapper) {
-            console.log('Content wrapper not found');
-            return;
-        }
-        
-        const scrollTop = this.contentWrapper.scrollTop;
-        const scrollHeight = this.contentWrapper.scrollHeight;
-        const clientHeight = this.contentWrapper.clientHeight;
-        
-        // Check if user has scrolled to within 50px of the bottom (more lenient)
-        const isAtBottom = scrollTop + clientHeight >= scrollHeight - 50;
-        
-        console.log('Scroll check:', { scrollTop, scrollHeight, clientHeight, isAtBottom, hasScrolledToBottom: this.hasScrolledToBottom });
-        
-        if (isAtBottom && !this.hasScrolledToBottom) {
-            console.log('Enabling button');
-            this.hasScrolledToBottom = true;
-            this.updateButtonState();
-        } else if (!isAtBottom && this.hasScrolledToBottom) {
-            console.log('Disabling button');
-            this.hasScrolledToBottom = false;
-            this.updateButtonState();
-        }
-    }
-
-    updateButtonState() {
-        if (!this.acceptBtn) return;
-        
-        if (this.hasScrolledToBottom) {
-            this.acceptBtn.classList.add('enabled');
-        } else {
-            this.acceptBtn.classList.remove('enabled');
+    trackAcceptance() {
+        // Optional: Send analytics event
+        try {
+            if (typeof gtag !== 'undefined') {
+                gtag('event', 'disclaimer_accepted', {
+                    'event_category': 'user_interaction',
+                    'event_label': 'ai_disclaimer'
+                });
+            }
+        } catch (error) {
+            // Silently fail if analytics not available
         }
     }
 
