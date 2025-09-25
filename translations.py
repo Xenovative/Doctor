@@ -255,7 +255,7 @@ TRANSLATIONS = {
         'urgent_consultation': '可能需要緊急醫療諮詢',
         
         # AI Disclaimer Modal
-        'ai_disclaimer_title': 'Doctor-AI.io 醫療配對系統聲明',
+        'ai_disclaimer_title': 'Doctor-Ai.io 系統聲明',
         'not_medical_advice_title': '⚠️ 非醫療建議',
         'not_medical_advice_desc': '本系統僅為AI輔助工具，提供的資訊和建議不構成專業醫療建議、診斷或治療。所有醫療決定應諮詢合格的醫療專業人員。',
         'ai_limitations_title': '🤖 AI系統限制',
@@ -520,7 +520,7 @@ TRANSLATIONS = {
         'urgent_consultation': '可能需要紧急医疗咨询',
         
         # AI Disclaimer Modal
-        'ai_disclaimer_title': 'Doctor-AI.io 医疗配对系统声明',
+        'ai_disclaimer_title': 'Doctor-Ai.io 系统声明',
         'not_medical_advice_title': '⚠️ 非医疗建议',
         'not_medical_advice_desc': '本系统仅为AI辅助工具，提供的资讯和建议不构成专业医疗建议、诊断或治疗。所有医疗决定应咨询合格的医疗专业人员。',
         'ai_limitations_title': '🤖 AI系统限制',
@@ -791,7 +791,7 @@ TRANSLATIONS = {
         'urgent_consultation': 'Urgent Medical Consultation Required',
         
         # AI Disclaimer Modal
-        'ai_disclaimer_title': 'Doctor-AI.io Medical Matching System Disclaimer',
+        'ai_disclaimer_title': 'Doctor-Ai.io System Disclaimer',
         'not_medical_advice_title': '⚠️ Not Medical Advice',
         'not_medical_advice_desc': 'This system is an AI-assisted tool only. The information and recommendations provided do not constitute professional medical advice, diagnosis, or treatment. All medical decisions should be made in consultation with qualified healthcare professionals.',
         'ai_limitations_title': '🤖 AI System Limitations',
