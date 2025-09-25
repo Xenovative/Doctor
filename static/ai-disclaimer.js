@@ -153,7 +153,7 @@ class AIDisclaimerModal {
             this.hideModal();
             
             // Optional: Track acceptance for analytics
-            this.trackAcceptance();
+            // this.trackAcceptance(); // Temporarily commented out for debugging
             
         } catch (error) {
             console.warn('Error in disclaimer acceptance:', error);
