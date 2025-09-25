@@ -2874,15 +2874,16 @@ body::before {
 @media (max-width: 768px) {
     .disclaimer-modal {
         display: flex;
-        align-items: center;
+        align-items: flex-start; /* Changed from center to start */
         justify-content: center;
-        padding: 10px;
+        padding: 5px; /* Reduced padding */
+        min-height: 100vh; /* Ensure full viewport coverage */
     }
     
     .disclaimer-content {
         width: 95%;
         margin: 0;
-        max-height: 95vh;
+        max-height: calc(100vh - 10px); /* Account for modal padding */
         border-radius: 12px;
         display: flex;
         flex-direction: column;
@@ -2919,6 +2920,7 @@ body::before {
         border-top: 1px solid rgba(128, 90, 213, 0.2);
         justify-content: center;
         flex-shrink: 0; /* Prevent shrinking */
+        min-height: 80px; /* Ensure minimum space for button */
     }
     
     .disclaimer-accept {
