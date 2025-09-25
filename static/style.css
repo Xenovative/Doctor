@@ -2883,7 +2883,7 @@ body::before {
     .disclaimer-content {
         width: 92%; /* Increased from 85% */
         margin: 0;
-        max-height: calc(100vh - 30px); /* Increased height from -40px to -30px */
+        max-height: calc(100vh - 20px); /* Increased height from -40px to -30px */
         border-radius: 12px;
         display: flex;
         flex-direction: column;
