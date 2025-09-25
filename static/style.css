@@ -2873,9 +2873,9 @@ body::before {
 /* Mobile responsiveness for disclaimer modal - IMPROVED LAYOUT FOR BUTTON VISIBILITY */
 @media (max-width: 768px) {
     .disclaimer-modal {
-        display: flex;
+        display: flex !important; /* Override base modal display */
         align-items: center; /* Center vertically */
-        justify-content: center;
+        justify-content: center; /* Center horizontally */
         padding: 10px; /* Slightly more padding */
         min-height: 100vh; /* Ensure full viewport coverage */
     }
