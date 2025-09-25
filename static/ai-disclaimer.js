@@ -29,6 +29,7 @@ class AIDisclaimerModal {
         // Accept button click (add touch events for mobile)
         if (this.acceptBtn) {
             this.acceptBtn.addEventListener('click', (e) => {
+                console.log('Accept button clicked', e);
                 e.preventDefault();
                 e.stopPropagation();
                 this.acceptDisclaimer();
@@ -36,6 +37,7 @@ class AIDisclaimerModal {
             
             // Add touch event for mobile devices
             this.acceptBtn.addEventListener('touchend', (e) => {
+                console.log('Accept button touched', e);
                 e.preventDefault();
                 this.acceptDisclaimer();
             });
@@ -121,8 +123,10 @@ class AIDisclaimerModal {
     }
 
     acceptDisclaimer() {
+        console.log('acceptDisclaimer called');
         try {
             // Hide modal with animation
+            console.log('Calling hideModal');
             this.hideModal();
             
             // Optional: Track acceptance for analytics
