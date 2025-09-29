@@ -4681,32 +4681,17 @@ def disable_2fa():
         return redirect(url_for('admin_config'))
     
     # Verify password
-    password_hash = hashlib.sha256(password.encode()).hexdigest()
-    if password_hash != ADMIN_PASSWORD_HASH:
-        flash('密碼錯誤', 'error')
-        return redirect(url_for('admin_config'))
-    
-    # Disable 2FA
     conn = sqlite3.connect('admin_data.db')
     cursor = conn.cursor()
-    cursor.execute('''
-        UPDATE admin_users 
-        SET totp_secret = NULL, totp_enabled = 0, backup_codes = NULL
-        WHERE username = ?
-    ''', (ADMIN_USERNAME,))
-    conn.commit()
-    conn.close()
     
-    # Log the disable
-    log_analytics('2fa_disabled', {'username': ADMIN_USERNAME}, 
-                 get_real_ip(), request.user_agent.string)
+    # Get user ID for multi-device cleanup
+    cursor.execute('SELECT id FROM admin_users WHERE username = ?', (ADMIN_USERNAME,))
+    user_result = cursor.fetchone()
     
-    flash('雙重認證已停用', 'success')
-    return redirect(url_for('admin_config'))
-
-@app.route('/admin/config/password', methods=['POST'])
-@require_admin
-def change_admin_password_legacy():
+    if user_result:
+        user_id = user_result[0]
+        # Delete all multi-device 2FA devices
+        cursor.execute('DELETE FROM admin_2fa_devices WHERE user_id = ?', (user_id,))
     """Change admin password (legacy endpoint)"""
     try:
         current_password = request.form.get('current_password')
@@ -6975,6 +6960,41 @@ def manage_2fa_devices():
     if not user_id:
         flash('用戶不存在', 'error')
         return redirect(url_for('admin_config'))
+    
+    # Check if user has existing single-device 2FA that needs migration
+    conn = sqlite3.connect('admin_data.db')
+    cursor = conn.cursor()
+    
+    # Check if user has existing 2FA but no multi-device setup
+    cursor.execute('SELECT totp_enabled, totp_secret, multi_device_2fa_enabled FROM admin_users WHERE id = ?', (user_id,))
+    user_2fa_status = cursor.fetchone()
+    
+    if user_2fa_status and user_2fa_status[0] and user_2fa_status[1] and not user_2fa_status[2]:
+        # User has single-device 2FA but no multi-device setup - migrate it
+        try:
+            # Check if device already exists in multi-device table
+            cursor.execute('SELECT COUNT(*) FROM admin_2fa_devices WHERE user_id = ?', (user_id,))
+            device_count = cursor.fetchone()[0]
+            
+            if device_count == 0:
+                # Migrate existing single-device 2FA to multi-device
+                cursor.execute('''
+                    INSERT INTO admin_2fa_devices
+                    (user_id, device_name, totp_secret, is_primary, is_active, created_at, device_info)
+                    VALUES (?, ?, ?, 1, 1, CURRENT_TIMESTAMP, ?)
+                ''', (user_id, "主要設備", user_2fa_status[1], 
+                      json.dumps({"migrated": True, "original_setup": True})))
+                
+                # Enable multi-device 2FA
+                cursor.execute('UPDATE admin_users SET multi_device_2fa_enabled = 1 WHERE id = ?', (user_id,))
+                conn.commit()
+                
+                flash('已將現有雙重認證設備遷移到多設備系統', 'info')
+        except Exception as e:
+            print(f"Migration error: {e}")
+            flash('設備遷移時發生錯誤', 'error')
+    
+    conn.close()
     
     devices = multi_device_2fa.get_user_devices(user_id)
     can_add = multi_device_2fa.can_add_device(user_id)
