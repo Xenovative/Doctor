@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理雙重認證設備 - Doctor AI Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .device-card {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+        }
+        .device-card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .device-card.primary {
+            border-color: #0d6efd;
+            background-color: #f8f9ff;
+        }
+        .device-card.inactive {
+            opacity: 0.6;
+            background-color: #f8f9fa;
+        }
+        .device-status {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        .status-primary {
+            background-color: #0d6efd;
+            color: white;
+        }
+        .status-active {
+            background-color: #198754;
+            color: white;
+        }
+        .status-inactive {
+            background-color: #6c757d;
+            color: white;
+        }
+        .device-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .device-info {
+            font-size: 0.875rem;
+            color: #6c757d;
+        }
+        .add-device-card {
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+        }
+        .add-device-card:hover {
+            border-color: #0d6efd;
+            background-color: #f8f9ff;
+        }
+        .device-icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            color: #0d6efd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+                <div class="position-sticky pt-3">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_dashboard') }}">
+                                <i class="fas fa-tachometer-alt me-2"></i>儀表板
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="{{ url_for('admin_config') }}">
+                                <i class="fas fa-cog me-2"></i>系統配置
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Main content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">
+                        <i class="fas fa-mobile-alt me-2"></i>管理雙重認證設備
+                    </h1>
+                    <div class="btn-toolbar mb-2 mb-md-0">
+                        <a href="{{ url_for('admin_config') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>返回配置
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Flash messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <!-- Device Management -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">
+                                    <i class="fas fa-shield-alt me-2"></i>{{ username }} 的雙重認證設備
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <!-- Add Device Card -->
+                                {% if can_add_device %}
+                                <div class="add-device-card">
+                                    <div class="device-icon">
+                                        <i class="fas fa-plus-circle"></i>
+                                    </div>
+                                    <h5>添加新設備</h5>
+                                    <p class="text-muted mb-3">為您的帳戶添加另一個雙重認證設備</p>
+                                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addDeviceModal">
+                                        <i class="fas fa-plus me-2"></i>添加設備
+                                    </button>
+                                </div>
+                                {% else %}
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    您已達到最大設備數量限制。如需添加新設備，請先刪除現有設備。
+                                </div>
+                                {% endif %}
+
+                                <!-- Existing Devices -->
+                                {% if devices %}
+                                    {% for device in devices %}
+                                    <div class="device-card {% if device.is_primary %}primary{% endif %} {% if not device.is_active %}inactive{% endif %}" data-device-id="{{ device.id }}">
+                                        <div class="row align-items-center">
+                                            <div class="col-md-8">
+                                                <div class="d-flex align-items-center mb-2">
+                                                    <i class="fas fa-mobile-alt me-3 text-primary" style="font-size: 1.5rem;"></i>
+                                                    <div>
+                                                        <h5 class="mb-1 device-name">{{ device.device_name }}</h5>
+                                                        <div class="device-status-badges">
+                                                            {% if device.is_primary %}
+                                                                <span class="device-status status-primary">主要設備</span>
+                                                            {% endif %}
+                                                            <span class="device-status {% if device.is_active %}status-active{% else %}status-inactive{% endif %}">
+                                                                {% if device.is_active %}啟用{% else %}停用{% endif %}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="device-info">
+                                                    <div><i class="fas fa-calendar-plus me-2"></i>創建時間: {{ device.created_at }}</div>
+                                                    {% if device.last_used %}
+                                                        <div><i class="fas fa-clock me-2"></i>最後使用: {{ device.last_used }}</div>
+                                                    {% else %}
+                                                        <div><i class="fas fa-clock me-2"></i>從未使用</div>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="device-actions">
+                                                    <button type="button" class="btn btn-sm btn-outline-primary rename-device-btn" 
+                                                            data-device-id="{{ device.id }}" 
+                                                            data-device-name="{{ device.device_name }}">
+                                                        <i class="fas fa-edit"></i> 重命名
+                                                    </button>
+                                                    <button type="button" class="btn btn-sm {% if device.is_active %}btn-outline-warning{% else %}btn-outline-success{% endif %} toggle-device-btn" 
+                                                            data-device-id="{{ device.id }}"
+                                                            data-device-active="{{ device.is_active }}">
+                                                        <i class="fas {% if device.is_active %}fa-pause{% else %}fa-play{% endif %}"></i>
+                                                        {% if device.is_active %}停用{% else %}啟用{% endif %}
+                                                    </button>
+                                                    {% if not device.is_primary or devices|length > 1 %}
+                                                    <button type="button" class="btn btn-sm btn-outline-danger delete-device-btn" 
+                                                            data-device-id="{{ device.id }}" 
+                                                            data-device-name="{{ device.device_name }}">
+                                                        <i class="fas fa-trash"></i> 刪除
+                                                    </button>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <div class="alert alert-warning">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                        您還沒有設置任何雙重認證設備。請添加至少一個設備以提高帳戶安全性。
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Add Device Modal -->
+    <div class="modal fade" id="addDeviceModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">添加新的雙重認證設備</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addDeviceForm">
+                        <div class="mb-3">
+                            <label for="deviceName" class="form-label">設備名稱</label>
+                            <input type="text" class="form-control" id="deviceName" name="device_name" 
+                                   placeholder="例如：iPhone、Android手機、平板電腦" required>
+                            <div class="form-text">為您的設備選擇一個容易識別的名稱</div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="proceedAddDevice">繼續設置</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rename Device Modal -->
+    <div class="modal fade" id="renameDeviceModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">重命名設備</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="renameDeviceForm">
+                        <div class="mb-3">
+                            <label for="newDeviceName" class="form-label">新設備名稱</label>
+                            <input type="text" class="form-control" id="newDeviceName" name="new_device_name" required>
+                        </div>
+                        <input type="hidden" id="renameDeviceId" name="device_id">
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="confirmRename">確認重命名</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteDeviceModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">確認刪除設備</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        您確定要刪除設備 "<span id="deleteDeviceName"></span>" 嗎？
+                    </div>
+                    <p>此操作無法撤銷。刪除後，該設備將無法用於雙重認證。</p>
+                    <input type="hidden" id="deleteDeviceId">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-danger" id="confirmDelete">確認刪除</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Add device functionality
+        document.getElementById('proceedAddDevice').addEventListener('click', function() {
+            const deviceName = document.getElementById('deviceName').value.trim();
+            if (!deviceName) {
+                alert('請輸入設備名稱');
+                return;
+            }
+            
+            // Redirect to add device page with device name
+            window.location.href = `{{ url_for('add_2fa_device') }}?device_name=${encodeURIComponent(deviceName)}`;
+        });
+
+        // Rename device functionality
+        document.querySelectorAll('.rename-device-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const deviceId = this.dataset.deviceId;
+                const deviceName = this.dataset.deviceName;
+                
+                document.getElementById('renameDeviceId').value = deviceId;
+                document.getElementById('newDeviceName').value = deviceName;
+                
+                new bootstrap.Modal(document.getElementById('renameDeviceModal')).show();
+            });
+        });
+
+        document.getElementById('confirmRename').addEventListener('click', function() {
+            const deviceId = document.getElementById('renameDeviceId').value;
+            const newName = document.getElementById('newDeviceName').value.trim();
+            
+            if (!newName) {
+                alert('請輸入新的設備名稱');
+                return;
+            }
+            
+            fetch(`/admin/2fa/device/${deviceId}/rename`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ name: newName })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert(data.error || '重命名失敗');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('重命名失敗');
+            });
+        });
+
+        // Toggle device functionality
+        document.querySelectorAll('.toggle-device-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const deviceId = this.dataset.deviceId;
+                const isActive = this.dataset.deviceActive === 'True';
+                
+                const action = isActive ? '停用' : '啟用';
+                if (!confirm(`確定要${action}此設備嗎？`)) {
+                    return;
+                }
+                
+                fetch(`/admin/2fa/device/${deviceId}/toggle`, {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert(data.error || `${action}失敗`);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert(`${action}失敗`);
+                });
+            });
+        });
+
+        // Delete device functionality
+        document.querySelectorAll('.delete-device-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const deviceId = this.dataset.deviceId;
+                const deviceName = this.dataset.deviceName;
+                
+                document.getElementById('deleteDeviceId').value = deviceId;
+                document.getElementById('deleteDeviceName').textContent = deviceName;
+                
+                new bootstrap.Modal(document.getElementById('deleteDeviceModal')).show();
+            });
+        });
+
+        document.getElementById('confirmDelete').addEventListener('click', function() {
+            const deviceId = document.getElementById('deleteDeviceId').value;
+            
+            fetch(`/admin/2fa/device/${deviceId}/delete`, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert(data.error || '刪除失敗');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('刪除失敗');
+            });
+        });
+    </script>
+</body>
+</html>
