@@ -64,13 +64,17 @@ class MultiDevice2FA:
     def verify_token_multi_device(self, user_id, token):
         """Verify TOTP token against all active devices"""
         active_devices = self.get_active_devices(user_id)
+        print(f"DEBUG - Multi-device verification: {len(active_devices)} active devices for user {user_id}")
         
         for device in active_devices:
+            print(f"DEBUG - Checking device {device['device_name']} (ID: {device['id']})")
             if self._verify_single_token(device['totp_secret'], token):
+                print(f"DEBUG - Token valid for device {device['device_name']}, updating last_used")
                 # Update last_used timestamp
                 self._update_device_last_used(device['id'])
                 return True, device
         
+        print(f"DEBUG - Token invalid for all devices")
         return False, None
     
     def _verify_single_token(self, secret, token):
@@ -86,8 +90,8 @@ class MultiDevice2FA:
         """Update device last used timestamp"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-        cursor.execute('UPDATE admin_2fa_devices SET last_used = ? WHERE id = ?', 
-                      (datetime.now(), device_id))
+        cursor.execute('UPDATE admin_2fa_devices SET last_used = CURRENT_TIMESTAMP WHERE id = ?', 
+                      (device_id,))
         conn.commit()
         conn.close()
     

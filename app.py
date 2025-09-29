@@ -3389,13 +3389,17 @@ def admin_login():
                     
                     # Check if user has multi-device 2FA enabled
                     user_id = multi_device_2fa.get_user_id_by_username(username)
+                    print(f"DEBUG - User ID: {user_id}, Multi-device enabled: {multi_device_2fa.is_multi_device_enabled(user_id) if user_id else False}")
+                    
                     if user_id and multi_device_2fa.is_multi_device_enabled(user_id):
                         # Use multi-device verification
+                        print(f"DEBUG - Using multi-device verification for user {username}")
                         token_valid, used_device = multi_device_2fa.verify_token_multi_device(user_id, totp_token)
                         if token_valid:
                             print(f"DEBUG - Multi-device TOTP token valid from device: {used_device['device_name']}")
                     else:
                         # Fall back to single-device verification
+                        print(f"DEBUG - Using single-device verification for user {username}")
                         if verify_totp_token(secret, totp_token):
                             token_valid = True
                             print(f"DEBUG - TOTP token valid")
@@ -3621,13 +3625,17 @@ def admin_login():
                 
                 # Check if super admin has multi-device 2FA enabled
                 user_id = multi_device_2fa.get_user_id_by_username(ADMIN_USERNAME)
+                print(f"DEBUG - Super admin user ID: {user_id}, Multi-device enabled: {multi_device_2fa.is_multi_device_enabled(user_id) if user_id else False}")
+                
                 if user_id and multi_device_2fa.is_multi_device_enabled(user_id):
                     # Use multi-device verification
+                    print(f"DEBUG - Using multi-device verification for super admin")
                     token_valid, used_device = multi_device_2fa.verify_token_multi_device(user_id, totp_token)
                     if token_valid:
                         print(f"DEBUG - Super admin multi-device TOTP valid from: {used_device['device_name']}")
                 else:
                     # Fall back to single-device verification
+                    print(f"DEBUG - Using single-device verification for super admin")
                     if verify_totp_token(secret, totp_token):
                         token_valid = True
                 
