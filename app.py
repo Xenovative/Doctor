@@ -5569,9 +5569,17 @@ def admin_doctors_paginated():
                        ELSE 'Unknown'
                    END as name,
                    CASE 
-                       WHEN specialty_zh IS NOT NULL AND specialty_zh != '' THEN specialty_zh
-                       WHEN specialty_en IS NOT NULL AND specialty_en != '' THEN specialty_en
-                       WHEN specialty IS NOT NULL AND specialty != '' THEN specialty
+                       WHEN specialty_zh IS NOT NULL AND specialty_zh != '' 
+                            AND specialty_zh NOT LIKE '%Dr.%' 
+                            AND specialty_zh NOT LIKE '%醫生%' 
+                            AND specialty_zh NOT LIKE '%醫師%'
+                            AND specialty_zh NOT GLOB '*[A-Z][a-z]* [A-Z][a-z]*' THEN specialty_zh
+                       WHEN specialty_en IS NOT NULL AND specialty_en != '' 
+                            AND specialty_en NOT LIKE '%Dr.%'
+                            AND specialty_en NOT GLOB '[A-Z][a-z]* [A-Z][a-z]*' THEN specialty_en
+                       WHEN specialty IS NOT NULL AND specialty != '' 
+                            AND specialty NOT LIKE '%Dr.%'
+                            AND specialty NOT GLOB '[A-Z][a-z]* [A-Z][a-z]*' THEN specialty
                        ELSE ''
                    END as specialty,
                    CASE 
