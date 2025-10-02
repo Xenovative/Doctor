@@ -5544,48 +5544,88 @@ def admin_doctors_paginated():
         length = request.args.get('length', type=int, default=25)
         search_value = request.args.get('search[value]', default='')
         
+        # Get custom filter parameters
+        specialty_search = request.args.get('specialty_filter', default='')
+        language_search = request.args.get('language_filter', default='')
+        priority_search = request.args.get('priority_filter', default='')
+        
         # Get sorting parameters
         order_column = request.args.get('order[0][column]', type=int, default=0)
         order_dir = request.args.get('order[0][dir]', default='asc')
         
         conn = sqlite3.connect('doctors.db')
         cursor = conn.cursor()
-        
         # Column mapping for sorting
         columns = ['name', 'specialty', 'qualifications', 'contact_numbers', 'clinic_addresses', 'priority_flag']
         sort_column = columns[order_column] if order_column < len(columns) else 'name'
         
-        # Base query
+        # Base query with better data handling
         base_query = """
             SELECT id, 
-                   COALESCE(name_zh, name_en, name) as name,
-                   COALESCE(specialty_zh, specialty_en, specialty) as specialty,
-                   COALESCE(qualifications_zh, qualifications_en, qualifications) as qualifications,
-                   contact_numbers,
-                   clinic_addresses,
-                   priority_flag
+                   CASE 
+                       WHEN name_zh IS NOT NULL AND name_zh != '' THEN name_zh
+                       WHEN name_en IS NOT NULL AND name_en != '' THEN name_en
+                       WHEN name IS NOT NULL AND name != '' THEN name
+                       ELSE 'Unknown'
+                   END as name,
+                   CASE 
+                       WHEN specialty_zh IS NOT NULL AND specialty_zh != '' THEN specialty_zh
+                       WHEN specialty_en IS NOT NULL AND specialty_en != '' THEN specialty_en
+                       WHEN specialty IS NOT NULL AND specialty != '' THEN specialty
+                       ELSE ''
+                   END as specialty,
+                   CASE 
+                       WHEN qualifications_zh IS NOT NULL AND qualifications_zh != '' THEN qualifications_zh
+                       WHEN qualifications_en IS NOT NULL AND qualifications_en != '' THEN qualifications_en
+                       WHEN qualifications IS NOT NULL AND qualifications != '' THEN qualifications
+                       ELSE ''
+                   END as qualifications,
+                   COALESCE(contact_numbers, '') as contact_numbers,
+                   COALESCE(clinic_addresses, '') as clinic_addresses,
+                   COALESCE(priority_flag, 0) as priority_flag
             FROM doctors
         """
         
-        # Add search filter if provided
-        where_clause = ""
+        # Build where clause with all filters
+        where_conditions = []
         params = []
+        
+        # Global search filter
         if search_value:
-            where_clause = """
-                WHERE (COALESCE(name_zh, name_en, name) LIKE ? 
-                   OR COALESCE(specialty_zh, specialty_en, specialty) LIKE ?
-                   OR contact_numbers LIKE ?
-                   OR clinic_addresses LIKE ?)
-            """
+            where_conditions.append("""
+                (name_zh LIKE ? OR name_en LIKE ? OR name LIKE ?
+                 OR specialty_zh LIKE ? OR specialty_en LIKE ? OR specialty LIKE ?
+                 OR contact_numbers LIKE ?
+                 OR clinic_addresses LIKE ?)
+            """)
             search_param = f'%{search_value}%'
-            params = [search_param, search_param, search_param, search_param]
+            params.extend([search_param] * 8)
+        
+        # Column-specific filters
+        if specialty_search:
+            where_conditions.append("(specialty_zh LIKE ? OR specialty_en LIKE ? OR specialty LIKE ?)")
+            specialty_param = f'%{specialty_search}%'
+            params.extend([specialty_param, specialty_param, specialty_param])
+        
+        if language_search:
+            where_conditions.append("(languages_zh LIKE ? OR languages_en LIKE ?)")
+            language_param = f'%{language_search}%'
+            params.extend([language_param, language_param])
+        
+        if priority_search:
+            where_conditions.append("priority_flag = ?")
+            params.append(int(priority_search))
+        
+        where_clause = ""
+        if where_conditions:
+            where_clause = "WHERE " + " AND ".join(where_conditions)
         
         # Get total count (without search)
         cursor.execute("SELECT COUNT(*) FROM doctors")
         records_total = cursor.fetchone()[0]
         
-        # Get filtered count (with search)
-        if search_value:
+        # Get filtered count (with all filters)
+        if where_conditions:
             cursor.execute(f"SELECT COUNT(*) FROM doctors {where_clause}", params)
             records_filtered = cursor.fetchone()[0]
         else:

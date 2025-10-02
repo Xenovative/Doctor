@@ -636,7 +636,14 @@
                 "serverSide": true,
                 "ajax": {
                     "url": "/admin/doctors/paginated",
-                    "type": "GET"
+                    "type": "GET",
+                    "data": function(d) {
+                        // Add custom filter parameters
+                        d.specialty_filter = $('#specialtyFilter').val();
+                        d.language_filter = $('#languageFilter').val();
+                        d.priority_filter = $('#priorityFilter').val();
+                        return d;
+                    }
                 },
                 "columns": [
                     { 
@@ -715,20 +722,8 @@
                        '<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>'
             });
             
-            // Search functionality
-            $('#searchInput').on('keyup', function() {
-                doctorsTable.search(this.value).draw();
-            });
-            
-            // Specialty filter
-            $('#specialtyFilter').on('change', function() {
-                var specialty = this.value;
-                if (specialty === '') {
-                    doctorsTable.column(1).search('').draw();
-                } else {
-                    doctorsTable.column(1).search(specialty).draw();
-                }
-            });
+            // Initialize real-time search after DataTable is ready
+            initializeRealTimeSearch();
         });
         
         // View switching function
@@ -900,34 +895,9 @@
         
         function applyFilters() {
             var searchTerm = document.getElementById('searchInput').value;
-            var specialty = document.getElementById('specialtyFilter').value;
-            var language = document.getElementById('languageFilter').value;
-            var priority = document.getElementById('priorityFilter').value;
             
-            // Apply global search
-            doctorsTable.search(searchTerm);
-            
-            // Apply column-specific filters
-            if (specialty) {
-                doctorsTable.column(1).search(specialty, true, false);
-            } else {
-                doctorsTable.column(1).search('');
-            }
-            
-            if (language) {
-                doctorsTable.column(3).search(language, true, false);
-            } else {
-                doctorsTable.column(3).search('');
-            }
-            
-            // Priority filter (assuming priority is in column 5 or 6)
-            if (priority) {
-                doctorsTable.column(5).search('^' + priority + '$', true, false);
-            } else {
-                doctorsTable.column(5).search('');
-            }
-            
-            doctorsTable.draw();
+            // Apply global search and reload table with new filter parameters
+            doctorsTable.search(searchTerm).draw();
         }
         
         // Clear all filters
@@ -950,28 +920,33 @@
             const languageFilter = document.getElementById('languageFilter');
             const priorityFilter = document.getElementById('priorityFilter');
             
-            // Add real-time search on input
+            // Add real-time search on input with debounce
+            let searchTimeout;
             searchInput.addEventListener('input', function() {
-                applyFilters();
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    doctorsTable.search(this.value).draw();
+                }, 300); // 300ms debounce
             });
             
             // Add real-time filtering on dropdown changes
             specialtyFilter.addEventListener('change', function() {
-                applyFilters();
+                doctorsTable.draw(); // Reload table with new filter
             });
             
             languageFilter.addEventListener('change', function() {
-                applyFilters();
+                doctorsTable.draw(); // Reload table with new filter
             });
             
             priorityFilter.addEventListener('change', function() {
-                applyFilters();
+                doctorsTable.draw(); // Reload table with new filter
             });
             
             // Allow Enter key to trigger search
             searchInput.addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
-                    applyFilters();
+                    clearTimeout(searchTimeout);
+                    doctorsTable.search(this.value).draw();
                 }
             });
         }
@@ -1390,8 +1365,6 @@
             
             // Load specialties on page load
             loadSpecialties().then(() => {
-                // Initialize real-time search after page loads
-                initializeRealTimeSearch();
                 // Hide loading once everything is ready
                 hidePageLoading();
             }).catch(() => {
