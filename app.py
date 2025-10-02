@@ -1095,8 +1095,70 @@ def load_doctors_data_csv():
         print(f"載入CSV醫生資料時發生錯誤: {e}")
         return []
 
-# 全局變數存儲醫生資料
+# 全局變數存儲醫生資料和數據庫狀態
 DOCTORS_DATA = load_doctors_data()
+DB_LAST_MODIFIED = None
+DB_LAST_CHECK = None
+
+def get_database_modification_time():
+    """獲取數據庫最後修改時間"""
+    try:
+        import os
+        db_path = 'doctors.db'
+        if os.path.exists(db_path):
+            return os.path.getmtime(db_path)
+    except Exception as e:
+        print(f"Error getting database modification time: {e}")
+    return None
+
+def should_reload_database():
+    """檢查是否需要重新載入數據庫"""
+    global DB_LAST_MODIFIED, DB_LAST_CHECK
+    import time
+    
+    current_time = time.time()
+    
+    # 每30秒檢查一次
+    if DB_LAST_CHECK and (current_time - DB_LAST_CHECK) < 30:
+        return False
+    
+    DB_LAST_CHECK = current_time
+    current_mod_time = get_database_modification_time()
+    
+    if current_mod_time is None:
+        return False
+    
+    if DB_LAST_MODIFIED is None:
+        DB_LAST_MODIFIED = current_mod_time
+        return False
+    
+    if current_mod_time > DB_LAST_MODIFIED:
+        DB_LAST_MODIFIED = current_mod_time
+        print(f"Database modification detected, reloading doctor data...")
+        return True
+    
+    return False
+
+def reload_doctors_data_if_needed():
+    """如果數據庫有變化則重新載入醫生資料"""
+    global DOCTORS_DATA
+    
+    if should_reload_database():
+        try:
+            new_data = load_doctors_data()
+            if new_data:  # Only update if we successfully loaded new data
+                DOCTORS_DATA = new_data
+                print(f"✅ Successfully reloaded {len(DOCTORS_DATA)} doctors from database")
+                return True
+            else:
+                print("⚠️ Failed to reload database, keeping existing data")
+        except Exception as e:
+            print(f"❌ Error reloading database: {e}")
+    
+    return False
+
+# Initialize database modification time
+DB_LAST_MODIFIED = get_database_modification_time()
 
 # Admin credentials (in production, use proper user management)
 ADMIN_USERNAME = os.getenv('ADMIN_USERNAME', 'admin')
@@ -2762,6 +2824,9 @@ def safe_str_check(value, search_term):
 
 def filter_doctors(recommended_specialty: str, language: str, location: str, symptoms: str, ai_analysis: str, location_details: dict = None) -> list:
     """根據條件篩選醫生"""
+    # 檢查是否需要重新載入數據庫
+    reload_doctors_data_if_needed()
+    
     matched_doctors = []
     
     # Debug logging
@@ -2932,10 +2997,10 @@ def filter_doctors(recommended_specialty: str, language: str, location: str, sym
                     match_reasons.append(f"位置關鍵詞匹配：{location}")
                     location_matched = True
         
-        # 加入優先級別到匹配分數
+        # 加入優先級別到匹配分數 - 大幅提高優先級加分
         priority_flag = doctor.get('priority_flag', 0)
         if priority_flag and not pd.isna(priority_flag):
-            priority_bonus = int(priority_flag) * 10  # 每級優先級加10分
+            priority_bonus = int(priority_flag) * 50  # 每級優先級加50分 (從10分提高到50分)
             score += priority_bonus
             if priority_bonus > 0:
                 match_reasons.append(f"優先醫生 (級別 {priority_flag})")
@@ -2989,8 +3054,8 @@ def filter_doctors(recommended_specialty: str, language: str, location: str, sym
     
     print(f"DEBUG - Processed {total_processed} doctors, matched {total_matched} doctors")
     
-    # 按地理相關性、優先級別、匹配分數排序
-    matched_doctors.sort(key=lambda x: (x['location_priority'], x.get('priority_flag', 0), x['match_score']), reverse=True)
+    # 按地理相關性、匹配分數排序 (優先級已包含在match_score中)
+    matched_doctors.sort(key=lambda x: (x['location_priority'], x['match_score']), reverse=True)
     
     # Debug: 顯示前5個醫生的地理優先級和分數
     print(f"DEBUG - Top 5 doctors after sorting:")
@@ -3007,8 +3072,8 @@ def filter_doctors(recommended_specialty: str, language: str, location: str, sym
         if fallback_doctor.get('name_zh', '') not in existing_names:
             matched_doctors.append(fallback_doctor)
     
-    # 重新排序 (地理相關性、優先級別、匹配分數)
-    matched_doctors.sort(key=lambda x: (x.get('location_priority', 0), x.get('priority_flag', 0), x['match_score']), reverse=True)
+    # 重新排序 (地理相關性、匹配分數) - 優先級已包含在match_score中
+    matched_doctors.sort(key=lambda x: (x.get('location_priority', 0), x['match_score']), reverse=True)
     
     # 返回前50名供分頁使用
     return matched_doctors[:50]
@@ -5751,6 +5816,10 @@ def add_doctor():
             'name': data.get('name_zh') or data.get('name_en')
         }, get_real_ip(), request.user_agent.string)
         
+        # Force reload of doctor data after addition
+        global DB_LAST_MODIFIED
+        DB_LAST_MODIFIED = None  # Force next check to reload
+        
         return jsonify({'success': True, 'message': 'Doctor added successfully', 'doctor_id': new_doctor_id})
         
     except Exception as e:
@@ -5786,8 +5855,11 @@ def delete_doctor(doctor_id):
         # Log the deletion
         log_analytics('doctor_delete', {
             'doctor_id': doctor_id,
-            'name': doctor[0] or doctor[1]
         }, get_real_ip(), request.user_agent.string)
+        
+        # Force reload of doctor data after deletion
+        global DB_LAST_MODIFIED
+        DB_LAST_MODIFIED = None  # Force next check to reload
         
         return jsonify({'success': True, 'message': 'Doctor deleted successfully'})
         
@@ -5795,6 +5867,7 @@ def delete_doctor(doctor_id):
         print(f"Error deleting doctor: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+{{ ... }}
 @app.route('/admin/users')
 @tab_permission_required('users')
 def admin_users():
