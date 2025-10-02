@@ -267,8 +267,8 @@
                 <div class="search-filters">
                     <div class="row">
                         <div class="col-md-4">
-                            <label class="form-label">搜尋醫生</label>
-                            <input type="text" class="form-control" id="searchInput" placeholder="輸入醫生姓名或專科...">
+                            <label class="form-label">搜尋醫生 <small class="text-muted">(即時搜尋)</small></label>
+                            <input type="text" class="form-control" id="searchInput" placeholder="輸入醫生姓名、專科或地址...">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">專科篩選</label>
@@ -279,7 +279,7 @@
                                 {% endfor %}
                             </select>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <label class="form-label">語言篩選</label>
                             <select class="form-select" id="languageFilter">
                                 <option value="">所有語言</option>
@@ -289,10 +289,21 @@
                             </select>
                         </div>
                         <div class="col-md-2">
+                            <label class="form-label">優先級篩選</label>
+                            <select class="form-select" id="priorityFilter">
+                                <option value="">所有優先級</option>
+                                <option value="4">優先級 4</option>
+                                <option value="3">優先級 3</option>
+                                <option value="2">優先級 2</option>
+                                <option value="1">優先級 1</option>
+                                <option value="0">一般</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
                             <label class="form-label">&nbsp;</label>
                             <div class="d-grid">
-                                <button class="btn btn-primary" onclick="applyFilters()">
-                                    <i class="fas fa-search me-1"></i>搜尋
+                                <button class="btn btn-outline-secondary" onclick="clearFilters()">
+                                    <i class="fas fa-times me-1"></i>清除
                                 </button>
                             </div>
                         </div>
@@ -890,12 +901,79 @@
         function applyFilters() {
             var searchTerm = document.getElementById('searchInput').value;
             var specialty = document.getElementById('specialtyFilter').value;
+            var language = document.getElementById('languageFilter').value;
+            var priority = document.getElementById('priorityFilter').value;
             
+            // Apply global search
             doctorsTable.search(searchTerm);
+            
+            // Apply column-specific filters
             if (specialty) {
-                doctorsTable.column(1).search(specialty);
+                doctorsTable.column(1).search(specialty, true, false);
+            } else {
+                doctorsTable.column(1).search('');
             }
+            
+            if (language) {
+                doctorsTable.column(3).search(language, true, false);
+            } else {
+                doctorsTable.column(3).search('');
+            }
+            
+            // Priority filter (assuming priority is in column 5 or 6)
+            if (priority) {
+                doctorsTable.column(5).search('^' + priority + '$', true, false);
+            } else {
+                doctorsTable.column(5).search('');
+            }
+            
             doctorsTable.draw();
+        }
+        
+        // Clear all filters
+        function clearFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('specialtyFilter').value = '';
+            document.getElementById('languageFilter').value = '';
+            document.getElementById('priorityFilter').value = '';
+            
+            // Clear all DataTable searches
+            doctorsTable.search('');
+            doctorsTable.columns().search('');
+            doctorsTable.draw();
+        }
+        
+        // Real-time search as user types
+        function initializeRealTimeSearch() {
+            const searchInput = document.getElementById('searchInput');
+            const specialtyFilter = document.getElementById('specialtyFilter');
+            const languageFilter = document.getElementById('languageFilter');
+            const priorityFilter = document.getElementById('priorityFilter');
+            
+            // Add real-time search on input
+            searchInput.addEventListener('input', function() {
+                applyFilters();
+            });
+            
+            // Add real-time filtering on dropdown changes
+            specialtyFilter.addEventListener('change', function() {
+                applyFilters();
+            });
+            
+            languageFilter.addEventListener('change', function() {
+                applyFilters();
+            });
+            
+            priorityFilter.addEventListener('change', function() {
+                applyFilters();
+            });
+            
+            // Allow Enter key to trigger search
+            searchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    applyFilters();
+                }
+            });
         }
         
         function deleteDoctor(doctorId, doctorName) {
@@ -1312,6 +1390,8 @@
             
             // Load specialties on page load
             loadSpecialties().then(() => {
+                // Initialize real-time search after page loads
+                initializeRealTimeSearch();
                 // Hide loading once everything is ready
                 hidePageLoading();
             }).catch(() => {
