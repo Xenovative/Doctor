@@ -2989,13 +2989,13 @@ def filter_doctors(recommended_specialty: str, language: str, location: str, sym
     
     print(f"DEBUG - Processed {total_processed} doctors, matched {total_matched} doctors")
     
-    # 按地理相關性優先排序，然後按匹配分數排序
-    matched_doctors.sort(key=lambda x: (x['location_priority'], x['match_score']), reverse=True)
+    # 按地理相關性、優先級別、匹配分數排序
+    matched_doctors.sort(key=lambda x: (x['location_priority'], x.get('priority_flag', 0), x['match_score']), reverse=True)
     
     # Debug: 顯示前5個醫生的地理優先級和分數
     print(f"DEBUG - Top 5 doctors after sorting:")
     for i, doctor in enumerate(matched_doctors[:5]):
-        print(f"  {i+1}. {doctor.get('name_zh', 'Unknown')} - Priority: {doctor.get('location_priority', 0)}, Score: {doctor.get('match_score', 0)}, Address: {doctor.get('clinic_addresses', '')[:50]}...")
+        print(f"  {i+1}. {doctor.get('name_zh', 'Unknown')} - Priority Flag: {doctor.get('priority_flag', 0)}, Location Priority: {doctor.get('location_priority', 0)}, Score: {doctor.get('match_score', 0)}, Address: {doctor.get('clinic_addresses', '')[:50]}...")
     
     # 總是添加該地區的普通科/內科醫生作為選項，讓用戶有更多選擇
     print(f"DEBUG - Adding regional GP/internist options. Current matches: {len(matched_doctors)}")
@@ -3007,8 +3007,8 @@ def filter_doctors(recommended_specialty: str, language: str, location: str, sym
         if fallback_doctor.get('name_zh', '') not in existing_names:
             matched_doctors.append(fallback_doctor)
     
-    # 重新排序 (地理相關性優先)
-    matched_doctors.sort(key=lambda x: (x.get('location_priority', 0), x['match_score']), reverse=True)
+    # 重新排序 (地理相關性、優先級別、匹配分數)
+    matched_doctors.sort(key=lambda x: (x.get('location_priority', 0), x.get('priority_flag', 0), x['match_score']), reverse=True)
     
     # 返回前50名供分頁使用
     return matched_doctors[:50]

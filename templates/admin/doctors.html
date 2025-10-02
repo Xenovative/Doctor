@@ -587,9 +587,12 @@
                                             <label class="form-label">優先級</label>
                                             <select class="form-select" id="editPriorityFlag" name="priority_flag">
                                                 <option value="0">一般</option>
-                                                <option value="1">高優先級</option>
+                                                <option value="1">低優先級</option>
+                                                <option value="2">中優先級</option>
+                                                <option value="3">高優先級</option>
+                                                <option value="4">最高優先級</option>
                                             </select>
-                                            <div class="form-text">高優先級醫生會優先顯示</div>
+                                            <div class="form-text">優先級越高的醫生會優先顯示在搜尋結果中</div>
                                         </div>
                                     </div>
                                 </div>
@@ -661,7 +664,11 @@
                         "title": "優先 <i class='fas fa-sort text-muted ms-1' style='cursor: pointer;' onclick='sortColumn(5)'></i>",
                         "width": "6%",
                         "render": function(data, type, row) {
-                            return data == 1 ? '<span class="badge bg-warning">優先</span>' : '';
+                            if (data == 4) return '<span class="badge bg-danger">最高</span>';
+                            if (data == 3) return '<span class="badge bg-warning">高</span>';
+                            if (data == 2) return '<span class="badge bg-info">中</span>';
+                            if (data == 1) return '<span class="badge bg-secondary">低</span>';
+                            return '<span class="badge bg-light text-dark">一般</span>';
                         }
                     },
                     { 
