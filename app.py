@@ -5518,6 +5518,23 @@ def admin_doctors():
         cursor.execute("SELECT DISTINCT COALESCE(specialty_zh, specialty_en, specialty) as specialty FROM doctors WHERE specialty IS NOT NULL ORDER BY specialty")
         specialties = [row[0] for row in cursor.fetchall() if row[0]]
         
+        # 獲取所有地區列表 (從診所地址中提取)
+        cursor.execute("SELECT DISTINCT clinic_addresses FROM doctors WHERE clinic_addresses IS NOT NULL AND clinic_addresses != ''")
+        all_addresses = [row[0] for row in cursor.fetchall()]
+        
+        # Extract common location keywords from addresses
+        location_keywords = set()
+        common_locations = ['香港島', '九龍', '新界', '中環', '銅鑼灣', '尖沙咀', '旺角', '沙田', '荃灣', '元朗', 
+                           '觀塘', '深水埗', '油麻地', '佐敦', '太古', '北角', '西環', '上環', '灣仔', '跑馬地',
+                           '紅磡', '土瓜灣', '何文田', '九龍塘', '大埔', '粉嶺', '上水', '屯門', '天水圍', '將軍澳']
+        
+        for address in all_addresses:
+            for location in common_locations:
+                if location in address:
+                    location_keywords.add(location)
+        
+        locations = sorted(list(location_keywords))
+        
         conn.close()
         
         return render_template('admin/doctors.html',
@@ -5526,7 +5543,8 @@ def admin_doctors():
                              total_specialties=total_specialties,
                              bilingual_doctors=bilingual_doctors,
                              with_contact=with_contact,
-                             specialties=specialties)
+                             specialties=specialties,
+                             locations=locations)
                              
     except Exception as e:
         print(f"Error in admin_doctors: {e}")
@@ -5548,6 +5566,7 @@ def admin_doctors_paginated():
         specialty_search = request.args.get('specialty_filter', default='')
         language_search = request.args.get('language_filter', default='')
         priority_search = request.args.get('priority_filter', default='')
+        location_search = request.args.get('location_filter', default='')
         
         # Get sorting parameters
         order_column = request.args.get('order[0][column]', type=int, default=0)
@@ -5623,6 +5642,11 @@ def admin_doctors_paginated():
         if priority_search:
             where_conditions.append("priority_flag = ?")
             params.append(int(priority_search))
+        
+        if location_search:
+            where_conditions.append("clinic_addresses LIKE ?")
+            location_param = f'%{location_search}%'
+            params.append(location_param)
         
         where_clause = ""
         if where_conditions:

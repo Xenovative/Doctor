@@ -299,7 +299,18 @@
                                 <option value="0">一般</option>
                             </select>
                         </div>
-                        <div class="col-md-2">
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-3">
+                            <label class="form-label">地區篩選</label>
+                            <select class="form-select" id="locationFilter">
+                                <option value="">所有地區</option>
+                                {% for location in locations %}
+                                <option value="{{ location }}">{{ location }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
                             <label class="form-label">&nbsp;</label>
                             <div class="d-grid">
                                 <button class="btn btn-outline-secondary" onclick="clearFilters()">
@@ -307,6 +318,7 @@
                                 </button>
                             </div>
                         </div>
+                        <div class="col-md-6"></div>
                     </div>
                 </div>
 
@@ -642,6 +654,7 @@
                         d.specialty_filter = $('#specialtyFilter').val();
                         d.language_filter = $('#languageFilter').val();
                         d.priority_filter = $('#priorityFilter').val();
+                        d.location_filter = $('#locationFilter').val();
                         return d;
                     }
                 },
@@ -753,7 +766,24 @@
             currentCardPage = page;
             const start = (page - 1) * cardsPerPage;
             
-            fetch(`/admin/doctors/paginated?start=${start}&length=${cardsPerPage}`)
+            // Build URL with all filter parameters
+            const searchValue = document.getElementById('searchInput').value;
+            const specialtyFilter = document.getElementById('specialtyFilter').value;
+            const languageFilter = document.getElementById('languageFilter').value;
+            const priorityFilter = document.getElementById('priorityFilter').value;
+            const locationFilter = document.getElementById('locationFilter').value;
+            
+            const params = new URLSearchParams({
+                start: start,
+                length: cardsPerPage,
+                'search[value]': searchValue,
+                specialty_filter: specialtyFilter,
+                language_filter: languageFilter,
+                priority_filter: priorityFilter,
+                location_filter: locationFilter
+            });
+            
+            fetch(`/admin/doctors/paginated?${params.toString()}`)
                 .then(response => response.json())
                 .then(result => {
                     const cardsContainer = document.getElementById('cardsContainer');
@@ -894,10 +924,14 @@
         }
         
         function applyFilters() {
-            var searchTerm = document.getElementById('searchInput').value;
-            
-            // Apply global search and reload table with new filter parameters
-            doctorsTable.search(searchTerm).draw();
+            if (currentView === 'table') {
+                var searchTerm = document.getElementById('searchInput').value;
+                // Apply global search and reload table with new filter parameters
+                doctorsTable.search(searchTerm).draw();
+            } else {
+                // Reload card view with current filters
+                loadCardsView(1);
+            }
         }
         
         // Clear all filters
@@ -906,11 +940,17 @@
             document.getElementById('specialtyFilter').value = '';
             document.getElementById('languageFilter').value = '';
             document.getElementById('priorityFilter').value = '';
+            document.getElementById('locationFilter').value = '';
             
-            // Clear all DataTable searches
-            doctorsTable.search('');
-            doctorsTable.columns().search('');
-            doctorsTable.draw();
+            if (currentView === 'table') {
+                // Clear all DataTable searches
+                doctorsTable.search('');
+                doctorsTable.columns().search('');
+                doctorsTable.draw();
+            } else {
+                // Reload card view without filters
+                loadCardsView(1);
+            }
         }
         
         // Real-time search as user types
@@ -919,34 +959,63 @@
             const specialtyFilter = document.getElementById('specialtyFilter');
             const languageFilter = document.getElementById('languageFilter');
             const priorityFilter = document.getElementById('priorityFilter');
+            const locationFilter = document.getElementById('locationFilter');
             
             // Add real-time search on input with debounce
             let searchTimeout;
             searchInput.addEventListener('input', function() {
                 clearTimeout(searchTimeout);
                 searchTimeout = setTimeout(() => {
-                    doctorsTable.search(this.value).draw();
+                    if (currentView === 'table') {
+                        doctorsTable.search(this.value).draw();
+                    } else {
+                        loadCardsView(1); // Reset to page 1 when searching
+                    }
                 }, 300); // 300ms debounce
             });
             
             // Add real-time filtering on dropdown changes
             specialtyFilter.addEventListener('change', function() {
-                doctorsTable.draw(); // Reload table with new filter
+                if (currentView === 'table') {
+                    doctorsTable.draw(); // Reload table with new filter
+                } else {
+                    loadCardsView(1); // Reset to page 1 when filtering
+                }
             });
             
             languageFilter.addEventListener('change', function() {
-                doctorsTable.draw(); // Reload table with new filter
+                if (currentView === 'table') {
+                    doctorsTable.draw(); // Reload table with new filter
+                } else {
+                    loadCardsView(1); // Reset to page 1 when filtering
+                }
             });
             
             priorityFilter.addEventListener('change', function() {
-                doctorsTable.draw(); // Reload table with new filter
+                if (currentView === 'table') {
+                    doctorsTable.draw(); // Reload table with new filter
+                } else {
+                    loadCardsView(1); // Reset to page 1 when filtering
+                }
+            });
+            
+            locationFilter.addEventListener('change', function() {
+                if (currentView === 'table') {
+                    doctorsTable.draw(); // Reload table with new filter
+                } else {
+                    loadCardsView(1); // Reset to page 1 when filtering
+                }
             });
             
             // Allow Enter key to trigger search
             searchInput.addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
                     clearTimeout(searchTimeout);
-                    doctorsTable.search(this.value).draw();
+                    if (currentView === 'table') {
+                        doctorsTable.search(this.value).draw();
+                    } else {
+                        loadCardsView(1);
+                    }
                 }
             });
         }
