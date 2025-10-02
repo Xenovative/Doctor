@@ -5867,7 +5867,6 @@ def delete_doctor(doctor_id):
         print(f"Error deleting doctor: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-{{ ... }}
 @app.route('/admin/users')
 @tab_permission_required('users')
 def admin_users():
