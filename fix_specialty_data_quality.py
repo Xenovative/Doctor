@@ -119,11 +119,73 @@ def fix_specialty_data(issues, dry_run=True):
     if not dry_run:
         conn.commit()
         print(f"\n✅ Fixed {fixed_count} specialty data issues")
+        
+        # Now add GP fallback for doctors with no specialty
+        add_gp_fallback(cursor, dry_run=False)
     else:
         print(f"\n📋 Would fix {fixed_count} specialty data issues")
     
     conn.close()
     return fixed_count
+
+def add_gp_fallback(cursor=None, dry_run=True):
+    """Add GP as fallback specialty for doctors with no specialty"""
+    should_close = False
+    if cursor is None:
+        conn = sqlite3.connect('doctors.db')
+        cursor = conn.cursor()
+        should_close = True
+    
+    print(f"\n{'DRY RUN - ' if dry_run else ''}Adding GP fallback for doctors without specialty...")
+    print("=" * 60)
+    
+    # Find doctors with no specialty
+    cursor.execute('''
+        SELECT id, name_zh, name_en
+        FROM doctors 
+        WHERE (specialty_zh IS NULL OR specialty_zh = '') 
+          AND (specialty_en IS NULL OR specialty_en = '') 
+          AND (specialty IS NULL OR specialty = '')
+    ''')
+    
+    doctors_without_specialty = cursor.fetchall()
+    
+    print(f"Found {len(doctors_without_specialty)} doctors without specialty")
+    
+    if doctors_without_specialty:
+        for doctor in doctors_without_specialty[:10]:  # Show first 10
+            doc_id, name_zh, name_en = doctor
+            name = name_zh or name_en or f'ID {doc_id}'
+            print(f"  - {name}")
+        
+        if len(doctors_without_specialty) > 10:
+            print(f"  ... and {len(doctors_without_specialty) - 10} more")
+        
+        if not dry_run:
+            # Add GP specialty to all doctors without specialty
+            cursor.execute('''
+                UPDATE doctors SET 
+                  specialty_zh = '全科醫生',
+                  specialty_en = 'General Practitioner'
+                WHERE (specialty_zh IS NULL OR specialty_zh = '') 
+                  AND (specialty_en IS NULL OR specialty_en = '') 
+                  AND (specialty IS NULL OR specialty = '')
+            ''')
+            
+            affected_rows = cursor.rowcount
+            print(f"\n✅ Added GP specialty to {affected_rows} doctors")
+            
+            if should_close:
+                conn.commit()
+        else:
+            print(f"\n📋 Would add GP specialty to {len(doctors_without_specialty)} doctors")
+    else:
+        print("✅ All doctors already have specialties!")
+    
+    if should_close:
+        conn.close()
+    
+    return len(doctors_without_specialty)
 
 def suggest_correct_specialties():
     """Suggest correct specialties based on other data"""
@@ -195,7 +257,7 @@ def suggest_correct_specialties():
     return suggestions
 
 if __name__ == "__main__":
-    print("🔍 Doctor Specialty Data Quality Checker")
+    print("🔍 Doctor Specialty Data Quality Checker & Fixer")
     print("=" * 60)
     
     # Step 1: Analyze current issues
@@ -222,7 +284,16 @@ if __name__ == "__main__":
             print("❌ No changes made.")
     else:
         print("✅ No specialty data quality issues found!")
+        
+        # Even if no issues found, check for doctors without specialty
+        print("\n" + "=" * 60)
+        print("Checking for doctors without specialty...")
+        add_gp_fallback(dry_run=True)
+        
+        response = input("\nDo you want to add GP specialty to doctors without specialty? (y/N): ").strip().lower()
+        if response == 'y':
+            add_gp_fallback(dry_run=False)
     
-    # Step 2: Suggest correct specialties for empty fields
+    # Step 2: Suggest correct specialties for remaining empty fields
     print("\n" + "=" * 60)
     suggest_correct_specialties()

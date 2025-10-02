@@ -46,15 +46,29 @@ WHERE (d1.name_en IS NOT NULL AND d1.specialty_zh LIKE '%' || d1.name_en || '%')
 -- UPDATE doctors SET specialty = NULL
 -- WHERE name_en IS NOT NULL AND specialty LIKE '%' || name_en || '%';
 
--- 5. Verify the fixes
+-- 5. Add GP as fallback specialty for doctors with no specialty
+-- UPDATE doctors SET 
+--   specialty_zh = '全科醫生',
+--   specialty_en = 'General Practitioner'
+-- WHERE (specialty_zh IS NULL OR specialty_zh = '') 
+--   AND (specialty_en IS NULL OR specialty_en = '') 
+--   AND (specialty IS NULL OR specialty = '');
+
+-- 6. Verify the fixes
 SELECT COUNT(*) as total_doctors FROM doctors;
 SELECT COUNT(*) as doctors_with_specialty FROM doctors 
 WHERE specialty_zh IS NOT NULL OR specialty_en IS NOT NULL OR specialty IS NOT NULL;
 
--- 6. Show doctors that still need specialty assignment
+-- 7. Show doctors that still need specialty assignment (should be 0 after step 5)
 SELECT id, name_zh, name_en, qualifications_zh, qualifications_en
 FROM doctors 
 WHERE (specialty_zh IS NULL OR specialty_zh = '') 
   AND (specialty_en IS NULL OR specialty_en = '') 
   AND (specialty IS NULL OR specialty = '')
+LIMIT 10;
+
+-- 8. Show sample of doctors with GP fallback
+SELECT id, name_zh, name_en, specialty_zh, specialty_en
+FROM doctors 
+WHERE specialty_zh = '全科醫生' AND specialty_en = 'General Practitioner'
 LIMIT 10;
