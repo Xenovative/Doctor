@@ -47,11 +47,11 @@ TRANSLATIONS = {
         'weight': '體重 (kg)',
         'medications': '有服用任何長期藥物嗎？ 如有，請提供藥物種類名稱。',
         'allergies': '有食物/藥物敏感嗎？ 如有，請提供',
-        'surgeries': '請問客人曾經有冒做過手術？如有，請提供',
+        'surgeries': '請問客人曾經有無做過手術？如有，請提供',
         'blood_thinner': '有服薄血藥嗎？',
         'recent_visit': '三個月內有否就診？',
         'cpap_machine': '睡覺時需要用呼吸機嗎？',
-        'loose_teeth': '有沒有已知，但未處理嘉鬆牙？',
+        'loose_teeth': '有沒有已知，但未處理嘅鬆牙？',
         
         # Chronic Conditions
         'high_blood_pressure': '血壓高',
