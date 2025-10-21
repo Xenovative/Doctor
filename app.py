@@ -915,7 +915,8 @@ WHATSAPP_CONFIG = {
     'socket_url': os.getenv('WHATSAPP_SOCKET_URL', 'http://localhost:8086'),
     'api_key': os.getenv('WHATSAPP_API_KEY', ''),
     'target_number': os.getenv('WHATSAPP_TARGET_NUMBER', ''),  # Format: 852XXXXXXXX (for wa.me links)
-    'session_name': os.getenv('WHATSAPP_SESSION_NAME', 'default')
+    'session_name': os.getenv('WHATSAPP_SESSION_NAME', 'default'),
+    'contact_mode': os.getenv('WHATSAPP_CONTACT_MODE', 'admin')  # 'admin' or 'doctor' - determines who receives the report link
 }
 
 # 時區配置
@@ -1619,7 +1620,7 @@ Doctor-AI香港醫療配對系統"""
     return message
 
 def format_whatsapp_message(doctor_data: dict, report_url: str) -> str:
-    """格式化WhatsApp消息，包含症狀分析報告鏈接"""
+    """格式化WhatsApp消息，包含症狀分析報告鏈接 (發送給管理員)"""
     message = f"""AI症狀分析報告
 
 您好！我通過AI症狀分析系統獲得了您的資訊。
@@ -1637,6 +1638,64 @@ def format_whatsapp_message(doctor_data: dict, report_url: str) -> str:
 Doctor-AI香港醫療配對系統"""
     
     return message
+
+def format_whatsapp_message_for_doctor(doctor_data: dict, report_url: str, user_query_data: dict) -> str:
+    """格式化WhatsApp消息給醫生，包含患者症狀分析報告鏈接"""
+    # Extract key patient info
+    age = user_query_data.get('age', 'N/A')
+    gender = user_query_data.get('gender', 'N/A')
+    symptoms = user_query_data.get('symptoms', 'N/A')
+    
+    # Gender translation
+    gender_text = {
+        'male': '男',
+        'female': '女',
+        'other': '其他'
+    }.get(gender, gender)
+    
+    message = f"""👨‍⚕️ 新患者諮詢 - Doctor AI
+
+尊敬的{doctor_data.get('doctor_name', '醫生')}：
+
+您好！有一位患者通過Doctor AI症狀分析系統希望諮詢您的專業意見。
+
+📋 患者基本資料：
+• 年齡：{age}歲
+• 性別：{gender_text}
+• 主要症狀：{symptoms[:100]}{'...' if len(symptoms) > 100 else ''}
+
+📊 完整症狀分析報告：
+{report_url}
+
+此報告包含AI初步分析及患者詳細病史，供您參考。
+
+---
+Doctor AI 香港醫療配對系統
+此訊息由患者主動發起"""
+    
+    return message
+
+def clean_phone_number_for_whatsapp(phone: str) -> str:
+    """清理電話號碼格式，轉換為WhatsApp可用格式"""
+    if not phone:
+        return ''
+    
+    # Remove all non-digit characters
+    import re
+    cleaned = re.sub(r'\D', '', phone)
+    
+    # If it starts with 00, replace with +
+    if cleaned.startswith('00'):
+        cleaned = cleaned[2:]
+    
+    # If it doesn't start with country code, assume Hong Kong (852)
+    if len(cleaned) == 8:  # Hong Kong local number
+        cleaned = '852' + cleaned
+    
+    # Remove leading + if present (WhatsApp uses numbers only)
+    cleaned = cleaned.lstrip('+')
+    
+    return cleaned
 
 def get_real_ip():
     """Get the real client IP address, considering proxies and load balancers"""
@@ -6138,13 +6197,23 @@ def get_whatsapp_url():
         data = request.get_json()
         doctor_name = data.get('doctor_name')
         doctor_specialty = data.get('doctor_specialty')
+        doctor_phone = data.get('doctor_phone', '')  # Get doctor's phone number from request
         
         # Get session info
         session_id = session.get('session_id')
         query_id = session.get('last_query_id')
         
-        # Your designated WhatsApp number (replace with your actual number)
-        whatsapp_number = os.getenv('WHATSAPP_TARGET_NUMBER', '85294974070')
+        # Determine target WhatsApp number based on contact_mode
+        contact_mode = WHATSAPP_CONFIG.get('contact_mode', 'admin')
+        
+        if contact_mode == 'doctor' and doctor_phone:
+            # Use doctor's phone number - clean it for WhatsApp format
+            whatsapp_number = clean_phone_number_for_whatsapp(doctor_phone)
+            print(f"DEBUG: Using doctor's WhatsApp number: {whatsapp_number}")
+        else:
+            # Use admin's designated WhatsApp number
+            whatsapp_number = os.getenv('WHATSAPP_TARGET_NUMBER', '85294974070')
+            print(f"DEBUG: Using admin WhatsApp number: {whatsapp_number}")
         
         # Log to database
         conn = sqlite3.connect('admin_data.db')
@@ -6221,8 +6290,12 @@ def get_whatsapp_url():
                 report_url = f"{request.scheme}://{request.host}/report/{report_id}"
                 
                 # Generate WhatsApp message with report link
-                message = format_whatsapp_message(doctor_data, report_url)
-                print(f"DEBUG: Generated message length: {len(message)}")
+                # Different message format based on contact mode
+                if contact_mode == 'doctor':
+                    message = format_whatsapp_message_for_doctor(doctor_data, report_url, user_query_data)
+                else:
+                    message = format_whatsapp_message(doctor_data, report_url)
+                print(f"DEBUG: Generated message length: {len(message)} (mode: {contact_mode})")
                 
                 # URL encode the message for WhatsApp web - use quote instead of quote_plus for better emoji handling
                 from urllib.parse import quote
@@ -6540,10 +6613,15 @@ def update_whatsapp_config():
         socket_url = request.form.get('socket_url', 'http://localhost:8086').strip()
         api_key = request.form.get('api_key', '').strip()
         session_name = request.form.get('session_name', 'default').strip()
+        contact_mode = request.form.get('contact_mode', 'admin').strip()  # Get contact mode
         
-        # Validate required fields if enabled
-        if enabled and not target_number:
-            flash('啟用WhatsApp通知時，目標號碼不能為空', 'error')
+        # Validate contact mode
+        if contact_mode not in ['admin', 'doctor']:
+            contact_mode = 'admin'
+        
+        # Validate required fields if enabled and in admin mode
+        if enabled and contact_mode == 'admin' and not target_number:
+            flash('管理員模式下，目標號碼不能為空', 'error')
             return redirect(url_for('admin_config'))
         
         # Update configuration
@@ -6552,7 +6630,8 @@ def update_whatsapp_config():
             'target_number': target_number,
             'socket_url': socket_url,
             'api_key': api_key,
-            'session_name': session_name
+            'session_name': session_name,
+            'contact_mode': contact_mode
         })
         
         # Update .env file
@@ -6561,6 +6640,7 @@ def update_whatsapp_config():
         update_env_file('WHATSAPP_SOCKET_URL', socket_url)
         update_env_file('WHATSAPP_API_KEY', api_key)
         update_env_file('WHATSAPP_SESSION_NAME', session_name)
+        update_env_file('WHATSAPP_CONTACT_MODE', contact_mode)
         
         # Save to database
         conn = sqlite3.connect('admin_data.db')

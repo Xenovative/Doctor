@@ -1124,7 +1124,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         return typeof translation === 'object' ? (translation['zh-TW'] || translation.zh || translation.en || 'More Info') : translation;
                     })()}
                 </button>
-                <button class="contact-btn" onclick="contactDoctor(event, '${doctor.name}', '${doctor.specialty}')">
+                <button class="contact-btn" onclick="contactDoctor(event, '${doctor.name}', '${doctor.specialty}', '${doctor.phone || ''}')">
                     <i class="fab fa-whatsapp"></i>
                     ${(() => {
                         const translation = translateText('contact');
@@ -1249,7 +1249,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 ` : ''}
             </div>
             <div class="modal-footer">
-                <button class="contact-btn-modal" onclick="contactDoctor(event, '${doctorName}', '${doctorSpecialty}')">
+                <button class="contact-btn-modal" onclick="contactDoctor(event, '${doctorName}', '${doctorSpecialty}', '${doctor.phone || ''}')">
                     <i class="fab fa-whatsapp"></i>
                     ${isEnglish ? 'Contact via WhatsApp' : '透過WhatsApp聯絡'}
                 </button>
@@ -1290,7 +1290,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Function to handle doctor contact
-    window.contactDoctor = async function(event, doctorName, doctorSpecialty) {
+    window.contactDoctor = async function(event, doctorName, doctorSpecialty, doctorPhone = '') {
         event.stopPropagation();
         
         try {
@@ -1302,7 +1302,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 body: JSON.stringify({
                     doctor_name: doctorName,
-                    doctor_specialty: doctorSpecialty
+                    doctor_specialty: doctorSpecialty,
+                    doctor_phone: doctorPhone  // Pass doctor's phone number
                 })
             });
             

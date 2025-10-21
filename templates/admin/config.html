@@ -538,10 +538,42 @@
                             </div>
                             
                             <form method="POST" action="{{ url_for('update_whatsapp_config') }}">
+                                <!-- Contact Mode Selection -->
                                 <div class="row mb-4">
+                                    <div class="col-12">
+                                        <label class="form-label fw-bold">
+                                            <i class="fas fa-exchange-alt me-2"></i>聯絡模式
+                                        </label>
+                                        <div class="btn-group w-100" role="group">
+                                            <input type="radio" class="btn-check" name="contact_mode" id="contactModeAdmin" 
+                                                   value="admin" {{ 'checked' if whatsapp_config.contact_mode == 'admin' else '' }}>
+                                            <label class="btn btn-outline-primary" for="contactModeAdmin">
+                                                <i class="fas fa-user-shield me-2"></i>發送給管理員
+                                            </label>
+                                            
+                                            <input type="radio" class="btn-check" name="contact_mode" id="contactModeDoctor" 
+                                                   value="doctor" {{ 'checked' if whatsapp_config.contact_mode == 'doctor' else '' }}>
+                                            <label class="btn btn-outline-success" for="contactModeDoctor">
+                                                <i class="fas fa-user-md me-2"></i>發送給醫生
+                                            </label>
+                                        </div>
+                                        <div class="form-text mt-2">
+                                            <div id="adminModeHelp" style="display: {{ 'block' if whatsapp_config.contact_mode == 'admin' else 'none' }};">
+                                                <i class="fas fa-info-circle me-1"></i>
+                                                <strong>管理員模式：</strong>用戶點擊聯絡醫生時，報告連結會發送到下方設定的管理員WhatsApp號碼
+                                            </div>
+                                            <div id="doctorModeHelp" style="display: {{ 'block' if whatsapp_config.contact_mode == 'doctor' else 'none' }};">
+                                                <i class="fas fa-info-circle me-1"></i>
+                                                <strong>醫生模式：</strong>用戶點擊聯絡醫生時，報告連結會直接發送到該醫生的WhatsApp號碼（從醫生資料庫讀取）
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row mb-4" id="adminNumberSection" style="display: {{ 'flex' if whatsapp_config.contact_mode == 'admin' else 'none' }};">
                                     <div class="col-md-8">
                                         <label class="form-label">
-                                            <i class="fas fa-phone me-2"></i>接收病徵分析報告的WhatsApp號碼
+                                            <i class="fas fa-phone me-2"></i>管理員WhatsApp號碼
                                         </label>
                                         <input type="text" class="form-control" name="target_number" 
                                                value="{{ whatsapp_config.target_number or '85294974070' }}" 
@@ -550,7 +582,7 @@
                                                title="請輸入純數字的電話號碼">
                                         <div class="form-text">
                                             <i class="fas fa-lightbulb me-1"></i>
-                                            用戶點擊聯絡醫生時，會開啟WhatsApp並將病徵分析報告發送到此號碼
+                                            用戶點擊聯絡醫生時，會開啟WhatsApp並將病徵分析報告連結發送到此號碼
                                         </div>
                                     </div>
                                     <div class="col-md-4 d-flex align-items-end">
@@ -983,6 +1015,34 @@
                 btn.disabled = false;
             });
         }
+
+        // Handle contact mode switching
+        document.addEventListener('DOMContentLoaded', function() {
+            const adminModeRadio = document.getElementById('contactModeAdmin');
+            const doctorModeRadio = document.getElementById('contactModeDoctor');
+            const adminNumberSection = document.getElementById('adminNumberSection');
+            const adminModeHelp = document.getElementById('adminModeHelp');
+            const doctorModeHelp = document.getElementById('doctorModeHelp');
+
+            function updateContactMode() {
+                if (adminModeRadio && adminModeRadio.checked) {
+                    adminNumberSection.style.display = 'flex';
+                    adminModeHelp.style.display = 'block';
+                    doctorModeHelp.style.display = 'none';
+                } else if (doctorModeRadio && doctorModeRadio.checked) {
+                    adminNumberSection.style.display = 'none';
+                    adminModeHelp.style.display = 'none';
+                    doctorModeHelp.style.display = 'block';
+                }
+            }
+
+            if (adminModeRadio) {
+                adminModeRadio.addEventListener('change', updateContactMode);
+            }
+            if (doctorModeRadio) {
+                doctorModeRadio.addEventListener('change', updateContactMode);
+            }
+        });
 
         function testWhatsAppWebUrl() {
             const btn = event.target;
