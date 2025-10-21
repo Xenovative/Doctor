@@ -3467,16 +3467,20 @@ def get_ai_config():
     """獲取AI配置信息"""
     provider = AI_CONFIG['provider']
     config_info = {
-        'current_provider': provider,
-        'available_providers': ['ollama', 'openrouter'],
-        'current_model': AI_CONFIG[provider]['model'] if provider in AI_CONFIG else 'unknown'
+        'provider': provider,
+        'model': AI_CONFIG[provider]['model'] if provider in AI_CONFIG else 'unknown'
     }
     
-    if provider == 'openrouter':
-        config_info['api_key_set'] = bool(AI_CONFIG['openrouter']['api_key'])
-        config_info['max_tokens'] = AI_CONFIG['openrouter']['max_tokens']
-    
     return jsonify(config_info)
+
+@app.route('/contact-config')
+def get_contact_config():
+    """Get contact button configuration for frontend"""
+    contact_mode = WHATSAPP_CONFIG.get('contact_mode', 'admin')
+    return jsonify({
+        'contact_mode': contact_mode,
+        'show_contact_button': contact_mode != 'hidden'
+    })
 
 # Admin Routes
 @app.route('/admin/login', methods=['GET', 'POST'])
@@ -6616,7 +6620,7 @@ def update_whatsapp_config():
         contact_mode = request.form.get('contact_mode', 'admin').strip()  # Get contact mode
         
         # Validate contact mode
-        if contact_mode not in ['admin', 'doctor']:
+        if contact_mode not in ['admin', 'doctor', 'hidden']:
             contact_mode = 'admin'
         
         # Validate required fields if enabled and in admin mode

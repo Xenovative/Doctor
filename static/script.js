@@ -5,6 +5,18 @@ document.addEventListener('DOMContentLoaded', function() {
     const doctorList = document.getElementById('doctorList');
     const analysisResult = document.getElementById('diagnosisResult');
     
+    // Fetch contact button configuration
+    fetch('/contact-config')
+        .then(response => response.json())
+        .then(data => {
+            window.showContactButton = data.show_contact_button;
+            console.log('Contact button config loaded:', data);
+        })
+        .catch(error => {
+            console.error('Failed to load contact config:', error);
+            window.showContactButton = true; // Default to showing button on error
+        });
+    
     // Location cascade data with coordinates for geolocation matching
     const locationData = {
         '香港島': {
@@ -1124,6 +1136,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         return typeof translation === 'object' ? (translation['zh-TW'] || translation.zh || translation.en || 'More Info') : translation;
                     })()}
                 </button>
+                ${window.showContactButton !== false ? `
                 <button class="contact-btn" onclick="contactDoctor(event, '${doctor.name}', '${doctor.specialty}', '${doctor.phone || ''}')">
                     <i class="fab fa-whatsapp"></i>
                     ${(() => {
@@ -1131,6 +1144,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         return typeof translation === 'object' ? (translation['zh-TW'] || translation.zh || translation.en || 'Contact') : translation;
                     })()}
                 </button>
+                ` : ''}
             </div>
         `;
         
@@ -1248,12 +1262,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
                 ` : ''}
             </div>
+            ${window.showContactButton !== false ? `
             <div class="modal-footer">
                 <button class="contact-btn-modal" onclick="contactDoctor(event, '${doctorName}', '${doctorSpecialty}', '${doctor.phone || ''}')">
                     <i class="fab fa-whatsapp"></i>
                     ${isEnglish ? 'Contact via WhatsApp' : '透過WhatsApp聯絡'}
                 </button>
             </div>
+            ` : ''}
         `;
         
         modal.style.display = 'block';

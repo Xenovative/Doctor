@@ -556,6 +556,12 @@
                                             <label class="btn btn-outline-success" for="contactModeDoctor">
                                                 <i class="fas fa-user-md me-2"></i>發送給醫生
                                             </label>
+                                            
+                                            <input type="radio" class="btn-check" name="contact_mode" id="contactModeHidden" 
+                                                   value="hidden" {{ 'checked' if whatsapp_config.contact_mode == 'hidden' else '' }}>
+                                            <label class="btn btn-outline-secondary" for="contactModeHidden">
+                                                <i class="fas fa-eye-slash me-2"></i>隱藏按鈕
+                                            </label>
                                         </div>
                                         <div class="form-text mt-2">
                                             <div id="adminModeHelp" style="display: {{ 'block' if whatsapp_config.contact_mode == 'admin' else 'none' }};">
@@ -565,6 +571,10 @@
                                             <div id="doctorModeHelp" style="display: {{ 'block' if whatsapp_config.contact_mode == 'doctor' else 'none' }};">
                                                 <i class="fas fa-info-circle me-1"></i>
                                                 <strong>醫生模式：</strong>用戶點擊聯絡醫生時，報告連結會直接發送到該醫生的WhatsApp號碼（從醫生資料庫讀取）
+                                            </div>
+                                            <div id="hiddenModeHelp" style="display: {{ 'block' if whatsapp_config.contact_mode == 'hidden' else 'none' }};">
+                                                <i class="fas fa-info-circle me-1"></i>
+                                                <strong>隱藏模式：</strong>聯絡醫生按鈕將不會顯示在醫生卡片上，用戶無法通過系統聯絡醫生
                                             </div>
                                         </div>
                                     </div>
@@ -1020,19 +1030,28 @@
         document.addEventListener('DOMContentLoaded', function() {
             const adminModeRadio = document.getElementById('contactModeAdmin');
             const doctorModeRadio = document.getElementById('contactModeDoctor');
+            const hiddenModeRadio = document.getElementById('contactModeHidden');
             const adminNumberSection = document.getElementById('adminNumberSection');
             const adminModeHelp = document.getElementById('adminModeHelp');
             const doctorModeHelp = document.getElementById('doctorModeHelp');
+            const hiddenModeHelp = document.getElementById('hiddenModeHelp');
 
             function updateContactMode() {
                 if (adminModeRadio && adminModeRadio.checked) {
                     adminNumberSection.style.display = 'flex';
                     adminModeHelp.style.display = 'block';
                     doctorModeHelp.style.display = 'none';
+                    hiddenModeHelp.style.display = 'none';
                 } else if (doctorModeRadio && doctorModeRadio.checked) {
                     adminNumberSection.style.display = 'none';
                     adminModeHelp.style.display = 'none';
                     doctorModeHelp.style.display = 'block';
+                    hiddenModeHelp.style.display = 'none';
+                } else if (hiddenModeRadio && hiddenModeRadio.checked) {
+                    adminNumberSection.style.display = 'none';
+                    adminModeHelp.style.display = 'none';
+                    doctorModeHelp.style.display = 'none';
+                    hiddenModeHelp.style.display = 'block';
                 }
             }
 
@@ -1041,6 +1060,9 @@
             }
             if (doctorModeRadio) {
                 doctorModeRadio.addEventListener('change', updateContactMode);
+            }
+            if (hiddenModeRadio) {
+                hiddenModeRadio.addEventListener('change', updateContactMode);
             }
         });
 
