@@ -1070,10 +1070,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 ${doctor.emergency_message || translateText('emergency_care_needed')}
             </div>
             ` : ''}
-            <div class="whatsapp-hint">
-                <i class="fab fa-whatsapp"></i>
-                ${translateText('click_to_contact')}
-            </div>
             
             <div class="doctor-header">
                 <div class="doctor-avatar">
