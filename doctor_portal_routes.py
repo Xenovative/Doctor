@@ -80,7 +80,7 @@ def get_pending_count(doctor_id: int) -> int:
         cursor = conn.cursor()
         cursor.execute("""
             SELECT COUNT(*) as count FROM reservations
-            WHERE doctor_id = ? AND status = 'pending'
+            WHERE doctor_id = ? AND status IN ('pending', 'contact_request')
         """, (doctor_id,))
         result = cursor.fetchone()
         conn.close()
@@ -269,7 +269,7 @@ def dashboard():
     cursor.execute("""
         SELECT COUNT(*) as count
         FROM reservations
-        WHERE doctor_id = ? AND status = 'pending'
+        WHERE doctor_id = ? AND status IN ('pending', 'contact_request')
     """, (doctor_id,))
     
     pending_count = cursor.fetchone()['count']
@@ -558,10 +558,10 @@ def reservations():
     cursor.execute(query, params)
     reservations_list = [dict(row) for row in cursor.fetchall()]
     
-    # Get pending count for navigation badge
+    # Get pending count for navigation badge (include contact_request)
     cursor.execute("""
         SELECT COUNT(*) as count FROM reservations
-        WHERE doctor_id = ? AND status = 'pending'
+        WHERE doctor_id = ? AND status IN ('pending', 'contact_request')
     """, (doctor_id,))
     pending_count = cursor.fetchone()['count']
     

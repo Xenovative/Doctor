@@ -87,6 +87,9 @@
         <button class="btn btn-sm btn-primary" onclick="filterReservations('all')">
             全部
         </button>
+        <button class="btn btn-sm btn-outline-primary" onclick="filterReservations('contact_request')">
+            <i class="fas fa-phone me-1"></i>聯絡請求
+        </button>
         <button class="btn btn-sm btn-outline-warning" onclick="filterReservations('pending')">
             <i class="fas fa-clock me-1"></i>待確認
         </button>
@@ -163,12 +166,19 @@
                 
                 <div class="col-md-4">
                     <div class="text-end">
-                        <span class="badge bg-{{ 'warning' if reservation.status == 'pending' else 'success' if reservation.status == 'confirmed' else 'info' if reservation.status == 'completed' else 'danger' }} mb-3">
-                            {{ '待確認' if reservation.status == 'pending' else '已確認' if reservation.status == 'confirmed' else '已完成' if reservation.status == 'completed' else '已取消' }}
+                        <span class="badge bg-{{ 'primary' if reservation.status == 'contact_request' else 'warning' if reservation.status == 'pending' else 'success' if reservation.status == 'confirmed' else 'info' if reservation.status == 'completed' else 'danger' }} mb-3">
+                            {{ '聯絡請求' if reservation.status == 'contact_request' else '待確認' if reservation.status == 'pending' else '已確認' if reservation.status == 'confirmed' else '已完成' if reservation.status == 'completed' else '已取消' }}
                         </span>
                         
                         <div class="d-grid gap-2">
-                            {% if reservation.status == 'pending' %}
+                            {% if reservation.status == 'contact_request' %}
+                            <button class="btn btn-success btn-sm" onclick="confirmReservation({{ reservation.id }})">
+                                <i class="fas fa-check me-1"></i>確認並安排預約
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="cancelReservation({{ reservation.id }})">
+                                <i class="fas fa-times me-1"></i>忽略請求
+                            </button>
+                            {% elif reservation.status == 'pending' %}
                             <button class="btn btn-success btn-sm" onclick="confirmReservation({{ reservation.id }})">
                                 <i class="fas fa-check me-1"></i>確認預約
                             </button>
