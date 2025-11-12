@@ -5637,17 +5637,70 @@ def check_doctor_account(doctor_id):
     try:
         conn = sqlite3.connect('doctors.db')
         cursor = conn.cursor()
-        cursor.execute("SELECT id FROM doctor_accounts WHERE doctor_id = ?", (doctor_id,))
+        
+        # Check for account
+        cursor.execute("SELECT id, username FROM doctor_accounts WHERE doctor_id = ?", (doctor_id,))
         account = cursor.fetchone()
+        
+        # Also check is_affiliated status
+        cursor.execute("SELECT is_affiliated, affiliation_status FROM doctors WHERE id = ?", (doctor_id,))
+        doctor = cursor.fetchone()
+        
         conn.close()
+        
+        has_account = account is not None
+        is_affiliated = doctor[0] if doctor else 0
+        
+        logger.info(f"Check account for doctor {doctor_id}: has_account={has_account}, is_affiliated={is_affiliated}")
         
         return jsonify({
             'success': True,
-            'has_account': account is not None
+            'has_account': has_account,
+            'is_affiliated': is_affiliated,
+            'username': account[1] if account else None
         })
     except Exception as e:
         logger.error(f"Error checking doctor account: {e}")
         return jsonify({'success': False, 'has_account': False}), 500
+
+@app.route('/admin/sync-affiliation-status', methods=['POST'])
+@tab_permission_required('doctors')
+def sync_affiliation_status():
+    """Sync is_affiliated flag for all doctors with accounts"""
+    try:
+        conn = sqlite3.connect('doctors.db')
+        cursor = conn.cursor()
+        
+        # Update all doctors who have accounts but aren't marked as affiliated
+        cursor.execute("""
+            UPDATE doctors 
+            SET is_affiliated = 1,
+                affiliation_status = 'approved',
+                affiliation_date = ?
+            WHERE id IN (
+                SELECT doctor_id 
+                FROM doctor_accounts 
+                WHERE is_active = 1
+            )
+            AND (is_affiliated IS NULL OR is_affiliated = 0)
+        """, (datetime.now().isoformat(),))
+        
+        updated_count = cursor.rowcount
+        
+        conn.commit()
+        conn.close()
+        
+        logger.info(f"Admin {session.get('admin_username')} synced affiliation status, updated {updated_count} doctors")
+        
+        return jsonify({
+            'success': True,
+            'message': f'已同步 {updated_count} 位醫生的加盟狀態',
+            'updated_count': updated_count
+        })
+        
+    except Exception as e:
+        logger.error(f"Error syncing affiliation status: {e}")
+        return jsonify({'success': False, 'message': f'同步失敗: {str(e)}'}), 500
 
 @app.route('/admin/create-doctor-account', methods=['POST'])
 @tab_permission_required('doctors')
