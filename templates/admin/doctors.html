@@ -649,7 +649,7 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
                     <button type="button" class="btn btn-success" id="createAccountBtn" onclick="openCreateAccountModal()">
-                        <i class="fas fa-user-plus me-2"></i>創建醫生帳戶
+                        <i class="fas fa-user-plus me-2"></i><span id="accountBtnText">創建醫生帳戶</span>
                     </button>
                     <button type="button" class="btn btn-primary" onclick="saveDoctorChanges()">儲存變更</button>
                 </div>
@@ -1553,6 +1553,9 @@
             const doctorName = document.getElementById('editNameZh').value || document.getElementById('editNameEn').value;
             const doctorEmail = document.getElementById('editEmail').value;
             const doctorPhone = document.getElementById('editContactNumbers').value;
+            const createBtn = document.getElementById('createAccountBtn');
+            const hasAccount = createBtn.getAttribute('data-has-account') === 'true';
+            const existingUsername = createBtn.getAttribute('data-username') || '';
             
             // Hide edit modal
             const editModal = bootstrap.Modal.getInstance(document.getElementById('editDoctorModal'));
@@ -1561,12 +1564,33 @@
             // Show create account modal
             setTimeout(() => {
                 const modal = new bootstrap.Modal(document.getElementById('createAccountModal'));
+                const modalTitle = document.querySelector('#createAccountModal .modal-title');
+                const usernameField = document.getElementById('accountUsername');
+                const passwordField = document.getElementById('accountPassword');
+                
                 document.getElementById('accountDoctorId').value = doctorId;
                 document.getElementById('accountDoctorName').textContent = doctorName;
-                document.getElementById('accountUsername').value = '';
-                document.getElementById('accountPassword').value = '';
                 document.getElementById('accountEmail').value = doctorEmail || '';
                 document.getElementById('accountPhone').value = doctorPhone ? doctorPhone.split(',')[0].trim() : '';
+                
+                if (hasAccount) {
+                    // Edit mode
+                    modalTitle.textContent = '編輯醫生帳戶';
+                    usernameField.value = existingUsername;
+                    usernameField.readOnly = true;
+                    usernameField.style.backgroundColor = '#e9ecef';
+                    passwordField.value = '';
+                    passwordField.placeholder = '留空表示不更改密碼';
+                } else {
+                    // Create mode
+                    modalTitle.textContent = '創建醫生帳戶';
+                    usernameField.value = '';
+                    usernameField.readOnly = false;
+                    usernameField.style.backgroundColor = '';
+                    passwordField.value = '';
+                    passwordField.placeholder = '輸入密碼';
+                }
+                
                 modal.show();
             }, 300);
         }
@@ -1575,6 +1599,8 @@
         async function checkDoctorAccount(doctorId) {
             const createBtn = document.getElementById('createAccountBtn');
             const affiliationBadge = document.getElementById('affiliationBadge');
+            const btnText = document.getElementById('accountBtnText');
+            const btnIcon = createBtn.querySelector('i');
             
             try {
                 const response = await fetch(`/admin/check-doctor-account/${doctorId}`);
@@ -1582,6 +1608,9 @@
                 if (!response.ok) {
                     console.warn('Check account API returned error, showing create button by default');
                     createBtn.style.display = 'inline-block';
+                    btnText.textContent = '創建醫生帳戶';
+                    btnIcon.className = 'fas fa-user-plus me-2';
+                    createBtn.className = 'btn btn-success';
                     affiliationBadge.style.display = 'none';
                     return;
                 }
@@ -1589,16 +1618,33 @@
                 const data = await response.json();
                 
                 if (data.has_account) {
-                    createBtn.style.display = 'none';
-                    affiliationBadge.style.display = 'inline-block';
-                } else {
+                    // Change button to "Edit Account"
                     createBtn.style.display = 'inline-block';
+                    btnText.textContent = '編輯帳戶';
+                    btnIcon.className = 'fas fa-user-edit me-2';
+                    createBtn.className = 'btn btn-info';
+                    affiliationBadge.style.display = 'inline-block';
+                    
+                    // Store username for edit mode
+                    createBtn.setAttribute('data-username', data.username || '');
+                    createBtn.setAttribute('data-has-account', 'true');
+                } else {
+                    // Show create button
+                    createBtn.style.display = 'inline-block';
+                    btnText.textContent = '創建醫生帳戶';
+                    btnIcon.className = 'fas fa-user-plus me-2';
+                    createBtn.className = 'btn btn-success';
                     affiliationBadge.style.display = 'none';
+                    createBtn.removeAttribute('data-username');
+                    createBtn.removeAttribute('data-has-account');
                 }
             } catch (error) {
                 console.error('Error checking account:', error);
                 // On error, show create button (safe default)
                 createBtn.style.display = 'inline-block';
+                btnText.textContent = '創建醫生帳戶';
+                btnIcon.className = 'fas fa-user-plus me-2';
+                createBtn.className = 'btn btn-success';
                 affiliationBadge.style.display = 'none';
             }
         }
@@ -1609,13 +1655,22 @@
             const password = document.getElementById('accountPassword').value;
             const email = document.getElementById('accountEmail').value.trim();
             const phone = document.getElementById('accountPhone').value.trim();
+            const usernameField = document.getElementById('accountUsername');
+            const isEditMode = usernameField.readOnly;
             
-            if (!username || !password) {
-                alert('請輸入用戶名和密碼');
+            if (!username) {
+                alert('請輸入用戶名');
                 return;
             }
             
-            if (password.length < 6) {
+            // In create mode, password is required
+            // In edit mode, password is optional (only if changing)
+            if (!isEditMode && !password) {
+                alert('請輸入密碼');
+                return;
+            }
+            
+            if (password && password.length < 6) {
                 alert('密碼至少需要6個字符');
                 return;
             }
