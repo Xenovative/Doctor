@@ -5756,36 +5756,24 @@ def admin_doctors_paginated():
         
         # Base query with better data handling
         base_query = """
-            SELECT id, 
-                   CASE 
-                       WHEN name_zh IS NOT NULL AND name_zh != '' THEN name_zh
-                       WHEN name_en IS NOT NULL AND name_en != '' THEN name_en
-                       WHEN name IS NOT NULL AND name != '' THEN name
-                       ELSE 'Unknown'
-                   END as name,
-                   CASE 
-                       WHEN specialty_zh IS NOT NULL AND specialty_zh != '' 
-                            AND specialty_zh NOT LIKE '%Dr.%' 
-                            AND specialty_zh NOT LIKE '%醫生%' 
-                            AND specialty_zh NOT LIKE '%醫師%'
-                            AND specialty_zh NOT GLOB '*[A-Z][a-z]* [A-Z][a-z]*' THEN specialty_zh
-                       WHEN specialty_en IS NOT NULL AND specialty_en != '' 
-                            AND specialty_en NOT LIKE '%Dr.%'
-                            AND specialty_en NOT GLOB '[A-Z][a-z]* [A-Z][a-z]*' THEN specialty_en
-                       WHEN specialty IS NOT NULL AND specialty != '' 
-                            AND specialty NOT LIKE '%Dr.%'
-                            AND specialty NOT GLOB '[A-Z][a-z]* [A-Z][a-z]*' THEN specialty
-                       ELSE ''
-                   END as specialty,
-                   CASE 
-                       WHEN qualifications_zh IS NOT NULL AND qualifications_zh != '' THEN qualifications_zh
-                       WHEN qualifications_en IS NOT NULL AND qualifications_en != '' THEN qualifications_en
-                       WHEN qualifications IS NOT NULL AND qualifications != '' THEN qualifications
-                       ELSE ''
-                   END as qualifications,
-                   COALESCE(contact_numbers, '') as contact_numbers,
-                   COALESCE(clinic_addresses, '') as clinic_addresses,
-                   COALESCE(priority_flag, 0) as priority_flag,
+            SELECT id,
+                   name_zh,
+                   name_en,
+                   name,
+                   specialty_zh,
+                   specialty_en,
+                   specialty,
+                   qualifications_zh,
+                   qualifications_en,
+                   qualifications,
+                   languages_zh,
+                   languages_en,
+                   languages,
+                   contact_numbers,
+                   email,
+                   clinic_addresses,
+                   profile_url,
+                   priority_flag,
                    COALESCE(is_affiliated, 0) as is_affiliated
             FROM doctors
         """
