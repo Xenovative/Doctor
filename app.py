@@ -6537,6 +6537,98 @@ def track_click():
     """Legacy endpoint - now redirects to get_whatsapp_url"""
     return get_whatsapp_url()
 
+@app.route('/api/contact-doctor-reservation', methods=['POST'])
+def contact_doctor_reservation():
+    """Create a reservation request when contact button is clicked"""
+    try:
+        data = request.get_json()
+        doctor_id = data.get('doctor_id')
+        doctor_name = data.get('doctor_name')
+        
+        # Get session info
+        session_id = session.get('session_id')
+        query_id = session.get('last_query_id')
+        
+        # Get user query data if available
+        patient_name = 'Walk-in Patient'
+        patient_phone = ''
+        patient_age = None
+        patient_gender = ''
+        symptoms = ''
+        chronic_conditions = ''
+        
+        if query_id:
+            conn = sqlite3.connect('admin_data.db')
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT age, gender, symptoms, chronic_conditions
+                FROM user_queries WHERE id = ?
+            ''', (query_id,))
+            user_query_row = cursor.fetchone()
+            
+            if user_query_row:
+                patient_age = user_query_row[0]
+                patient_gender = user_query_row[1]
+                symptoms = user_query_row[2]
+                chronic_conditions = user_query_row[3]
+            
+            conn.close()
+        
+        # Create a pending reservation request
+        conn = sqlite3.connect('admin_data.db')
+        cursor = conn.cursor()
+        
+        # Generate confirmation code
+        import secrets
+        confirmation_code = secrets.token_urlsafe(8).upper()
+        
+        # Insert reservation with status 'contact_request' to differentiate from normal bookings
+        cursor.execute("""
+            INSERT INTO reservations
+            (doctor_id, patient_name, patient_phone, patient_age, 
+             patient_gender, reservation_date, reservation_time, consultation_type,
+             symptoms, chronic_conditions, query_id, confirmation_code, status, notes)
+            VALUES (?, ?, ?, ?, ?, date('now'), '00:00', 'contact', ?, ?, ?, ?, 'contact_request', 
+                    'Patient clicked contact button - awaiting response')
+        """, (
+            doctor_id,
+            patient_name,
+            patient_phone,
+            patient_age,
+            patient_gender,
+            symptoms,
+            chronic_conditions,
+            query_id,
+            confirmation_code
+        ))
+        
+        reservation_id = cursor.lastrowid
+        
+        # Add to history
+        cursor.execute("""
+            INSERT INTO reservation_history
+            (reservation_id, action, new_status, performed_by, performed_by_type, notes)
+            VALUES (?, 'contact_initiated', 'contact_request', ?, 'patient', 'Contact button clicked')
+        """, (reservation_id, patient_name))
+        
+        conn.commit()
+        conn.close()
+        
+        print(f"✅ Contact reservation created: ID={reservation_id}, Doctor={doctor_name}, Code={confirmation_code}")
+        
+        return jsonify({
+            'success': True,
+            'reservation_id': reservation_id,
+            'confirmation_code': confirmation_code,
+            'message': '已記錄聯絡請求'
+        })
+        
+    except Exception as e:
+        print(f"Error creating contact reservation: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/admin/api/whatsapp-status')
 @login_required
 def get_whatsapp_status():

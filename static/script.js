@@ -1133,7 +1133,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     })()}
                 </button>
                 ${window.showContactButton !== false ? `
-                <button class="contact-btn" onclick="contactDoctor(event, '${doctor.name}', '${doctor.specialty}', '${doctor.account_phone || doctor.contact_numbers || ''}', ${doctor.is_affiliated || false})">
+                <button class="contact-btn" onclick="contactDoctor(event, ${doctor.id}, '${doctor.name}', '${doctor.specialty}', '${doctor.account_phone || doctor.contact_numbers || ''}', ${doctor.is_affiliated || false})">
                     <i class="fab fa-whatsapp"></i>
                     ${(() => {
                         const translation = translateText('contact');
@@ -1260,7 +1260,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
             ${window.showContactButton !== false ? `
             <div class="modal-footer">
-                <button class="contact-btn-modal" onclick="contactDoctor(event, '${doctorName}', '${doctorSpecialty}', '${doctor.account_phone || doctor.contact_numbers || ''}', ${doctor.is_affiliated || false})">
+                <button class="contact-btn-modal" onclick="contactDoctor(event, ${doctor.id}, '${doctorName}', '${doctorSpecialty}', '${doctor.account_phone || doctor.contact_numbers || ''}', ${doctor.is_affiliated || false})">
                     <i class="fab fa-whatsapp"></i>
                     ${isEnglish ? 'Contact via WhatsApp' : '透過WhatsApp聯絡'}
                 </button>
@@ -1302,14 +1302,26 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Function to handle doctor contact
-    window.contactDoctor = async function(event, doctorName, doctorSpecialty, doctorPhone = '', isAffiliated = false) {
+    window.contactDoctor = async function(event, doctorId, doctorName, doctorSpecialty, doctorPhone = '', isAffiliated = false) {
         event.stopPropagation();
         
-        console.log('Contact doctor:', {doctorName, doctorSpecialty, doctorPhone, isAffiliated});
+        console.log('Contact doctor:', {doctorId, doctorName, doctorSpecialty, doctorPhone, isAffiliated});
         
         try {
+            // Create reservation request in parallel with WhatsApp URL generation
+            const reservationPromise = fetch('/api/contact-doctor-reservation', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    doctor_id: doctorId,
+                    doctor_name: doctorName
+                })
+            });
+            
             // Get WhatsApp URL with analysis report
-            const response = await fetch('/get_whatsapp_url', {
+            const whatsappPromise = fetch('/get_whatsapp_url', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1317,26 +1329,37 @@ document.addEventListener('DOMContentLoaded', function() {
                 body: JSON.stringify({
                     doctor_name: doctorName,
                     doctor_specialty: doctorSpecialty,
-                    doctor_phone: doctorPhone,  // Pass doctor's phone number (account_phone for affiliated, contact_numbers for others)
+                    doctor_phone: doctorPhone,
                     is_affiliated: isAffiliated
                 })
             });
             
-            const data = await response.json();
+            // Wait for both requests
+            const [reservationResponse, whatsappResponse] = await Promise.all([reservationPromise, whatsappPromise]);
+            
+            // Handle reservation response
+            if (reservationResponse.ok) {
+                const reservationData = await reservationResponse.json();
+                if (reservationData.success) {
+                    console.log('✅ Reservation request created:', reservationData.confirmation_code);
+                }
+            }
+            
+            // Handle WhatsApp response
+            const data = await whatsappResponse.json();
             
             if (data.success && data.whatsapp_url) {
                 // Open WhatsApp with pre-filled analysis report
                 console.log('Opening WhatsApp URL:', data.whatsapp_url);
                 window.open(data.whatsapp_url, '_blank');
             } else {
-                // For affiliated doctors with phone, use their number directly
+                // Smart fallback based on affiliation
                 if (isAffiliated && doctorPhone) {
                     const cleanPhone = doctorPhone.replace(/[^0-9+]/g, '');
                     const fallbackUrl = `https://wa.me/${cleanPhone}`;
                     console.log('Using affiliated doctor fallback:', fallbackUrl);
                     window.open(fallbackUrl, '_blank');
                 } else {
-                    // Fallback to admin number
                     const fallbackUrl = 'https://wa.me/85294974070';
                     window.open(fallbackUrl, '_blank');
                 }
@@ -1350,7 +1373,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('Using affiliated doctor fallback (error):', fallbackUrl);
                 window.open(fallbackUrl, '_blank');
             } else {
-                // Fallback to admin number
                 const fallbackUrl = 'https://wa.me/85294974070';
                 window.open(fallbackUrl, '_blank');
             }
