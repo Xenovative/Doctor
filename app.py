@@ -5785,7 +5785,8 @@ def admin_doctors_paginated():
                    END as qualifications,
                    COALESCE(contact_numbers, '') as contact_numbers,
                    COALESCE(clinic_addresses, '') as clinic_addresses,
-                   COALESCE(priority_flag, 0) as priority_flag
+                   COALESCE(priority_flag, 0) as priority_flag,
+                   COALESCE(is_affiliated, 0) as is_affiliated
             FROM doctors
         """
         

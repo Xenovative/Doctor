@@ -342,13 +342,28 @@
                                 <td>
                                     {% if doctor.name_zh %}
                                         <strong>{{ doctor.name_zh }}</strong>
+                                        {% if doctor.is_affiliated %}
+                                        <span class="badge bg-success ms-1" style="font-size: 0.7rem;">
+                                            <i class="fas fa-check-circle me-1"></i>已加盟
+                                        </span>
+                                        {% endif %}
                                         {% if doctor.name_en %}
                                             <br><small class="text-muted">{{ doctor.name_en }}</small>
                                         {% endif %}
                                     {% elif doctor.name_en %}
                                         <strong>{{ doctor.name_en }}</strong>
+                                        {% if doctor.is_affiliated %}
+                                        <span class="badge bg-success ms-1" style="font-size: 0.7rem;">
+                                            <i class="fas fa-check-circle me-1"></i>已加盟
+                                        </span>
+                                        {% endif %}
                                     {% else %}
                                         <strong>{{ doctor.name or 'Unknown' }}</strong>
+                                        {% if doctor.is_affiliated %}
+                                        <span class="badge bg-success ms-1" style="font-size: 0.7rem;">
+                                            <i class="fas fa-check-circle me-1"></i>已加盟
+                                        </span>
+                                        {% endif %}
                                     {% endif %}
                                 </td>
                                 <td>
@@ -438,7 +453,12 @@
         <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">編輯醫生資料</h5>
+                    <h5 class="modal-title">
+                        編輯醫生資料
+                        <span id="affiliationBadge" class="badge bg-success ms-2" style="display: none;">
+                            <i class="fas fa-check-circle me-1"></i>已加盟
+                        </span>
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -1542,15 +1562,19 @@
                 const response = await fetch(`/admin/check-doctor-account/${doctorId}`);
                 const data = await response.json();
                 const createBtn = document.getElementById('createAccountBtn');
+                const affiliationBadge = document.getElementById('affiliationBadge');
                 
                 if (data.has_account) {
                     createBtn.style.display = 'none';
+                    affiliationBadge.style.display = 'inline-block';
                 } else {
                     createBtn.style.display = 'inline-block';
+                    affiliationBadge.style.display = 'none';
                 }
             } catch (error) {
                 console.error('Error checking account:', error);
                 document.getElementById('createAccountBtn').style.display = 'none';
+                document.getElementById('affiliationBadge').style.display = 'none';
             }
         }
         
