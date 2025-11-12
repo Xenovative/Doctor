@@ -39,7 +39,7 @@ def require_admin(f):
     """Decorator to require admin login"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'admin_id' not in session:
+        if not session.get('admin_logged_in'):
             return redirect(url_for('admin_login'))
         return f(*args, **kwargs)
     return decorated_function
