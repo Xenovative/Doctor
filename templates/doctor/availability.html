@@ -1,0 +1,258 @@
+{% extends "doctor/base.html" %}
+
+{% block title %}時間表管理{% endblock %}
+
+{% block content %}
+<div class="top-bar">
+    <h1 class="page-title">時間表管理</h1>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-8">
+        <div class="stat-card">
+            <h5 class="mb-4">每週時間表</h5>
+            
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>星期</th>
+                            <th>開始時間</th>
+                            <th>結束時間</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if schedules %}
+                            {% for schedule in schedules %}
+                            <tr>
+                                <td>{{ ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'][schedule.day_of_week] }}</td>
+                                <td>{{ schedule.start_time }}</td>
+                                <td>{{ schedule.end_time }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteSchedule({{ schedule.id }})">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted">暫無時間表</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <button class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#addScheduleModal">
+                <i class="fas fa-plus me-2"></i>新增時間表
+            </button>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="stat-card">
+            <h5 class="mb-4">休假日期</h5>
+            
+            {% if time_off %}
+                {% for off in time_off %}
+                <div class="mb-3 p-3 border rounded">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <strong>{{ off.start_date }} - {{ off.end_date }}</strong>
+                            <p class="mb-0 small text-muted">{{ off.reason or '休假' }}</p>
+                        </div>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteTimeOff({{ off.id }})">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="text-muted">暫無休假記錄</p>
+            {% endif %}
+            
+            <button class="btn btn-outline-primary w-100 mt-3" data-bs-toggle="modal" data-bs-target="#addTimeOffModal">
+                <i class="fas fa-plus me-2"></i>新增休假
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Add Schedule Modal -->
+<div class="modal fade" id="addScheduleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">新增時間表</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addScheduleForm">
+                    <div class="mb-3">
+                        <label class="form-label">星期</label>
+                        <select class="form-select" id="day_of_week" required>
+                            <option value="0">星期一</option>
+                            <option value="1">星期二</option>
+                            <option value="2">星期三</option>
+                            <option value="3">星期四</option>
+                            <option value="4">星期五</option>
+                            <option value="5">星期六</option>
+                            <option value="6">星期日</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">開始時間</label>
+                        <input type="time" class="form-control" id="start_time" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">結束時間</label>
+                        <input type="time" class="form-control" id="end_time" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="submitSchedule()">儲存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Time Off Modal -->
+<div class="modal fade" id="addTimeOffModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">新增休假</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addTimeOffForm">
+                    <div class="mb-3">
+                        <label class="form-label">開始日期</label>
+                        <input type="date" class="form-control" id="start_date" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">結束日期</label>
+                        <input type="date" class="form-control" id="end_date" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">原因（選填）</label>
+                        <input type="text" class="form-control" id="reason">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="submitTimeOff()">儲存</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    async function submitSchedule() {
+        const data = {
+            day_of_week: parseInt(document.getElementById('day_of_week').value),
+            start_time: document.getElementById('start_time').value,
+            end_time: document.getElementById('end_time').value
+        };
+        
+        try {
+            const response = await fetch('/doctor/availability/add', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                alert('時間表已新增');
+                location.reload();
+            } else {
+                alert('新增失敗: ' + result.message);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('新增失敗');
+        }
+    }
+    
+    async function submitTimeOff() {
+        const data = {
+            start_date: document.getElementById('start_date').value,
+            end_date: document.getElementById('end_date').value,
+            reason: document.getElementById('reason').value
+        };
+        
+        try {
+            const response = await fetch('/doctor/availability/time-off/add', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                alert('休假已新增');
+                location.reload();
+            } else {
+                alert('新增失敗: ' + result.message);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('新增失敗');
+        }
+    }
+    
+    async function deleteSchedule(scheduleId) {
+        if (!confirm('確定要刪除此時間表？')) return;
+        
+        try {
+            const response = await fetch(`/doctor/availability/${scheduleId}/delete`, {
+                method: 'POST'
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                alert('已刪除');
+                location.reload();
+            } else {
+                alert('刪除失敗');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('刪除失敗');
+        }
+    }
+    
+    async function deleteTimeOff(timeOffId) {
+        if (!confirm('確定要刪除此休假？')) return;
+        
+        try {
+            const response = await fetch(`/doctor/availability/time-off/${timeOffId}/delete`, {
+                method: 'POST'
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                alert('已刪除');
+                location.reload();
+            } else {
+                alert('刪除失敗');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('刪除失敗');
+        }
+    }
+</script>
+{% endblock %}

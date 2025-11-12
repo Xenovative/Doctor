@@ -1,0 +1,70 @@
+{% extends "doctor/base.html" %}
+
+{% block title %}評價管理{% endblock %}
+
+{% block content %}
+<div class="top-bar">
+    <h1 class="page-title">評價管理</h1>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="stat-card text-center">
+            <h3 class="text-primary">{{ avg_rating }}</h3>
+            <p class="text-muted mb-0">平均評分</p>
+            <div class="mt-2">
+                {% for i in range(5) %}
+                    {% if i < avg_rating %}
+                    <i class="fas fa-star text-warning"></i>
+                    {% else %}
+                    <i class="far fa-star text-warning"></i>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="stat-card">
+            <h6 class="mb-3">評分分佈</h6>
+            {% for rating in [5, 4, 3, 2, 1] %}
+            <div class="d-flex align-items-center mb-2">
+                <span class="me-2">{{ rating }}星</span>
+                <div class="progress flex-grow-1">
+                    <div class="progress-bar" style="width: {{ (rating_distribution[rating] / reviews|length * 100) if reviews else 0 }}%"></div>
+                </div>
+                <span class="ms-2">{{ rating_distribution[rating] }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="stat-card">
+    <h5 class="mb-4">所有評價</h5>
+    
+    {% if reviews %}
+        {% for review in reviews %}
+        <div class="border-bottom pb-3 mb-3">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                    <strong>{{ review.patient_name }}</strong>
+                    <div class="mt-1">
+                        {% for i in range(5) %}
+                            {% if i < review.rating %}
+                            <i class="fas fa-star text-warning"></i>
+                            {% else %}
+                            <i class="far fa-star text-warning"></i>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+                <small class="text-muted">{{ review.created_at[:10] }}</small>
+            </div>
+            <p class="mb-0">{{ review.review_text or '無評論內容' }}</p>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p class="text-center text-muted py-4">暫無評價</p>
+    {% endif %}
+</div>
+{% endblock %}

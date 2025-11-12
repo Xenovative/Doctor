@@ -1,0 +1,50 @@
+{% extends "doctor/base.html" %}
+
+{% block title %}統計分析{% endblock %}
+
+{% block content %}
+<div class="top-bar">
+    <h1 class="page-title">統計分析</h1>
+</div>
+
+<div class="stat-card">
+    <h5 class="mb-4">每月預約統計</h5>
+    
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>月份</th>
+                    <th>總預約</th>
+                    <th>已完成</th>
+                    <th>已取消</th>
+                    <th>完成率</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if monthly_stats %}
+                    {% for stat in monthly_stats %}
+                    <tr>
+                        <td>{{ stat.month }}</td>
+                        <td>{{ stat.total }}</td>
+                        <td class="text-success">{{ stat.completed }}</td>
+                        <td class="text-danger">{{ stat.cancelled }}</td>
+                        <td>
+                            {% if stat.total > 0 %}
+                            {{ ((stat.completed / stat.total) * 100)|round(1) }}%
+                            {% else %}
+                            N/A
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted">暫無統計數據</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

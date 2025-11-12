@@ -1,0 +1,142 @@
+{% extends "doctor/base.html" %}
+
+{% block title %}個人資料{% endblock %}
+
+{% block content %}
+<div class="top-bar">
+    <h1 class="page-title">個人資料</h1>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-8">
+        <div class="stat-card">
+            <h5 class="mb-4">基本資料</h5>
+            
+            <form id="profileForm">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">中文姓名</label>
+                        <input type="text" class="form-control" id="name_zh" value="{{ doctor.name_zh or '' }}" readonly>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">英文姓名</label>
+                        <input type="text" class="form-control" id="name_en" value="{{ doctor.name_en or '' }}" readonly>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">專科（中文）</label>
+                        <input type="text" class="form-control" id="specialty_zh" value="{{ doctor.specialty_zh or '' }}" readonly>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">專科（英文）</label>
+                        <input type="text" class="form-control" id="specialty_en" value="{{ doctor.specialty_en or '' }}" readonly>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">資歷</label>
+                        <textarea class="form-control" rows="3" readonly>{{ doctor.qualifications_zh or doctor.qualifications or '' }}</textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">電郵</label>
+                        <input type="email" class="form-control" id="email" value="{{ doctor.email or '' }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">電話</label>
+                        <input type="tel" class="form-control" id="phone" value="{{ doctor.phone or doctor.contact_numbers or '' }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">診症費用 (HK$)</label>
+                        <input type="number" class="form-control" id="consultation_fee" value="{{ doctor.consultation_fee or '' }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">診所地址</label>
+                        <input type="text" class="form-control" id="clinic_address" value="{{ doctor.address or doctor.clinic_addresses or '' }}">
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>儲存變更
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="stat-card mb-4">
+            <h5 class="mb-3">帳戶狀態</h5>
+            <div class="mb-3">
+                <small class="text-muted">加盟狀態</small>
+                <p class="mb-0">
+                    <span class="badge bg-success">已批准</span>
+                </p>
+            </div>
+            <div class="mb-3">
+                <small class="text-muted">接受預約</small>
+                <p class="mb-0">
+                    {% if doctor.accepts_reservations %}
+                    <span class="badge bg-success">開啟</span>
+                    {% else %}
+                    <span class="badge bg-secondary">關閉</span>
+                    {% endif %}
+                </p>
+            </div>
+            <div class="mb-3">
+                <small class="text-muted">線上諮詢</small>
+                <p class="mb-0">
+                    {% if doctor.online_consultation %}
+                    <span class="badge bg-info">支援</span>
+                    {% else %}
+                    <span class="badge bg-secondary">不支援</span>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <h5 class="mb-3">快速操作</h5>
+            <div class="d-grid gap-2">
+                <a href="{{ url_for('doctor_portal.availability') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-clock me-2"></i>管理時間表
+                </a>
+                <a href="{{ url_for('doctor_portal.reservations') }}" class="btn btn-outline-success">
+                    <i class="fas fa-calendar-check me-2"></i>查看預約
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.getElementById('profileForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const data = {
+            email: document.getElementById('email').value,
+            phone: document.getElementById('phone').value,
+            consultation_fee: document.getElementById('consultation_fee').value,
+            clinic_address: document.getElementById('clinic_address').value
+        };
+        
+        try {
+            const response = await fetch('/doctor/profile/update', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                alert('資料已更新');
+            } else {
+                alert('更新失敗: ' + result.message);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('更新失敗');
+        }
+    });
+</script>
+{% endblock %}
