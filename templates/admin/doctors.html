@@ -1119,8 +1119,16 @@
             document.getElementById('editRegistrationNumber').value = '';
             document.getElementById('editPriorityFlag').value = '0';
             
-            // Update modal title
-            document.querySelector('#editDoctorModal .modal-title').textContent = '新增醫生';
+            // Update modal title (preserve the badge)
+            const modalTitle = document.querySelector('#editDoctorModal .modal-title');
+            const titleText = modalTitle.firstChild;
+            if (titleText && titleText.nodeType === Node.TEXT_NODE) {
+                titleText.textContent = '新增醫生';
+            }
+            
+            // Hide badge for new doctor
+            const badge = document.getElementById('affiliationBadge');
+            if (badge) badge.style.display = 'none';
             
             // Load specialties before showing modal
             await loadSpecialties();
@@ -1191,8 +1199,12 @@
                     // Update language checkboxes
                     updateLanguageCheckboxes(data.languages_zh || '');
                     
-                    // Update modal title
-                    document.querySelector('#editDoctorModal .modal-title').textContent = '編輯醫生資料';
+                    // Update modal title (preserve the badge by only updating the text node)
+                    const modalTitle = document.querySelector('#editDoctorModal .modal-title');
+                    const titleText = modalTitle.firstChild;
+                    if (titleText && titleText.nodeType === Node.TEXT_NODE) {
+                        titleText.textContent = '編輯醫生資料';
+                    }
                     
                     // Hide loading and show form
                     document.getElementById('modalLoading').style.display = 'none';
