@@ -10,20 +10,26 @@ import secrets
 import json
 from datetime import datetime
 from functools import wraps
+import os
 
 admin_affiliation = Blueprint('admin_affiliation', __name__, url_prefix='/admin/affiliation')
+
+# Get absolute path to database files
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DOCTORS_DB = os.path.join(BASE_DIR, 'doctors.db')
+ADMIN_DB = os.path.join(BASE_DIR, 'admin_data.db')
 
 # ==================== Helper Functions ====================
 
 def get_doctor_db():
     """Get connection to doctors.db"""
-    conn = sqlite3.connect('doctors.db')
+    conn = sqlite3.connect(DOCTORS_DB)
     conn.row_factory = sqlite3.Row
     return conn
 
 def get_admin_db():
     """Get connection to admin_data.db"""
-    conn = sqlite3.connect('admin_data.db')
+    conn = sqlite3.connect(ADMIN_DB)
     conn.row_factory = sqlite3.Row
     return conn
 
