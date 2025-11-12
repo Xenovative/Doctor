@@ -221,6 +221,9 @@
                         <button class="btn btn-outline-primary" onclick="exportDoctors()">
                             <i class="fas fa-download"></i> 匯出 CSV
                         </button>
+                        <button class="btn btn-warning" onclick="syncAffiliationStatus()">
+                            <i class="fas fa-sync"></i> 同步加盟狀態
+                        </button>
                         <div class="btn-group" role="group">
                             <button type="button" class="btn btn-view-mode active" onclick="switchView('table')" id="tableViewBtn">
                                 <i class="fas fa-table me-1"></i>表格檢視
@@ -1641,6 +1644,32 @@
                 password += charset.charAt(Math.floor(Math.random() * charset.length));
             }
             document.getElementById('accountPassword').value = password;
+        }
+        
+        // Sync affiliation status for all doctors with accounts
+        async function syncAffiliationStatus() {
+            if (!confirm('確定要同步所有醫生的加盟狀態嗎？\n\n這將更新所有有帳戶但未標記為加盟的醫生。')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/admin/sync-affiliation-status', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(data.message + '\n\n請刷新頁面查看更新。');
+                    location.reload();
+                } else {
+                    alert('同步失敗: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('同步失敗，請稍後再試');
+            }
         }
     </script>
     
