@@ -686,9 +686,21 @@
                 },
                 "columns": [
                     { 
-                        "data": "name", 
+                        "data": "name_zh", 
                         "title": "姓名 <i class='fas fa-sort text-muted ms-1' style='cursor: pointer;' onclick='sortColumn(0)'></i>", 
-                        "width": "18%"
+                        "width": "18%",
+                        "render": function(data, type, row) {
+                            let name = row.name_zh || row.name_en || row.name || 'Unknown';
+                            let badge = '';
+                            if (row.is_affiliated == 1 || row.is_affiliated === true) {
+                                badge = ' <span class="badge bg-success" style="font-size: 0.7rem;"><i class="fas fa-check-circle me-1"></i>已加盟</span>';
+                            }
+                            let englishName = '';
+                            if (row.name_en && row.name_zh) {
+                                englishName = '<br><small class="text-muted">' + row.name_en + '</small>';
+                            }
+                            return '<strong>' + name + '</strong>' + badge + englishName;
+                        }
                     },
                     { 
                         "data": "specialty", 
