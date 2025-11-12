@@ -645,7 +645,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-success" id="createAccountBtn" style="display: none;" onclick="openCreateAccountModal()">
+                    <button type="button" class="btn btn-success" id="createAccountBtn" onclick="openCreateAccountModal()">
                         <i class="fas fa-user-plus me-2"></i>創建醫生帳戶
                     </button>
                     <button type="button" class="btn btn-primary" onclick="saveDoctorChanges()">儲存變更</button>
@@ -1558,11 +1558,20 @@
         
         // Check if doctor has account and show/hide create button
         async function checkDoctorAccount(doctorId) {
+            const createBtn = document.getElementById('createAccountBtn');
+            const affiliationBadge = document.getElementById('affiliationBadge');
+            
             try {
                 const response = await fetch(`/admin/check-doctor-account/${doctorId}`);
+                
+                if (!response.ok) {
+                    console.warn('Check account API returned error, showing create button by default');
+                    createBtn.style.display = 'inline-block';
+                    affiliationBadge.style.display = 'none';
+                    return;
+                }
+                
                 const data = await response.json();
-                const createBtn = document.getElementById('createAccountBtn');
-                const affiliationBadge = document.getElementById('affiliationBadge');
                 
                 if (data.has_account) {
                     createBtn.style.display = 'none';
@@ -1573,8 +1582,9 @@
                 }
             } catch (error) {
                 console.error('Error checking account:', error);
-                document.getElementById('createAccountBtn').style.display = 'none';
-                document.getElementById('affiliationBadge').style.display = 'none';
+                // On error, show create button (safe default)
+                createBtn.style.display = 'inline-block';
+                affiliationBadge.style.display = 'none';
             }
         }
         
