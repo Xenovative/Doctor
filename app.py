@@ -5705,7 +5705,7 @@ def sync_affiliation_status():
 @app.route('/admin/create-doctor-account', methods=['POST'])
 @tab_permission_required('doctors')
 def create_doctor_account():
-    """Create a doctor account from existing doctor data"""
+    """Create or update a doctor account"""
     try:
         data = request.get_json()
         doctor_id = data.get('doctor_id')
@@ -5714,8 +5714,8 @@ def create_doctor_account():
         email = data.get('email', '').strip()
         phone = data.get('phone', '').strip()
         
-        if not doctor_id or not username or not password:
-            return jsonify({'success': False, 'message': '請提供醫生ID、用戶名和密碼'}), 400
+        if not doctor_id or not username:
+            return jsonify({'success': False, 'message': '請提供醫生ID和用戶名'}), 400
         
         # Check if doctor exists
         conn_doctors = sqlite3.connect('doctors.db')
@@ -5728,30 +5728,80 @@ def create_doctor_account():
             return jsonify({'success': False, 'message': '找不到該醫生'}), 404
         
         # Check if account already exists
-        cursor_doctors.execute("SELECT id FROM doctor_accounts WHERE doctor_id = ?", (doctor_id,))
+        cursor_doctors.execute("SELECT id, username FROM doctor_accounts WHERE doctor_id = ?", (doctor_id,))
         existing_account = cursor_doctors.fetchone()
         
         if existing_account:
+            # UPDATE MODE - Account exists
+            account_id = existing_account[0]
+            
+            # Build update query dynamically
+            update_fields = []
+            update_values = []
+            
+            if email:
+                update_fields.append("email = ?")
+                update_values.append(email)
+            
+            if phone:
+                update_fields.append("phone = ?")
+                update_values.append(phone)
+            
+            # Only update password if provided
+            if password:
+                if len(password) < 6:
+                    conn_doctors.close()
+                    return jsonify({'success': False, 'message': '密碼至少需要6個字符'}), 400
+                password_hash = hashlib.sha256(password.encode()).hexdigest()
+                update_fields.append("password_hash = ?")
+                update_values.append(password_hash)
+            
+            if update_fields:
+                update_values.append(account_id)
+                cursor_doctors.execute(f"""
+                    UPDATE doctor_accounts 
+                    SET {', '.join(update_fields)}
+                    WHERE id = ?
+                """, tuple(update_values))
+            
+            conn_doctors.commit()
             conn_doctors.close()
-            return jsonify({'success': False, 'message': '該醫生已有帳戶'}), 400
+            
+            logger.info(f"Admin {session.get('admin_username')} updated account for doctor ID {doctor_id}")
+            
+            return jsonify({
+                'success': True,
+                'message': '醫生帳戶已更新',
+                'username': username
+            })
         
-        # Check if username is taken
-        cursor_doctors.execute("SELECT id FROM doctor_accounts WHERE username = ?", (username,))
-        existing_username = cursor_doctors.fetchone()
-        
-        if existing_username:
-            conn_doctors.close()
-            return jsonify({'success': False, 'message': '用戶名已被使用'}), 400
-        
-        # Hash password
-        password_hash = hashlib.sha256(password.encode()).hexdigest()
-        
-        # Create account
-        cursor_doctors.execute("""
-            INSERT INTO doctor_accounts 
-            (doctor_id, username, password_hash, email, phone, is_active, created_at)
-            VALUES (?, ?, ?, ?, ?, 1, ?)
-        """, (doctor_id, username, password_hash, email, phone, datetime.now().isoformat()))
+        else:
+            # CREATE MODE - No account exists
+            if not password:
+                conn_doctors.close()
+                return jsonify({'success': False, 'message': '創建新帳戶需要密碼'}), 400
+            
+            if len(password) < 6:
+                conn_doctors.close()
+                return jsonify({'success': False, 'message': '密碼至少需要6個字符'}), 400
+            
+            # Check if username is taken
+            cursor_doctors.execute("SELECT id FROM doctor_accounts WHERE username = ?", (username,))
+            existing_username = cursor_doctors.fetchone()
+            
+            if existing_username:
+                conn_doctors.close()
+                return jsonify({'success': False, 'message': '用戶名已被使用'}), 400
+            
+            # Hash password
+            password_hash = hashlib.sha256(password.encode()).hexdigest()
+            
+            # Create account
+            cursor_doctors.execute("""
+                INSERT INTO doctor_accounts 
+                (doctor_id, username, password_hash, email, phone, is_active, created_at)
+                VALUES (?, ?, ?, ?, ?, 1, ?)
+            """, (doctor_id, username, password_hash, email, phone, datetime.now().isoformat()))
         
         # Update doctor affiliation status
         cursor_doctors.execute("""

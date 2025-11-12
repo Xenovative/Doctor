@@ -1617,8 +1617,11 @@
                 
                 const data = await response.json();
                 
+                console.log('Account check result:', data);
+                
                 if (data.has_account) {
                     // Change button to "Edit Account"
+                    console.log('Doctor has account, changing to edit mode');
                     createBtn.style.display = 'inline-block';
                     btnText.textContent = '編輯帳戶';
                     btnIcon.className = 'fas fa-user-edit me-2';
@@ -1628,7 +1631,9 @@
                     // Store username for edit mode
                     createBtn.setAttribute('data-username', data.username || '');
                     createBtn.setAttribute('data-has-account', 'true');
+                    console.log('Button updated to edit mode');
                 } else {
+                    console.log('Doctor has no account, showing create mode');
                     // Show create button
                     createBtn.style.display = 'inline-block';
                     btnText.textContent = '創建醫生帳戶';
