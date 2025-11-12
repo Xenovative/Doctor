@@ -907,6 +907,7 @@ from flask import send_from_directory
 
 @app.route('/assets/<path:filename>')
 def serve_assets(filename):
+    """Serve files from assets folder including subdirectories"""
     return send_from_directory('assets', filename)
 
 # WhatsApp配置

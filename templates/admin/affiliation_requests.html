@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>醫生加盟管理 - AI醫生配對系統</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='admin-mobile.css') }}" rel="stylesheet">
+    <style>
+        .affiliation-card {
+            border-radius: 12px;
+            border: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .affiliation-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+        }
+        
+        .doctor-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .doctor-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Mobile Navigation Toggle -->
+    <button class="mobile-nav-toggle" id="mobileNavToggle">
+        <i class="fas fa-bars"></i>
+    </button>
+    
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 d-md-block sidebar" id="adminSidebar">
+                <div class="position-sticky pt-3">
+                    <div class="text-center mb-4">
+                        <div class="admin-logo-circle">
+                            <img src="{{ url_for('static', filename='../assets/img/doctoricon.png') }}" alt="Doctor AI" class="admin-logo">
+                        </div>
+                        <h5 class="text-white mb-1">Doctor AI.io</h5>
+                        <small class="text-white-50">管理後台</small>
+                    </div>
+                    
+                    <ul class="nav flex-column">
+                        {% if session.admin_role == 'super_admin' or session.admin_tab_permissions.get('dashboard', False) %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_dashboard') }}">
+                                <i class="fas fa-tachometer-alt me-2"></i>儀表板
+                            </a>
+                        </li>
+                        {% endif %}
+                        <li class="nav-item">
+                            <a class="nav-link active" href="{{ url_for('admin_affiliation.affiliation_requests') }}">
+                                <i class="fas fa-user-md me-2"></i>醫生加盟
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_affiliation.all_reservations') }}">
+                                <i class="fas fa-calendar-check me-2"></i>預約管理
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_affiliation.affiliation_statistics') }}">
+                                <i class="fas fa-chart-line me-2"></i>加盟統計
+                            </a>
+                        </li>
+                        <li class="nav-item mt-4">
+                            <a class="nav-link" href="{{ url_for('admin_logout') }}">
+                                <i class="fas fa-sign-out-alt me-2"></i>登出
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+            
+            <!-- Main Content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">醫生加盟管理</h1>
+                </div>
+                
+                <!-- Tabs -->
+                <ul class="nav nav-tabs mb-4" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" data-bs-toggle="tab" href="#pending">
+                            <i class="fas fa-clock me-2"></i>待審核
+                            <span class="badge bg-warning ms-2">{{ pending_requests|length }}</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab" href="#approved">
+                            <i class="fas fa-check-circle me-2"></i>已批准
+                            <span class="badge bg-success ms-2">{{ approved_affiliations|length }}</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab" href="#suspended">
+                            <i class="fas fa-ban me-2"></i>已暫停
+                            <span class="badge bg-danger ms-2">{{ suspended_affiliations|length }}</span>
+                        </a>
+                    </li>
+                </ul>
+                
+                <div class="tab-content">
+                    <!-- Pending Requests -->
+                    <div id="pending" class="tab-pane fade show active">
+                        {% if pending_requests %}
+                            {% for doctor in pending_requests %}
+                            <div class="card affiliation-card">
+                                <div class="card-body">
+                                    <div class="doctor-header">
+                                        <div class="doctor-avatar">
+                                            {{ doctor.name_zh[0] if doctor.name_zh else 'D' }}
+                                        </div>
+                                        <div>
+                                            <h5 class="mb-0">{{ doctor.name_zh or doctor.name }}</h5>
+                                            <p class="text-muted mb-0">{{ doctor.specialty_zh or doctor.specialty }}</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row g-3 mb-3">
+                                        <div class="col-md-6">
+                                            <small class="text-muted">電郵</small>
+                                            <p class="mb-0">{{ doctor.email or 'N/A' }}</p>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <small class="text-muted">電話</small>
+                                            <p class="mb-0">{{ doctor.contact_numbers or 'N/A' }}</p>
+                                        </div>
+                                        <div class="col-md-12">
+                                            <small class="text-muted">資歷</small>
+                                            <p class="mb-0">{{ doctor.qualifications_zh or doctor.qualifications or 'N/A' }}</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-success" onclick="approveAffiliation({{ doctor.id }})">
+                                            <i class="fas fa-check me-2"></i>批准
+                                        </button>
+                                        <button class="btn btn-danger" onclick="rejectAffiliation({{ doctor.id }})">
+                                            <i class="fas fa-times me-2"></i>拒絕
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center py-5">
+                                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">暫無待審核申請</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Approved -->
+                    <div id="approved" class="tab-pane fade">
+                        {% if approved_affiliations %}
+                            {% for doctor in approved_affiliations %}
+                            <div class="card affiliation-card">
+                                <div class="card-body">
+                                    <div class="doctor-header">
+                                        <div class="doctor-avatar">
+                                            {{ doctor.name_zh[0] if doctor.name_zh else 'D' }}
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <h5 class="mb-0">{{ doctor.name_zh or doctor.name }}</h5>
+                                            <p class="text-muted mb-0">{{ doctor.specialty_zh or doctor.specialty }}</p>
+                                        </div>
+                                        <span class="badge bg-success">已批准</span>
+                                    </div>
+                                    
+                                    <div class="row g-3 mb-3">
+                                        <div class="col-md-6">
+                                            <small class="text-muted">電郵</small>
+                                            <p class="mb-0">{{ doctor.email or 'N/A' }}</p>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <small class="text-muted">加盟日期</small>
+                                            <p class="mb-0">{{ doctor.affiliation_date or 'N/A' }}</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-warning" onclick="suspendAffiliation({{ doctor.id }})">
+                                            <i class="fas fa-pause me-2"></i>暫停
+                                        </button>
+                                        <a href="{{ url_for('admin_affiliation.doctor_accounts') }}" class="btn btn-outline-secondary">
+                                            <i class="fas fa-user-cog me-2"></i>管理帳戶
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center py-5">
+                                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">暫無已批准醫生</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Suspended -->
+                    <div id="suspended" class="tab-pane fade">
+                        {% if suspended_affiliations %}
+                            {% for doctor in suspended_affiliations %}
+                            <div class="card affiliation-card">
+                                <div class="card-body">
+                                    <div class="doctor-header">
+                                        <div class="doctor-avatar">
+                                            {{ doctor.name_zh[0] if doctor.name_zh else 'D' }}
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <h5 class="mb-0">{{ doctor.name_zh or doctor.name }}</h5>
+                                            <p class="text-muted mb-0">{{ doctor.specialty_zh or doctor.specialty }}</p>
+                                        </div>
+                                        <span class="badge bg-danger">已暫停</span>
+                                    </div>
+                                    
+                                    <button class="btn btn-success mt-3" onclick="reactivateAffiliation({{ doctor.id }})">
+                                        <i class="fas fa-play me-2"></i>恢復
+                                    </button>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center py-5">
+                                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">暫無暫停醫生</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        async function approveAffiliation(doctorId) {
+            if (!confirm('確定批准此醫生的加盟申請？')) return;
+            
+            try {
+                const response = await fetch(`/admin/affiliation/approve/${doctorId}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('已批准');
+                    location.reload();
+                } else {
+                    alert('操作失敗: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('操作失敗');
+            }
+        }
+        
+        async function rejectAffiliation(doctorId) {
+            const reason = prompt('請輸入拒絕原因：');
+            if (!reason) return;
+            
+            try {
+                const response = await fetch(`/admin/affiliation/reject/${doctorId}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({reason})
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('已拒絕');
+                    location.reload();
+                } else {
+                    alert('操作失敗: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('操作失敗');
+            }
+        }
+        
+        async function suspendAffiliation(doctorId) {
+            const reason = prompt('請輸入暫停原因：');
+            if (!reason) return;
+            
+            try {
+                const response = await fetch(`/admin/affiliation/suspend/${doctorId}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({reason})
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('已暫停');
+                    location.reload();
+                } else {
+                    alert('操作失敗: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('操作失敗');
+            }
+        }
+        
+        async function reactivateAffiliation(doctorId) {
+            if (!confirm('確定恢復此醫生的加盟？')) return;
+            
+            try {
+                const response = await fetch(`/admin/affiliation/reactivate/${doctorId}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('已恢復');
+                    location.reload();
+                } else {
+                    alert('操作失敗: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('操作失敗');
+            }
+        }
+        
+        // Mobile navigation
+        const mobileNavToggle = document.getElementById('mobileNavToggle');
+        const sidebar = document.getElementById('adminSidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+        
+        if (mobileNavToggle) {
+            mobileNavToggle.addEventListener('click', () => {
+                sidebar.classList.toggle('show');
+                sidebarOverlay.classList.toggle('show');
+            });
+            
+            sidebarOverlay.addEventListener('click', () => {
+                sidebar.classList.remove('show');
+                sidebarOverlay.classList.remove('show');
+            });
+        }
+    </script>
+</body>
+</html>

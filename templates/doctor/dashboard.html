@@ -1,0 +1,257 @@
+{% extends "doctor/base.html" %}
+
+{% block title %}儀表板{% endblock %}
+
+{% block content %}
+<div class="top-bar">
+    <h1 class="page-title">歡迎回來, Dr. {{ doctor.name_zh or doctor.name }}</h1>
+    <div class="user-info">
+        <div class="user-avatar">
+            {{ (doctor.name_zh or doctor.name)[0] }}
+        </div>
+        <div>
+            <div class="fw-bold">{{ doctor.name_zh or doctor.name }}</div>
+            <small class="text-muted">{{ doctor.specialty_zh or doctor.specialty }}</small>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3 col-sm-6">
+        <div class="stat-card">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <i class="fas fa-calendar-day"></i>
+            </div>
+            <div class="stat-value">{{ today_count }}</div>
+            <div class="stat-label">今日預約</div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 col-sm-6">
+        <div class="stat-card">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-value">{{ pending_count }}</div>
+            <div class="stat-label">待確認預約</div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 col-sm-6">
+        <div class="stat-card">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-value">{{ completed_this_month }}</div>
+            <div class="stat-label">本月完成</div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 col-sm-6">
+        <div class="stat-card">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+                <i class="fas fa-star"></i>
+            </div>
+            <div class="stat-value">{{ avg_rating }}</div>
+            <div class="stat-label">平均評分 ({{ review_count }} 評價)</div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row g-4 mb-4">
+    <div class="col-12">
+        <div class="stat-card">
+            <h5 class="mb-3">
+                <i class="fas fa-bolt text-warning me-2"></i>快速操作
+            </h5>
+            <div class="d-flex flex-wrap gap-3">
+                <a href="{{ url_for('doctor_portal.reservations', status='pending') }}" class="btn btn-primary">
+                    <i class="fas fa-calendar-check me-2"></i>查看待確認預約
+                    {% if pending_count > 0 %}
+                    <span class="badge bg-danger ms-2">{{ pending_count }}</span>
+                    {% endif %}
+                </a>
+                <a href="{{ url_for('doctor_portal.availability') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-clock me-2"></i>管理時間表
+                </a>
+                <a href="{{ url_for('doctor_portal.profile') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-user-edit me-2"></i>編輯個人資料
+                </a>
+                <button class="btn btn-outline-success" onclick="toggleAcceptReservations()">
+                    <i class="fas fa-toggle-on me-2"></i>
+                    {% if doctor.accepts_reservations %}暫停接受預約{% else %}開始接受預約{% endif %}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Today's Schedule -->
+<div class="row g-4">
+    <div class="col-md-8">
+        <div class="table-card">
+            <h5 class="mb-3">
+                <i class="fas fa-calendar-alt text-primary me-2"></i>今日預約
+            </h5>
+            <div id="todaySchedule">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">載入中...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="stat-card">
+            <h5 class="mb-3">
+                <i class="fas fa-bell text-warning me-2"></i>最新通知
+            </h5>
+            <div id="notifications">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">載入中...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Load today's schedule
+    async function loadTodaySchedule() {
+        try {
+            const today = new Date().toISOString().split('T')[0];
+            const response = await fetch(`/doctor/reservations?date=today&status=all`);
+            const html = await response.text();
+            
+            // Parse and extract reservations
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            
+            // For now, show a simple message
+            document.getElementById('todaySchedule').innerHTML = `
+                <div class="text-center text-muted py-3">
+                    <i class="fas fa-calendar-check fa-2x mb-2"></i>
+                    <p>請前往<a href="{{ url_for('doctor_portal.reservations') }}">預約管理</a>查看完整列表</p>
+                </div>
+            `;
+        } catch (error) {
+            console.error('Error loading schedule:', error);
+            document.getElementById('todaySchedule').innerHTML = `
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    無法載入今日預約
+                </div>
+            `;
+        }
+    }
+    
+    // Load notifications
+    async function loadNotifications() {
+        try {
+            const response = await fetch('/doctor/api/notifications');
+            const data = await response.json();
+            
+            if (data.success && data.notifications.length > 0) {
+                const notificationsHtml = data.notifications.slice(0, 5).map(notif => `
+                    <div class="notification-item ${notif.is_read ? '' : 'unread'}" 
+                         style="padding: 12px; border-bottom: 1px solid #e2e8f0; cursor: pointer;"
+                         onclick="markNotificationRead(${notif.id})">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <strong>${notif.title}</strong>
+                                <p class="mb-0 small text-muted">${notif.message}</p>
+                            </div>
+                            ${!notif.is_read ? '<span class="badge bg-primary">新</span>' : ''}
+                        </div>
+                        <small class="text-muted">${formatTime(notif.created_at)}</small>
+                    </div>
+                `).join('');
+                
+                document.getElementById('notifications').innerHTML = notificationsHtml;
+            } else {
+                document.getElementById('notifications').innerHTML = `
+                    <div class="text-center text-muted py-3">
+                        <i class="fas fa-bell-slash fa-2x mb-2"></i>
+                        <p>暫無通知</p>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('Error loading notifications:', error);
+            document.getElementById('notifications').innerHTML = `
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    無法載入通知
+                </div>
+            `;
+        }
+    }
+    
+    async function markNotificationRead(notificationId) {
+        try {
+            await fetch(`/doctor/api/notifications/${notificationId}/read`, {
+                method: 'POST'
+            });
+            loadNotifications();
+        } catch (error) {
+            console.error('Error marking notification as read:', error);
+        }
+    }
+    
+    function formatTime(timestamp) {
+        const date = new Date(timestamp);
+        const now = new Date();
+        const diff = now - date;
+        
+        if (diff < 60000) return '剛剛';
+        if (diff < 3600000) return `${Math.floor(diff / 60000)} 分鐘前`;
+        if (diff < 86400000) return `${Math.floor(diff / 3600000)} 小時前`;
+        return date.toLocaleDateString('zh-HK');
+    }
+    
+    async function toggleAcceptReservations() {
+        if (!confirm('確定要更改預約接受狀態嗎？')) return;
+        
+        try {
+            const response = await fetch('/doctor/profile/update', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    accepts_reservations: {% if doctor.accepts_reservations %}false{% else %}true{% endif %}
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                alert('設定已更新');
+                location.reload();
+            } else {
+                alert('更新失敗: ' + data.message);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('更新失敗');
+        }
+    }
+    
+    // Load data on page load
+    document.addEventListener('DOMContentLoaded', () => {
+        loadTodaySchedule();
+        loadNotifications();
+        
+        // Refresh notifications every 30 seconds
+        setInterval(loadNotifications, 30000);
+    });
+</script>
+{% endblock %}

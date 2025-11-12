@@ -1,0 +1,408 @@
+{% extends "doctor/base.html" %}
+
+{% block title %}預約管理{% endblock %}
+
+{% block extra_css %}
+<style>
+    .reservation-card {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 15px;
+        border-left: 4px solid #e2e8f0;
+        transition: all 0.3s ease;
+    }
+    
+    .reservation-card:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        transform: translateX(5px);
+    }
+    
+    .reservation-card.pending {
+        border-left-color: #f59e0b;
+    }
+    
+    .reservation-card.confirmed {
+        border-left-color: #10b981;
+    }
+    
+    .reservation-card.cancelled {
+        border-left-color: #ef4444;
+        opacity: 0.7;
+    }
+    
+    .reservation-card.completed {
+        border-left-color: #3b82f6;
+    }
+    
+    .patient-info {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .patient-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 1.2rem;
+    }
+    
+    .filter-tabs {
+        background: white;
+        border-radius: 12px;
+        padding: 15px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    
+    .filter-tabs .btn {
+        margin-right: 10px;
+        margin-bottom: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="top-bar">
+    <h1 class="page-title">預約管理</h1>
+    <div class="d-flex gap-2">
+        <button class="btn btn-outline-primary" onclick="refreshReservations()">
+            <i class="fas fa-sync-alt me-2"></i>刷新
+        </button>
+    </div>
+</div>
+
+<!-- Filter Tabs -->
+<div class="filter-tabs">
+    <div class="d-flex flex-wrap align-items-center">
+        <span class="me-3 fw-bold">篩選：</span>
+        <button class="btn btn-sm btn-primary" onclick="filterReservations('all')">
+            全部
+        </button>
+        <button class="btn btn-sm btn-outline-warning" onclick="filterReservations('pending')">
+            <i class="fas fa-clock me-1"></i>待確認
+        </button>
+        <button class="btn btn-sm btn-outline-success" onclick="filterReservations('confirmed')">
+            <i class="fas fa-check me-1"></i>已確認
+        </button>
+        <button class="btn btn-sm btn-outline-info" onclick="filterReservations('completed')">
+            <i class="fas fa-check-circle me-1"></i>已完成
+        </button>
+        <button class="btn btn-sm btn-outline-danger" onclick="filterReservations('cancelled')">
+            <i class="fas fa-times me-1"></i>已取消
+        </button>
+    </div>
+</div>
+
+<!-- Reservations List -->
+<div id="reservationsList">
+    {% if reservations %}
+        {% for reservation in reservations %}
+        <div class="reservation-card {{ reservation.status }}" data-status="{{ reservation.status }}">
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="patient-info">
+                        <div class="patient-avatar">
+                            {{ reservation.patient_name[0] }}
+                        </div>
+                        <div>
+                            <h5 class="mb-1">{{ reservation.patient_name }}</h5>
+                            <div class="text-muted small">
+                                <i class="fas fa-phone me-1"></i>{{ reservation.patient_phone }}
+                                {% if reservation.patient_email %}
+                                | <i class="fas fa-envelope me-1"></i>{{ reservation.patient_email }}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">預約時間</small>
+                            <strong>
+                                <i class="fas fa-calendar me-1 text-primary"></i>
+                                {{ reservation.reservation_date }}
+                                <i class="fas fa-clock ms-2 me-1 text-primary"></i>
+                                {{ reservation.reservation_time }}
+                            </strong>
+                        </div>
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">諮詢類型</small>
+                            <strong>
+                                {% if reservation.consultation_type == 'online' %}
+                                <i class="fas fa-video me-1 text-info"></i>線上諮詢
+                                {% else %}
+                                <i class="fas fa-hospital me-1 text-success"></i>診所面診
+                                {% endif %}
+                            </strong>
+                        </div>
+                    </div>
+                    
+                    {% if reservation.symptoms %}
+                    <div class="mb-2">
+                        <small class="text-muted d-block">症狀</small>
+                        <p class="mb-0">{{ reservation.symptoms }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    {% if reservation.chronic_conditions %}
+                    <div class="mb-2">
+                        <small class="text-muted d-block">長期病患</small>
+                        <p class="mb-0">{{ reservation.chronic_conditions }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="text-end">
+                        <span class="badge bg-{{ 'warning' if reservation.status == 'pending' else 'success' if reservation.status == 'confirmed' else 'info' if reservation.status == 'completed' else 'danger' }} mb-3">
+                            {{ '待確認' if reservation.status == 'pending' else '已確認' if reservation.status == 'confirmed' else '已完成' if reservation.status == 'completed' else '已取消' }}
+                        </span>
+                        
+                        <div class="d-grid gap-2">
+                            {% if reservation.status == 'pending' %}
+                            <button class="btn btn-success btn-sm" onclick="confirmReservation({{ reservation.id }})">
+                                <i class="fas fa-check me-1"></i>確認預約
+                            </button>
+                            <button class="btn btn-outline-danger btn-sm" onclick="cancelReservation({{ reservation.id }})">
+                                <i class="fas fa-times me-1"></i>取消預約
+                            </button>
+                            {% elif reservation.status == 'confirmed' %}
+                            <button class="btn btn-primary btn-sm" onclick="completeReservation({{ reservation.id }})">
+                                <i class="fas fa-check-circle me-1"></i>標記完成
+                            </button>
+                            <button class="btn btn-outline-danger btn-sm" onclick="cancelReservation({{ reservation.id }})">
+                                <i class="fas fa-times me-1"></i>取消預約
+                            </button>
+                            {% endif %}
+                            
+                            <!-- WhatsApp Contact Button -->
+                            <button class="btn btn-outline-success btn-sm" onclick="contactPatient({{ reservation.id }}, '{{ reservation.patient_phone }}', '{{ reservation.patient_name }}')">
+                                <i class="fab fa-whatsapp me-1"></i>聯絡病人
+                            </button>
+                            
+                            <button class="btn btn-outline-secondary btn-sm" onclick="viewDetails({{ reservation.id }})">
+                                <i class="fas fa-info-circle me-1"></i>詳細資料
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+    <div class="text-center py-5">
+        <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+        <p class="text-muted">暫無預約記錄</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Reservation Details Modal -->
+<div class="modal fade" id="detailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">預約詳情</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="detailsContent">
+                <!-- Content loaded dynamically -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Complete Reservation Modal -->
+<div class="modal fade" id="completeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">完成預約</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">診療備註（選填）</label>
+                    <textarea class="form-control" id="completeNotes" rows="4" 
+                              placeholder="輸入診療記錄或備註..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="submitComplete()">確認完成</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cancel Reservation Modal -->
+<div class="modal fade" id="cancelModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">取消預約</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">取消原因</label>
+                    <textarea class="form-control" id="cancelReason" rows="3" 
+                              placeholder="請說明取消原因..." required></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">返回</button>
+                <button type="button" class="btn btn-danger" onclick="submitCancel()">確認取消</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let currentReservationId = null;
+    
+    function filterReservations(status) {
+        const cards = document.querySelectorAll('.reservation-card');
+        cards.forEach(card => {
+            if (status === 'all' || card.dataset.status === status) {
+                card.style.display = 'block';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+    
+    function refreshReservations() {
+        location.reload();
+    }
+    
+    async function confirmReservation(reservationId) {
+        if (!confirm('確定要確認此預約嗎？')) return;
+        
+        try {
+            const response = await fetch(`/doctor/reservations/${reservationId}/confirm`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                alert('預約已確認');
+                location.reload();
+            } else {
+                alert('操作失敗: ' + data.message);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('操作失敗');
+        }
+    }
+    
+    function completeReservation(reservationId) {
+        currentReservationId = reservationId;
+        document.getElementById('completeNotes').value = '';
+        new bootstrap.Modal(document.getElementById('completeModal')).show();
+    }
+    
+    async function submitComplete() {
+        const notes = document.getElementById('completeNotes').value;
+        
+        try {
+            const response = await fetch(`/doctor/reservations/${currentReservationId}/complete`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ notes })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                alert('預約已標記為完成');
+                location.reload();
+            } else {
+                alert('操作失敗: ' + data.message);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('操作失敗');
+        }
+    }
+    
+    function cancelReservation(reservationId) {
+        currentReservationId = reservationId;
+        document.getElementById('cancelReason').value = '';
+        new bootstrap.Modal(document.getElementById('cancelModal')).show();
+    }
+    
+    async function submitCancel() {
+        const reason = document.getElementById('cancelReason').value.trim();
+        
+        if (!reason) {
+            alert('請輸入取消原因');
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/doctor/reservations/${currentReservationId}/cancel`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ reason })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                alert('預約已取消');
+                location.reload();
+            } else {
+                alert('操作失敗: ' + data.message);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('操作失敗');
+        }
+    }
+    
+    async function viewDetails(reservationId) {
+        // Load reservation details
+        document.getElementById('detailsContent').innerHTML = '<div class="text-center"><div class="spinner-border"></div></div>';
+        new bootstrap.Modal(document.getElementById('detailsModal')).show();
+        
+        // Fetch details from server
+        // For now, show placeholder
+        document.getElementById('detailsContent').innerHTML = `
+            <p>預約ID: ${reservationId}</p>
+            <p>詳細資料載入中...</p>
+        `;
+    }
+    
+    async function contactPatient(reservationId, phone, name) {
+        try {
+            // Format phone number for WhatsApp (remove spaces, dashes)
+            const cleanPhone = phone.replace(/[\s-]/g, '');
+            
+            // Create message
+            const message = encodeURIComponent(`您好 ${name}，我是您預約的醫生。關於您的預約...`);
+            
+            // Open WhatsApp
+            const whatsappUrl = `https://wa.me/${cleanPhone}?text=${message}`;
+            window.open(whatsappUrl, '_blank');
+        } catch (error) {
+            console.error('Error:', error);
+            alert('無法開啟 WhatsApp');
+        }
+    }
+</script>
+{% endblock %}
