@@ -5630,6 +5630,25 @@ def admin_doctors():
         flash('載入醫生資料時發生錯誤', 'error')
         return redirect(url_for('admin_dashboard'))
 
+@app.route('/admin/check-doctor-account/<int:doctor_id>')
+@tab_permission_required('doctors')
+def check_doctor_account(doctor_id):
+    """Check if a doctor already has an account"""
+    try:
+        conn = sqlite3.connect('doctors.db')
+        cursor = conn.cursor()
+        cursor.execute("SELECT id FROM doctor_accounts WHERE doctor_id = ?", (doctor_id,))
+        account = cursor.fetchone()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'has_account': account is not None
+        })
+    except Exception as e:
+        logger.error(f"Error checking doctor account: {e}")
+        return jsonify({'success': False, 'has_account': False}), 500
+
 @app.route('/admin/create-doctor-account', methods=['POST'])
 @tab_permission_required('doctors')
 def create_doctor_account():

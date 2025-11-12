@@ -390,9 +390,6 @@
                                         </a>
                                         {% endif %}
                                     </div>
-                                    <button class="btn btn-sm btn-primary mt-1 w-100" onclick="createDoctorAccount({{ doctor.id }}, '{{ (doctor.name_zh or doctor.name_en or doctor.name)|replace("'", "\\'") }}', '{{ doctor.email or '' }}')">
-                                        <i class="fas fa-user-plus"></i> 創建帳戶
-                                    </button>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -628,6 +625,9 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-success" id="createAccountBtn" style="display: none;" onclick="openCreateAccountModal()">
+                        <i class="fas fa-user-plus me-2"></i>創建醫生帳戶
+                    </button>
                     <button type="button" class="btn btn-primary" onclick="saveDoctorChanges()">儲存變更</button>
                 </div>
             </div>
@@ -1159,6 +1159,9 @@
                     // Update modal title
                     document.querySelector('#editDoctorModal .modal-title').textContent = '編輯醫生資料';
                     
+                    // Check if doctor has account and show/hide create button
+                    checkDoctorAccount(data.id);
+                    
                     // Hide loading and show form
                     document.getElementById('modalLoading').style.display = 'none';
                     document.getElementById('editDoctorForm').style.display = 'block';
@@ -1510,15 +1513,45 @@
         });
         
         // Create Doctor Account Function
-        function createDoctorAccount(doctorId, doctorName, doctorEmail) {
-            const modal = new bootstrap.Modal(document.getElementById('createAccountModal'));
-            document.getElementById('accountDoctorId').value = doctorId;
-            document.getElementById('accountDoctorName').textContent = doctorName;
-            document.getElementById('accountUsername').value = '';
-            document.getElementById('accountPassword').value = '';
-            document.getElementById('accountEmail').value = doctorEmail || '';
-            document.getElementById('accountPhone').value = '';
-            modal.show();
+        function openCreateAccountModal() {
+            const doctorId = document.getElementById('editDoctorId').value;
+            const doctorName = document.getElementById('editNameZh').value || document.getElementById('editNameEn').value;
+            const doctorEmail = document.getElementById('editEmail').value;
+            const doctorPhone = document.getElementById('editContactNumbers').value;
+            
+            // Hide edit modal
+            const editModal = bootstrap.Modal.getInstance(document.getElementById('editDoctorModal'));
+            editModal.hide();
+            
+            // Show create account modal
+            setTimeout(() => {
+                const modal = new bootstrap.Modal(document.getElementById('createAccountModal'));
+                document.getElementById('accountDoctorId').value = doctorId;
+                document.getElementById('accountDoctorName').textContent = doctorName;
+                document.getElementById('accountUsername').value = '';
+                document.getElementById('accountPassword').value = '';
+                document.getElementById('accountEmail').value = doctorEmail || '';
+                document.getElementById('accountPhone').value = doctorPhone ? doctorPhone.split(',')[0].trim() : '';
+                modal.show();
+            }, 300);
+        }
+        
+        // Check if doctor has account and show/hide create button
+        async function checkDoctorAccount(doctorId) {
+            try {
+                const response = await fetch(`/admin/check-doctor-account/${doctorId}`);
+                const data = await response.json();
+                const createBtn = document.getElementById('createAccountBtn');
+                
+                if (data.has_account) {
+                    createBtn.style.display = 'none';
+                } else {
+                    createBtn.style.display = 'inline-block';
+                }
+            } catch (error) {
+                console.error('Error checking account:', error);
+                document.getElementById('createAccountBtn').style.display = 'none';
+            }
         }
         
         async function submitCreateAccount() {
