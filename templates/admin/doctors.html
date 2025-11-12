@@ -390,6 +390,9 @@
                                         </a>
                                         {% endif %}
                                     </div>
+                                    <button class="btn btn-sm btn-primary mt-1 w-100" onclick="createDoctorAccount({{ doctor.id }}, '{{ (doctor.name_zh or doctor.name_en or doctor.name)|replace("'", "\\'") }}', '{{ doctor.email or '' }}')">
+                                        <i class="fas fa-user-plus"></i> 創建帳戶
+                                    </button>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -1505,6 +1508,131 @@
                 }
             });
         });
+        
+        // Create Doctor Account Function
+        function createDoctorAccount(doctorId, doctorName, doctorEmail) {
+            const modal = new bootstrap.Modal(document.getElementById('createAccountModal'));
+            document.getElementById('accountDoctorId').value = doctorId;
+            document.getElementById('accountDoctorName').textContent = doctorName;
+            document.getElementById('accountUsername').value = '';
+            document.getElementById('accountPassword').value = '';
+            document.getElementById('accountEmail').value = doctorEmail || '';
+            document.getElementById('accountPhone').value = '';
+            modal.show();
+        }
+        
+        async function submitCreateAccount() {
+            const doctorId = document.getElementById('accountDoctorId').value;
+            const username = document.getElementById('accountUsername').value.trim();
+            const password = document.getElementById('accountPassword').value;
+            const email = document.getElementById('accountEmail').value.trim();
+            const phone = document.getElementById('accountPhone').value.trim();
+            
+            if (!username || !password) {
+                alert('請輸入用戶名和密碼');
+                return;
+            }
+            
+            if (password.length < 6) {
+                alert('密碼至少需要6個字符');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/admin/create-doctor-account', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        doctor_id: doctorId,
+                        username: username,
+                        password: password,
+                        email: email,
+                        phone: phone
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('醫生帳戶創建成功！\n\n用戶名: ' + username + '\n密碼: ' + password + '\n\n請將登入資訊安全地傳送給醫生。');
+                    bootstrap.Modal.getInstance(document.getElementById('createAccountModal')).hide();
+                    location.reload();
+                } else {
+                    alert('創建失敗: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('創建失敗，請稍後再試');
+            }
+        }
+        
+        function generatePassword() {
+            const length = 12;
+            const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
+            let password = '';
+            for (let i = 0; i < length; i++) {
+                password += charset.charAt(Math.floor(Math.random() * charset.length));
+            }
+            document.getElementById('accountPassword').value = password;
+        }
     </script>
+    
+    <!-- Create Account Modal -->
+    <div class="modal fade" id="createAccountModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">創建醫生帳戶</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="accountDoctorId">
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        為 <strong id="accountDoctorName"></strong> 創建登入帳戶
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">用戶名 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="accountUsername" placeholder="輸入用戶名" required>
+                        <small class="text-muted">建議使用醫生姓名拼音或註冊號碼</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">密碼 <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="accountPassword" placeholder="輸入密碼" required>
+                            <button class="btn btn-outline-secondary" type="button" onclick="generatePassword()">
+                                <i class="fas fa-random"></i> 生成
+                            </button>
+                        </div>
+                        <small class="text-muted">至少6個字符，建議使用生成的隨機密碼</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">電郵</label>
+                        <input type="email" class="form-control" id="accountEmail" placeholder="doctor@example.com">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">電話</label>
+                        <input type="tel" class="form-control" id="accountPhone" placeholder="+852 1234 5678">
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>重要：</strong>請將用戶名和密碼安全地傳送給醫生，並建議醫生首次登入後更改密碼。
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="submitCreateAccount()">
+                        <i class="fas fa-user-plus me-2"></i>創建帳戶
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

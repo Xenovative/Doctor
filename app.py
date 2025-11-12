@@ -5630,6 +5630,84 @@ def admin_doctors():
         flash('載入醫生資料時發生錯誤', 'error')
         return redirect(url_for('admin_dashboard'))
 
+@app.route('/admin/create-doctor-account', methods=['POST'])
+@tab_permission_required('doctors')
+def create_doctor_account():
+    """Create a doctor account from existing doctor data"""
+    try:
+        data = request.get_json()
+        doctor_id = data.get('doctor_id')
+        username = data.get('username', '').strip()
+        password = data.get('password', '')
+        email = data.get('email', '').strip()
+        phone = data.get('phone', '').strip()
+        
+        if not doctor_id or not username or not password:
+            return jsonify({'success': False, 'message': '請提供醫生ID、用戶名和密碼'}), 400
+        
+        # Check if doctor exists
+        conn_doctors = sqlite3.connect('doctors.db')
+        cursor_doctors = conn_doctors.cursor()
+        cursor_doctors.execute("SELECT * FROM doctors WHERE id = ?", (doctor_id,))
+        doctor = cursor_doctors.fetchone()
+        
+        if not doctor:
+            conn_doctors.close()
+            return jsonify({'success': False, 'message': '找不到該醫生'}), 404
+        
+        # Check if account already exists
+        cursor_doctors.execute("SELECT id FROM doctor_accounts WHERE doctor_id = ?", (doctor_id,))
+        existing_account = cursor_doctors.fetchone()
+        
+        if existing_account:
+            conn_doctors.close()
+            return jsonify({'success': False, 'message': '該醫生已有帳戶'}), 400
+        
+        # Check if username is taken
+        cursor_doctors.execute("SELECT id FROM doctor_accounts WHERE username = ?", (username,))
+        existing_username = cursor_doctors.fetchone()
+        
+        if existing_username:
+            conn_doctors.close()
+            return jsonify({'success': False, 'message': '用戶名已被使用'}), 400
+        
+        # Hash password
+        password_hash = hashlib.sha256(password.encode()).hexdigest()
+        
+        # Create account
+        cursor_doctors.execute("""
+            INSERT INTO doctor_accounts 
+            (doctor_id, username, password_hash, email, phone, is_active, created_at)
+            VALUES (?, ?, ?, ?, ?, 1, ?)
+        """, (doctor_id, username, password_hash, email, phone, datetime.now().isoformat()))
+        
+        # Update doctor affiliation status
+        cursor_doctors.execute("""
+            UPDATE doctors 
+            SET is_affiliated = 1, 
+                affiliation_status = 'approved',
+                affiliation_date = ?
+            WHERE id = ?
+        """, (datetime.now().isoformat(), doctor_id))
+        
+        conn_doctors.commit()
+        conn_doctors.close()
+        
+        # Log the action
+        logger.info(f"Admin {session.get('admin_username')} created account for doctor ID {doctor_id} with username {username}")
+        
+        return jsonify({
+            'success': True,
+            'message': '醫生帳戶創建成功',
+            'username': username
+        })
+        
+    except Exception as e:
+        logger.error(f"Error creating doctor account: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': f'創建失敗: {str(e)}'}), 500
+
 @app.route('/admin/doctors/paginated')
 @tab_permission_required('doctors')
 def admin_doctors_paginated():
