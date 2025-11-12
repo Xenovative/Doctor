@@ -1051,32 +1051,37 @@ def load_doctors_data():
         cursor = conn.cursor()
         
         # 查詢所有醫生資料，優先使用中文資料，英文作為備用，按優先級和名稱排序
+        # LEFT JOIN with doctor_accounts to get account_phone for affiliated doctors
         cursor.execute('''
             SELECT 
-                id,
-                COALESCE(name_zh, name_en, name) as name,
-                COALESCE(specialty_zh, specialty_en, specialty) as specialty,
-                COALESCE(qualifications_zh, qualifications_en, qualifications) as qualifications,
-                COALESCE(languages_zh, languages_en, languages) as languages,
-                contact_numbers as phone,
-                clinic_addresses as address,
-                email,
-                consultation_fee,
-                consultation_hours,
-                profile_url,
-                registration_number,
-                languages_available,
-                name_zh,
-                name_en,
-                specialty_zh,
-                specialty_en,
-                qualifications_zh,
-                qualifications_en,
-                languages_zh,
-                languages_en,
-                COALESCE(priority_flag, 0) as priority_flag
-            FROM doctors 
-            ORDER BY COALESCE(priority_flag, 0) DESC, name
+                d.id,
+                COALESCE(d.name_zh, d.name_en, d.name) as name,
+                COALESCE(d.specialty_zh, d.specialty_en, d.specialty) as specialty,
+                COALESCE(d.qualifications_zh, d.qualifications_en, d.qualifications) as qualifications,
+                COALESCE(d.languages_zh, d.languages_en, d.languages) as languages,
+                d.contact_numbers as phone,
+                d.clinic_addresses as address,
+                d.email,
+                d.consultation_fee,
+                d.consultation_hours,
+                d.profile_url,
+                d.registration_number,
+                d.languages_available,
+                d.name_zh,
+                d.name_en,
+                d.specialty_zh,
+                d.specialty_en,
+                d.qualifications_zh,
+                d.qualifications_en,
+                d.languages_zh,
+                d.languages_en,
+                COALESCE(d.priority_flag, 0) as priority_flag,
+                COALESCE(d.is_affiliated, 0) as is_affiliated,
+                da.phone as account_phone,
+                d.contact_numbers
+            FROM doctors d
+            LEFT JOIN doctor_accounts da ON d.id = da.doctor_id AND da.is_active = 1
+            ORDER BY COALESCE(d.priority_flag, 0) DESC, name
         ''')
         
         columns = [description[0] for description in cursor.description]

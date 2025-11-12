@@ -1133,7 +1133,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     })()}
                 </button>
                 ${window.showContactButton !== false ? `
-                <button class="contact-btn" onclick="contactDoctor(event, '${doctor.name}', '${doctor.specialty}', '${doctor.phone || ''}')">
+                <button class="contact-btn" onclick="contactDoctor(event, '${doctor.name}', '${doctor.specialty}', '${doctor.account_phone || doctor.contact_numbers || ''}', ${doctor.is_affiliated || false})">
                     <i class="fab fa-whatsapp"></i>
                     ${(() => {
                         const translation = translateText('contact');
@@ -1260,7 +1260,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
             ${window.showContactButton !== false ? `
             <div class="modal-footer">
-                <button class="contact-btn-modal" onclick="contactDoctor(event, '${doctorName}', '${doctorSpecialty}', '${doctor.phone || ''}')">
+                <button class="contact-btn-modal" onclick="contactDoctor(event, '${doctorName}', '${doctorSpecialty}', '${doctor.account_phone || doctor.contact_numbers || ''}', ${doctor.is_affiliated || false})">
                     <i class="fab fa-whatsapp"></i>
                     ${isEnglish ? 'Contact via WhatsApp' : '透過WhatsApp聯絡'}
                 </button>
@@ -1302,8 +1302,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Function to handle doctor contact
-    window.contactDoctor = async function(event, doctorName, doctorSpecialty, doctorPhone = '') {
+    window.contactDoctor = async function(event, doctorName, doctorSpecialty, doctorPhone = '', isAffiliated = false) {
         event.stopPropagation();
+        
+        console.log('Contact doctor:', {doctorName, doctorSpecialty, doctorPhone, isAffiliated});
         
         try {
             // Get WhatsApp URL with analysis report
@@ -1315,7 +1317,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 body: JSON.stringify({
                     doctor_name: doctorName,
                     doctor_specialty: doctorSpecialty,
-                    doctor_phone: doctorPhone  // Pass doctor's phone number
+                    doctor_phone: doctorPhone,  // Pass doctor's phone number (account_phone for affiliated, contact_numbers for others)
+                    is_affiliated: isAffiliated
                 })
             });
             
@@ -1323,17 +1326,34 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (data.success && data.whatsapp_url) {
                 // Open WhatsApp with pre-filled analysis report
+                console.log('Opening WhatsApp URL:', data.whatsapp_url);
                 window.open(data.whatsapp_url, '_blank');
             } else {
-                // Fallback to basic WhatsApp URL if there's an error
-                const fallbackUrl = 'https://wa.me/85294974070';
-                window.open(fallbackUrl, '_blank');
+                // For affiliated doctors with phone, use their number directly
+                if (isAffiliated && doctorPhone) {
+                    const cleanPhone = doctorPhone.replace(/[^0-9+]/g, '');
+                    const fallbackUrl = `https://wa.me/${cleanPhone}`;
+                    console.log('Using affiliated doctor fallback:', fallbackUrl);
+                    window.open(fallbackUrl, '_blank');
+                } else {
+                    // Fallback to admin number
+                    const fallbackUrl = 'https://wa.me/85294974070';
+                    window.open(fallbackUrl, '_blank');
+                }
                 console.error('Failed to generate WhatsApp URL:', data.error);
             }
         } catch (error) {
-            // Fallback to basic WhatsApp URL if request fails
-            const fallbackUrl = 'https://wa.me/85294974070';
-            window.open(fallbackUrl, '_blank');
+            // For affiliated doctors with phone, use their number directly
+            if (isAffiliated && doctorPhone) {
+                const cleanPhone = doctorPhone.replace(/[^0-9+]/g, '');
+                const fallbackUrl = `https://wa.me/${cleanPhone}`;
+                console.log('Using affiliated doctor fallback (error):', fallbackUrl);
+                window.open(fallbackUrl, '_blank');
+            } else {
+                // Fallback to admin number
+                const fallbackUrl = 'https://wa.me/85294974070';
+                window.open(fallbackUrl, '_blank');
+            }
             console.error('Error contacting doctor:', error);
         }
         
