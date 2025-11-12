@@ -301,40 +301,44 @@ def all_reservations():
         cursor_admin = conn_admin.cursor()
         cursor_doctors = conn_doctors.cursor()
         
-        # Build query
-        query = """
-            SELECT r.*, d.name_zh as doctor_name, d.specialty_zh as doctor_specialty
-            FROM reservations r
-            LEFT JOIN doctors d ON r.doctor_id = d.id
-            WHERE 1=1
-        """
+        # Get reservations from admin_data.db
+        query = "SELECT * FROM reservations WHERE 1=1"
         params = []
         
         if status_filter != 'all':
-            query += " AND r.status = ?"
+            query += " AND status = ?"
             params.append(status_filter)
         
         if doctor_filter:
-            query += " AND r.doctor_id = ?"
+            query += " AND doctor_id = ?"
             params.append(doctor_filter)
         
         if date_filter:
-            query += " AND r.reservation_date = ?"
+            query += " AND reservation_date = ?"
             params.append(date_filter)
         
-        query += " ORDER BY r.reservation_date DESC, r.reservation_time DESC LIMIT 1000"
+        query += " ORDER BY reservation_date DESC, reservation_time DESC LIMIT 1000"
         
         cursor_admin.execute(query, params)
         reservations = [dict(row) for row in cursor_admin.fetchall()]
         
-        # Get doctor list for filter
+        # Get all doctors from doctors.db
         cursor_doctors.execute("""
             SELECT id, name_zh, specialty_zh
             FROM doctors
             WHERE is_affiliated = 1
-            ORDER BY name_zh
         """)
-        doctors = [dict(row) for row in cursor_doctors.fetchall()]
+        doctors_dict = {row['id']: dict(row) for row in cursor_doctors.fetchall()}
+        
+        # Combine data - add doctor info to each reservation
+        for reservation in reservations:
+            doctor_id = reservation.get('doctor_id')
+            if doctor_id and doctor_id in doctors_dict:
+                reservation['doctor_name'] = doctors_dict[doctor_id].get('name_zh', 'Unknown')
+                reservation['doctor_specialty'] = doctors_dict[doctor_id].get('specialty_zh', '')
+            else:
+                reservation['doctor_name'] = 'Unknown Doctor'
+                reservation['doctor_specialty'] = ''
         
         # Get statistics
         cursor_admin.execute("""
@@ -347,17 +351,25 @@ def all_reservations():
             FROM reservations
         """)
         
-        stats = dict(cursor_admin.fetchone())
+        stats_row = cursor_admin.fetchone()
+        stats = dict(stats_row) if stats_row else {
+            'total': 0, 'pending': 0, 'confirmed': 0, 'completed': 0, 'cancelled': 0
+        }
         
         conn_admin.close()
         conn_doctors.close()
         
         return render_template('admin/all_reservations.html',
                              reservations=reservations,
-                             doctors=doctors,
-                             stats=stats)
+                             doctors=list(doctors_dict.values()),
+                             total_reservations=stats.get('total', 0),
+                             pending_count=stats.get('pending', 0),
+                             confirmed_count=stats.get('confirmed', 0),
+                             completed_count=stats.get('completed', 0))
         
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return f"Error: {str(e)}", 500
 
 @admin_affiliation.route('/reservations/<int:reservation_id>')
