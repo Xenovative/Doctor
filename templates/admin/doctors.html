@@ -1198,10 +1198,11 @@
                     document.getElementById('modalLoading').style.display = 'none';
                     document.getElementById('editDoctorForm').style.display = 'block';
                     
-                    // Check if doctor has account and show/hide create button (with small delay to ensure DOM is ready)
+                    // Check if doctor has account and show/hide create button (with delay to ensure modal is fully rendered)
                     setTimeout(() => {
+                        console.log('Checking account for doctor:', data.id);
                         checkDoctorAccount(data.id);
-                    }, 100);
+                    }, 300);
                 })
                 .catch(error => {
                     console.error('Error loading doctor data:', error);
@@ -1604,8 +1605,16 @@
             const btnText = document.getElementById('accountBtnText');
             
             // Check if elements exist
-            if (!createBtn || !affiliationBadge || !btnText) {
-                console.error('Required elements not found:', {createBtn, affiliationBadge, btnText});
+            if (!createBtn) {
+                console.error('createAccountBtn not found');
+                return;
+            }
+            if (!affiliationBadge) {
+                console.error('affiliationBadge not found');
+                return;
+            }
+            if (!btnText) {
+                console.error('accountBtnText not found');
                 return;
             }
             
