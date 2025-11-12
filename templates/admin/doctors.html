@@ -721,7 +721,25 @@
                     { 
                         "data": "contact_numbers", 
                         "title": "聯絡電話 <i class='fas fa-sort text-muted ms-1' style='cursor: pointer;' onclick='sortColumn(3)'></i>", 
-                        "width": "12%"
+                        "width": "12%",
+                        "render": function(data, type, row) {
+                            if (type === 'display') {
+                                let html = '';
+                                // For affiliated doctors, use account phone and add WhatsApp button
+                                if (row.is_affiliated == 1 && row.account_phone) {
+                                    const phone = row.account_phone.replace(/[^0-9+]/g, '');
+                                    html = `<small><i class="fas fa-phone me-1"></i>${row.account_phone}</small>`;
+                                    html += `<br><a href="https://wa.me/${phone}" target="_blank" class="btn btn-success btn-sm mt-1" style="font-size: 0.7rem; padding: 2px 6px;">
+                                        <i class="fab fa-whatsapp me-1"></i>WhatsApp
+                                    </a>`;
+                                } else if (data) {
+                                    // For non-affiliated, show regular contact
+                                    html = `<small><i class="fas fa-phone me-1"></i>${data.split(',')[0]}</small>`;
+                                }
+                                return html || '';
+                            }
+                            return data || '';
+                        }
                     },
                     { 
                         "data": "clinic_addresses", 

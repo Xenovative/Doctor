@@ -5857,28 +5857,30 @@ def admin_doctors_paginated():
         columns = ['name', 'specialty', 'qualifications', 'contact_numbers', 'clinic_addresses', 'priority_flag']
         sort_column = columns[order_column] if order_column < len(columns) else 'name'
         
-        # Base query with better data handling
+        # Base query with better data handling - join with doctor_accounts to get account phone
         base_query = """
-            SELECT id,
-                   name_zh,
-                   name_en,
-                   name,
-                   specialty_zh,
-                   specialty_en,
-                   specialty,
-                   qualifications_zh,
-                   qualifications_en,
-                   qualifications,
-                   languages_zh,
-                   languages_en,
-                   languages,
-                   contact_numbers,
-                   email,
-                   clinic_addresses,
-                   profile_url,
-                   priority_flag,
-                   COALESCE(is_affiliated, 0) as is_affiliated
-            FROM doctors
+            SELECT d.id,
+                   d.name_zh,
+                   d.name_en,
+                   d.name,
+                   d.specialty_zh,
+                   d.specialty_en,
+                   d.specialty,
+                   d.qualifications_zh,
+                   d.qualifications_en,
+                   d.qualifications,
+                   d.languages_zh,
+                   d.languages_en,
+                   d.languages,
+                   d.contact_numbers,
+                   d.email,
+                   d.clinic_addresses,
+                   d.profile_url,
+                   d.priority_flag,
+                   COALESCE(d.is_affiliated, 0) as is_affiliated,
+                   da.phone as account_phone
+            FROM doctors d
+            LEFT JOIN doctor_accounts da ON d.id = da.doctor_id AND da.is_active = 1
         """
         
         # Build where clause with all filters
@@ -5888,31 +5890,31 @@ def admin_doctors_paginated():
         # Global search filter
         if search_value:
             where_conditions.append("""
-                (name_zh LIKE ? OR name_en LIKE ? OR name LIKE ?
-                 OR specialty_zh LIKE ? OR specialty_en LIKE ? OR specialty LIKE ?
-                 OR contact_numbers LIKE ?
-                 OR clinic_addresses LIKE ?)
+                (d.name_zh LIKE ? OR d.name_en LIKE ? OR d.name LIKE ?
+                 OR d.specialty_zh LIKE ? OR d.specialty_en LIKE ? OR d.specialty LIKE ?
+                 OR d.contact_numbers LIKE ?
+                 OR d.clinic_addresses LIKE ?)
             """)
             search_param = f'%{search_value}%'
             params.extend([search_param] * 8)
         
         # Column-specific filters
         if specialty_search:
-            where_conditions.append("(specialty_zh LIKE ? OR specialty_en LIKE ? OR specialty LIKE ?)")
+            where_conditions.append("(d.specialty_zh LIKE ? OR d.specialty_en LIKE ? OR d.specialty LIKE ?)")
             specialty_param = f'%{specialty_search}%'
             params.extend([specialty_param, specialty_param, specialty_param])
         
         if language_search:
-            where_conditions.append("(languages_zh LIKE ? OR languages_en LIKE ?)")
+            where_conditions.append("(d.languages_zh LIKE ? OR d.languages_en LIKE ?)")
             language_param = f'%{language_search}%'
             params.extend([language_param, language_param])
         
         if priority_search:
-            where_conditions.append("priority_flag = ?")
+            where_conditions.append("d.priority_flag = ?")
             params.append(int(priority_search))
         
         if location_search:
-            where_conditions.append("clinic_addresses LIKE ?")
+            where_conditions.append("d.clinic_addresses LIKE ?")
             location_param = f'%{location_search}%'
             params.append(location_param)
         
@@ -5921,12 +5923,12 @@ def admin_doctors_paginated():
             where_clause = "WHERE " + " AND ".join(where_conditions)
         
         # Get total count (without search)
-        cursor.execute("SELECT COUNT(*) FROM doctors")
+        cursor.execute("SELECT COUNT(*) FROM doctors d")
         records_total = cursor.fetchone()[0]
         
         # Get filtered count (with all filters)
         if where_conditions:
-            cursor.execute(f"SELECT COUNT(*) FROM doctors {where_clause}", params)
+            cursor.execute(f"SELECT COUNT(*) FROM doctors d LEFT JOIN doctor_accounts da ON d.id = da.doctor_id AND da.is_active = 1 {where_clause}", params)
             records_filtered = cursor.fetchone()[0]
         else:
             records_filtered = records_total
