@@ -1194,12 +1194,14 @@
                     // Update modal title
                     document.querySelector('#editDoctorModal .modal-title').textContent = '編輯醫生資料';
                     
-                    // Check if doctor has account and show/hide create button
-                    checkDoctorAccount(data.id);
-                    
                     // Hide loading and show form
                     document.getElementById('modalLoading').style.display = 'none';
                     document.getElementById('editDoctorForm').style.display = 'block';
+                    
+                    // Check if doctor has account and show/hide create button (with small delay to ensure DOM is ready)
+                    setTimeout(() => {
+                        checkDoctorAccount(data.id);
+                    }, 100);
                 })
                 .catch(error => {
                     console.error('Error loading doctor data:', error);
@@ -1600,6 +1602,13 @@
             const createBtn = document.getElementById('createAccountBtn');
             const affiliationBadge = document.getElementById('affiliationBadge');
             const btnText = document.getElementById('accountBtnText');
+            
+            // Check if elements exist
+            if (!createBtn || !affiliationBadge || !btnText) {
+                console.error('Required elements not found:', {createBtn, affiliationBadge, btnText});
+                return;
+            }
+            
             const btnIcon = createBtn.querySelector('i');
             
             try {
