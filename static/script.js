@@ -1307,6 +1307,13 @@ document.addEventListener('DOMContentLoaded', function() {
         
         console.log('Contact doctor:', {doctorId, doctorName, doctorSpecialty, doctorPhone, isAffiliated});
         
+        // For affiliated doctors, show time slot selection modal first
+        if (isAffiliated) {
+            showTimeSlotModal(doctorId, doctorName, doctorSpecialty, doctorPhone);
+            return;
+        }
+        
+        // For non-affiliated doctors, proceed with immediate contact
         try {
             // Create reservation request in parallel with WhatsApp URL generation
             const reservationPromise = fetch('/api/contact-doctor-reservation', {
@@ -1807,4 +1814,172 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Click tracking failed:', error);
         });
     }
+
+    // ==================== Time Slot Selection Modal ====================
+    
+    window.showTimeSlotModal = async function(doctorId, doctorName, doctorSpecialty, doctorPhone) {
+        // Get tomorrow's date as default
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const dateStr = tomorrow.toISOString().split('T')[0];
+        
+        // Fetch available slots
+        try {
+            const response = await fetch(`/api/doctor/${doctorId}/available-slots-or-default?date=${dateStr}`);
+            const data = await response.json();
+            
+            if (!data.success) {
+                alert('無法獲取可用時段');
+                return;
+            }
+            
+            // Create or get modal
+            let modal = document.getElementById('timeSlotModal');
+            if (!modal) {
+                modal = createTimeSlotModal();
+            }
+            
+            // Populate modal content
+            const modalContent = modal.querySelector('.time-slot-modal-content');
+            const isEnglish = localStorage.getItem('language') === 'en';
+            
+            modalContent.innerHTML = `
+                <div class="time-slot-header">
+                    <h3>${isEnglish ? 'Select Appointment Time' : '選擇預約時間'}</h3>
+                    <button class="close-btn" onclick="closeTimeSlotModal()">×</button>
+                </div>
+                <div class="time-slot-body">
+                    <div class="doctor-info-section">
+                        <h4><i class="fas fa-user-md"></i> ${doctorName}</h4>
+                        <p><i class="fas fa-stethoscope"></i> ${doctorSpecialty}</p>
+                    </div>
+                    
+                    ${!data.has_schedule ? `
+                        <div class="info-message">
+                            <i class="fas fa-info-circle"></i>
+                            ${isEnglish ? 'Doctor has not set schedule. Showing default time slots.' : '醫生尚未設置時間表，顯示預設時段'}
+                        </div>
+                    ` : ''}
+                    
+                    <div class="date-section">
+                        <label><i class="fas fa-calendar"></i> ${isEnglish ? 'Date' : '日期'}: ${data.date}</label>
+                    </div>
+                    
+                    <div class="time-slots-grid">
+                        ${data.slots.map(slot => `
+                            <button class="time-slot-btn" onclick="selectTimeSlot('${slot.time}', '${data.date}', ${doctorId}, '${doctorName}', '${doctorSpecialty}', '${doctorPhone}')">
+                                <i class="fas fa-clock"></i>
+                                ${slot.display || slot.time}
+                                ${slot.available ? `<span class="slot-available">(${slot.available} ${isEnglish ? 'available' : '可用'})</span>` : ''}
+                            </button>
+                        `).join('')}
+                    </div>
+                    
+                    <div class="modal-actions">
+                        <button class="btn-secondary" onclick="closeTimeSlotModal()">
+                            ${isEnglish ? 'Cancel' : '取消'}
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            modal.style.display = 'flex';
+            
+        } catch (error) {
+            console.error('Error loading time slots:', error);
+            alert('無法加載時段，請稍後再試');
+        }
+    };
+    
+    function createTimeSlotModal() {
+        const modal = document.createElement('div');
+        modal.id = 'timeSlotModal';
+        modal.className = 'time-slot-modal';
+        modal.innerHTML = `
+            <div class="time-slot-modal-content">
+                <!-- Content will be populated by showTimeSlotModal -->
+            </div>
+        `;
+        document.body.appendChild(modal);
+        
+        // Close on outside click
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                closeTimeSlotModal();
+            }
+        });
+        
+        return modal;
+    }
+    
+    window.closeTimeSlotModal = function() {
+        const modal = document.getElementById('timeSlotModal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    };
+    
+    window.selectTimeSlot = async function(time, date, doctorId, doctorName, doctorSpecialty, doctorPhone) {
+        console.log('Selected time slot:', {time, date, doctorId, doctorName});
+        
+        try {
+            // Create reservation with selected time
+            const reservationPromise = fetch('/api/contact-doctor-reservation', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    doctor_id: doctorId,
+                    doctor_name: doctorName,
+                    reservation_date: date,
+                    reservation_time: time
+                })
+            });
+            
+            // Get WhatsApp URL
+            const whatsappPromise = fetch('/get_whatsapp_url', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    doctor_name: doctorName,
+                    doctor_specialty: doctorSpecialty,
+                    doctor_phone: doctorPhone,
+                    is_affiliated: true
+                })
+            });
+            
+            // Wait for both
+            const [reservationResponse, whatsappResponse] = await Promise.all([reservationPromise, whatsappPromise]);
+            
+            // Handle reservation
+            if (reservationResponse.ok) {
+                const reservationData = await reservationResponse.json();
+                if (reservationData.success) {
+                    console.log('✅ Reservation created with time:', reservationData.confirmation_code);
+                }
+            }
+            
+            // Handle WhatsApp
+            const whatsappData = await whatsappResponse.json();
+            
+            if (whatsappData.success && whatsappData.whatsapp_url) {
+                window.open(whatsappData.whatsapp_url, '_blank');
+            } else {
+                // Fallback
+                const cleanPhone = doctorPhone.replace(/[^0-9+]/g, '');
+                window.open(`https://wa.me/${cleanPhone}`, '_blank');
+            }
+            
+            // Close modals
+            closeTimeSlotModal();
+            closeDoctorModal();
+            
+        } catch (error) {
+            console.error('Error selecting time slot:', error);
+            alert('預約失敗，請稍後再試');
+        }
+    };
 });

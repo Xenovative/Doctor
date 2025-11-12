@@ -6544,6 +6544,8 @@ def contact_doctor_reservation():
         data = request.get_json()
         doctor_id = data.get('doctor_id')
         doctor_name = data.get('doctor_name')
+        reservation_date = data.get('reservation_date')  # NEW: Get selected date
+        reservation_time = data.get('reservation_time')  # NEW: Get selected time
         
         # Get session info
         session_id = session.get('session_id')
@@ -6582,25 +6584,58 @@ def contact_doctor_reservation():
         import secrets
         confirmation_code = secrets.token_urlsafe(8).upper()
         
+        # Use provided date/time or defaults
+        if not reservation_date:
+            reservation_date = 'date(\'now\')'
+            use_sql_date = True
+        else:
+            use_sql_date = False
+            
+        if not reservation_time:
+            reservation_time = '00:00'
+        
         # Insert reservation with status 'contact_request' to differentiate from normal bookings
-        cursor.execute("""
-            INSERT INTO reservations
-            (doctor_id, patient_name, patient_phone, patient_age, 
-             patient_gender, reservation_date, reservation_time, consultation_type,
-             symptoms, chronic_conditions, query_id, confirmation_code, status, notes)
-            VALUES (?, ?, ?, ?, ?, date('now'), '00:00', 'contact', ?, ?, ?, ?, 'contact_request', 
-                    'Patient clicked contact button - awaiting response')
-        """, (
-            doctor_id,
-            patient_name,
-            patient_phone,
-            patient_age,
-            patient_gender,
-            symptoms,
-            chronic_conditions,
-            query_id,
-            confirmation_code
-        ))
+        if use_sql_date:
+            cursor.execute("""
+                INSERT INTO reservations
+                (doctor_id, patient_name, patient_phone, patient_age, 
+                 patient_gender, reservation_date, reservation_time, consultation_type,
+                 symptoms, chronic_conditions, query_id, confirmation_code, status, notes)
+                VALUES (?, ?, ?, ?, ?, date('now'), ?, 'contact', ?, ?, ?, ?, 'contact_request', 
+                        'Patient clicked contact button - awaiting response')
+            """, (
+                doctor_id,
+                patient_name,
+                patient_phone,
+                patient_age,
+                patient_gender,
+                reservation_time,
+                symptoms,
+                chronic_conditions,
+                query_id,
+                confirmation_code
+            ))
+        else:
+            cursor.execute("""
+                INSERT INTO reservations
+                (doctor_id, patient_name, patient_phone, patient_age, 
+                 patient_gender, reservation_date, reservation_time, consultation_type,
+                 symptoms, chronic_conditions, query_id, confirmation_code, status, notes)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 'contact', ?, ?, ?, ?, 'contact_request', 
+                        'Patient selected time slot via contact button')
+            """, (
+                doctor_id,
+                patient_name,
+                patient_phone,
+                patient_age,
+                patient_gender,
+                reservation_date,
+                reservation_time,
+                symptoms,
+                chronic_conditions,
+                query_id,
+                confirmation_code
+            ))
         
         reservation_id = cursor.lastrowid
         
@@ -6625,6 +6660,120 @@ def contact_doctor_reservation():
         
     except Exception as e:
         print(f"Error creating contact reservation: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/doctor/<int:doctor_id>/available-slots-or-default')
+def get_available_slots_or_default(doctor_id):
+    """Get available time slots for doctor, or default times if no schedule set"""
+    try:
+        date = request.args.get('date')
+        if not date:
+            # Default to tomorrow
+            from datetime import datetime, timedelta
+            date = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')
+        
+        # Try to get doctor's actual availability
+        conn_doctors = sqlite3.connect('doctors.db')
+        conn_doctors.row_factory = sqlite3.Row
+        cursor_doctors = conn_doctors.cursor()
+        
+        # Parse date to get day of week
+        from datetime import datetime
+        date_obj = datetime.strptime(date, '%Y-%m-%d')
+        day_of_week = date_obj.weekday()
+        
+        # Check if doctor has availability schedule
+        cursor_doctors.execute("""
+            SELECT * FROM doctor_availability
+            WHERE doctor_id = ? AND day_of_week = ? AND is_active = 1
+        """, (doctor_id, day_of_week))
+        
+        schedules = cursor_doctors.fetchall()
+        
+        if schedules:
+            # Doctor has schedule - get actual available slots
+            conn_admin = sqlite3.connect('admin_data.db')
+            conn_admin.row_factory = sqlite3.Row
+            cursor_admin = conn_admin.cursor()
+            
+            # Get existing reservations
+            cursor_admin.execute("""
+                SELECT reservation_time, COUNT(*) as count
+                FROM reservations
+                WHERE doctor_id = ? 
+                AND reservation_date = ?
+                AND status IN ('pending', 'confirmed', 'contact_request')
+                GROUP BY reservation_time
+            """, (doctor_id, date))
+            
+            existing_reservations = {row['reservation_time']: row['count'] for row in cursor_admin.fetchall()}
+            
+            # Generate available slots
+            available_slots = []
+            
+            for schedule in schedules:
+                from datetime import datetime, timedelta
+                start_time = datetime.strptime(schedule['start_time'], '%H:%M')
+                end_time = datetime.strptime(schedule['end_time'], '%H:%M')
+                slot_duration = schedule['slot_duration']
+                max_patients = schedule['max_patients_per_slot']
+                
+                current_time = start_time
+                while current_time < end_time:
+                    time_str = current_time.strftime('%H:%M')
+                    booked_count = existing_reservations.get(time_str, 0)
+                    
+                    if booked_count < max_patients:
+                        available_slots.append({
+                            'time': time_str,
+                            'available': max_patients - booked_count,
+                            'display': current_time.strftime('%I:%M %p')
+                        })
+                    
+                    current_time += timedelta(minutes=slot_duration)
+            
+            conn_admin.close()
+            conn_doctors.close()
+            
+            return jsonify({
+                'success': True,
+                'has_schedule': True,
+                'slots': available_slots,
+                'date': date
+            })
+        else:
+            # No schedule - return default time slots
+            conn_doctors.close()
+            
+            default_slots = [
+                {'time': '09:00', 'display': '09:00 AM'},
+                {'time': '09:30', 'display': '09:30 AM'},
+                {'time': '10:00', 'display': '10:00 AM'},
+                {'time': '10:30', 'display': '10:30 AM'},
+                {'time': '11:00', 'display': '11:00 AM'},
+                {'time': '11:30', 'display': '11:30 AM'},
+                {'time': '14:00', 'display': '02:00 PM'},
+                {'time': '14:30', 'display': '02:30 PM'},
+                {'time': '15:00', 'display': '03:00 PM'},
+                {'time': '15:30', 'display': '03:30 PM'},
+                {'time': '16:00', 'display': '04:00 PM'},
+                {'time': '16:30', 'display': '04:30 PM'},
+                {'time': '17:00', 'display': '05:00 PM'},
+                {'time': '17:30', 'display': '05:30 PM'}
+            ]
+            
+            return jsonify({
+                'success': True,
+                'has_schedule': False,
+                'slots': default_slots,
+                'date': date,
+                'message': '醫生尚未設置時間表，顯示預設時段'
+            })
+            
+    except Exception as e:
+        print(f"Error getting available slots: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
