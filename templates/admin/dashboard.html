@@ -109,6 +109,18 @@
                             </a>
                         </li>
                         {% endif %}
+                        {% if session.admin_role == 'super_admin' or session.admin_tab_permissions.get('doctors', False) %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_affiliation.affiliation_requests') }}">
+                                <i class="fas fa-user-md me-2"></i>醫生加盟
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_affiliation.all_reservations') }}">
+                                <i class="fas fa-calendar-check me-2"></i>預約管理
+                            </a>
+                        </li>
+                        {% endif %}
                         <li class="nav-item mt-3">
                             <a class="nav-link" href="/" target="_blank">
                                 <i class="fas fa-external-link-alt me-2"></i>查看網站

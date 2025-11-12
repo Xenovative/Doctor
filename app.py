@@ -118,6 +118,21 @@ def update_env_file(key: str, value: str) -> None:
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 app.secret_key = os.getenv('SECRET_KEY', secrets.token_hex(32))
 
+# Import and register blueprints for doctor affiliation system
+try:
+    from doctor_portal_routes import doctor_portal
+    from reservation_routes import reservation_system
+    from admin_affiliation_routes import admin_affiliation
+    
+    app.register_blueprint(doctor_portal)
+    app.register_blueprint(reservation_system)
+    app.register_blueprint(admin_affiliation)
+    
+    logger.info("✅ Doctor affiliation system blueprints registered successfully")
+except ImportError as e:
+    logger.warning(f"⚠️ Could not import affiliation blueprints: {e}")
+    logger.warning("Doctor affiliation features will not be available")
+
 # Language switching route
 @app.route('/set_language/<lang>')
 def set_language(lang):
