@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>醫生帳戶管理 - AI醫生配對系統</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='admin-mobile.css') }}" rel="stylesheet">
+    <style>
+        .account-card {
+            border-radius: 12px;
+            border: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .account-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+        }
+        
+        .doctor-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .doctor-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.5rem;
+        }
+        
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <!-- Mobile Navigation Toggle -->
+    <button class="mobile-nav-toggle" id="mobileNavToggle">
+        <i class="fas fa-bars"></i>
+    </button>
+    
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 d-md-block sidebar" id="adminSidebar">
+                <div class="position-sticky pt-3">
+                    <div class="text-center mb-4">
+                        <div class="admin-logo-circle">
+                            <img src="{{ url_for('static', filename='../assets/img/doctoricon.png') }}" alt="Doctor AI" class="admin-logo">
+                        </div>
+                        <h5 class="text-white mb-1">Doctor AI.io</h5>
+                        <small class="text-white-50">管理後台</small>
+                    </div>
+                    
+                    <ul class="nav flex-column">
+                        {% if session.admin_role == 'super_admin' or session.admin_tab_permissions.get('dashboard', False) %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_dashboard') }}">
+                                <i class="fas fa-tachometer-alt me-2"></i>儀表板
+                            </a>
+                        </li>
+                        {% endif %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_affiliation.affiliation_requests') }}">
+                                <i class="fas fa-user-md me-2"></i>醫生加盟
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_affiliation.all_reservations') }}">
+                                <i class="fas fa-calendar-check me-2"></i>預約管理
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="{{ url_for('admin_affiliation.doctor_accounts') }}">
+                                <i class="fas fa-user-cog me-2"></i>帳戶管理
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_affiliation.affiliation_statistics') }}">
+                                <i class="fas fa-chart-line me-2"></i>加盟統計
+                            </a>
+                        </li>
+                        <li class="nav-item mt-4">
+                            <a class="nav-link" href="{{ url_for('admin_logout') }}">
+                                <i class="fas fa-sign-out-alt me-2"></i>登出
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+            
+            <!-- Main Content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">醫生帳戶管理</h1>
+                </div>
+                
+                <!-- Accounts List -->
+                {% if accounts %}
+                    {% for account in accounts %}
+                    <div class="card account-card">
+                        <div class="card-body">
+                            <div class="doctor-header">
+                                <div class="doctor-avatar">
+                                    {{ account.doctor_name[0] if account.doctor_name else 'D' }}
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h5 class="mb-0">{{ account.doctor_name }}</h5>
+                                    <p class="text-muted mb-0">
+                                        <i class="fas fa-user me-1"></i>{{ account.username }}
+                                    </p>
+                                </div>
+                                <div>
+                                    {% if account.is_active %}
+                                    <span class="status-badge bg-success text-white">
+                                        <i class="fas fa-check-circle me-1"></i>啟用
+                                    </span>
+                                    {% else %}
+                                    <span class="status-badge bg-danger text-white">
+                                        <i class="fas fa-times-circle me-1"></i>停用
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-4">
+                                    <small class="text-muted">電郵</small>
+                                    <p class="mb-0">
+                                        {{ account.email or 'N/A' }}
+                                        {% if account.email_verified %}
+                                        <i class="fas fa-check-circle text-success ms-1" title="已驗證"></i>
+                                        {% endif %}
+                                    </p>
+                                </div>
+                                <div class="col-md-4">
+                                    <small class="text-muted">電話</small>
+                                    <p class="mb-0">
+                                        {{ account.phone or 'N/A' }}
+                                        {% if account.phone_verified %}
+                                        <i class="fas fa-check-circle text-success ms-1" title="已驗證"></i>
+                                        {% endif %}
+                                    </p>
+                                </div>
+                                <div class="col-md-4">
+                                    <small class="text-muted">雙重驗證</small>
+                                    <p class="mb-0">
+                                        {% if account.totp_enabled %}
+                                        <i class="fas fa-shield-alt text-success me-1"></i>已啟用
+                                        {% else %}
+                                        <i class="fas fa-shield-alt text-muted me-1"></i>未啟用
+                                        {% endif %}
+                                    </p>
+                                </div>
+                                <div class="col-md-4">
+                                    <small class="text-muted">創建日期</small>
+                                    <p class="mb-0">{{ account.created_at[:10] if account.created_at else 'N/A' }}</p>
+                                </div>
+                                <div class="col-md-4">
+                                    <small class="text-muted">最後登入</small>
+                                    <p class="mb-0">{{ account.last_login[:10] if account.last_login else '從未登入' }}</p>
+                                </div>
+                            </div>
+                            
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-sm btn-warning" onclick="resetPassword({{ account.id }}, '{{ account.username }}')">
+                                    <i class="fas fa-key me-1"></i>重設密碼
+                                </button>
+                                
+                                {% if account.is_active %}
+                                <button class="btn btn-sm btn-danger" onclick="toggleAccountStatus({{ account.id }}, false)">
+                                    <i class="fas fa-ban me-1"></i>停用帳戶
+                                </button>
+                                {% else %}
+                                <button class="btn btn-sm btn-success" onclick="toggleAccountStatus({{ account.id }}, true)">
+                                    <i class="fas fa-check me-1"></i>啟用帳戶
+                                </button>
+                                {% endif %}
+                                
+                                {% if account.totp_enabled %}
+                                <button class="btn btn-sm btn-outline-secondary" onclick="disable2FA({{ account.id }})">
+                                    <i class="fas fa-shield-alt me-1"></i>停用2FA
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-user-slash fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">暫無醫生帳戶</p>
+                    </div>
+                {% endif %}
+            </main>
+        </div>
+    </div>
+    
+    <!-- Reset Password Modal -->
+    <div class="modal fade" id="resetPasswordModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">重設密碼</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>為 <strong id="resetUsername"></strong> 生成新密碼？</p>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        新密碼將顯示在此處，請複製並安全地傳送給醫生。
+                    </div>
+                    <div id="newPasswordDisplay" class="d-none">
+                        <label class="form-label">新密碼</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="newPasswordText" readonly>
+                            <button class="btn btn-outline-secondary" onclick="copyPassword()">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-warning" id="confirmResetBtn" onclick="confirmResetPassword()">
+                        生成新密碼
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentAccountId = null;
+        let resetPasswordModal = null;
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            resetPasswordModal = new bootstrap.Modal(document.getElementById('resetPasswordModal'));
+        });
+        
+        function resetPassword(accountId, username) {
+            currentAccountId = accountId;
+            document.getElementById('resetUsername').textContent = username;
+            document.getElementById('newPasswordDisplay').classList.add('d-none');
+            document.getElementById('confirmResetBtn').style.display = 'block';
+            resetPasswordModal.show();
+        }
+        
+        async function confirmResetPassword() {
+            try {
+                const response = await fetch(`/admin/affiliation/doctor-accounts/${currentAccountId}/reset-password`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('newPasswordText').value = data.new_password;
+                    document.getElementById('newPasswordDisplay').classList.remove('d-none');
+                    document.getElementById('confirmResetBtn').style.display = 'none';
+                } else {
+                    alert('操作失敗: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('操作失敗');
+            }
+        }
+        
+        function copyPassword() {
+            const passwordInput = document.getElementById('newPasswordText');
+            passwordInput.select();
+            document.execCommand('copy');
+            alert('密碼已複製到剪貼板');
+        }
+        
+        async function toggleAccountStatus(accountId, activate) {
+            const action = activate ? '啟用' : '停用';
+            if (!confirm(`確定要${action}此帳戶嗎？`)) return;
+            
+            try {
+                const response = await fetch(`/admin/affiliation/doctor-accounts/${accountId}/toggle-active`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ is_active: activate })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`帳戶已${action}`);
+                    location.reload();
+                } else {
+                    alert('操作失敗: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('操作失敗');
+            }
+        }
+        
+        async function disable2FA(accountId) {
+            if (!confirm('確定要停用此帳戶的雙重驗證嗎？')) return;
+            
+            try {
+                const response = await fetch(`/admin/affiliation/doctor-accounts/${accountId}/disable-2fa`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('雙重驗證已停用');
+                    location.reload();
+                } else {
+                    alert('操作失敗: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('操作失敗');
+            }
+        }
+        
+        // Mobile navigation
+        const mobileNavToggle = document.getElementById('mobileNavToggle');
+        const sidebar = document.getElementById('adminSidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+        
+        if (mobileNavToggle) {
+            mobileNavToggle.addEventListener('click', () => {
+                sidebar.classList.toggle('show');
+                sidebarOverlay.classList.toggle('show');
+            });
+            
+            sidebarOverlay.addEventListener('click', () => {
+                sidebar.classList.remove('show');
+                sidebarOverlay.classList.remove('show');
+            });
+        }
+    </script>
+</body>
+</html>
