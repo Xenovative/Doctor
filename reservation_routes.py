@@ -3,7 +3,7 @@ Patient Reservation Routes
 Handles patient-facing reservation system for booking appointments with affiliated doctors
 """
 
-from flask import Blueprint, render_template, request, jsonify, session
+from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for
 import sqlite3
 from datetime import datetime, timedelta
 import secrets
