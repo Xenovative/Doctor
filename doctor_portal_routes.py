@@ -73,6 +73,21 @@ def get_doctor_info(doctor_id: int) -> dict:
         return dict(doctor)
     return None
 
+def get_pending_count(doctor_id: int) -> int:
+    """Get count of pending reservations for navigation badge"""
+    try:
+        conn = get_admin_db()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT COUNT(*) as count FROM reservations
+            WHERE doctor_id = ? AND status = 'pending'
+        """, (doctor_id,))
+        result = cursor.fetchone()
+        conn.close()
+        return result['count'] if result else 0
+    except:
+        return 0
+
 # ==================== Authentication Routes ====================
 
 @doctor_portal.route('/login', methods=['GET', 'POST'])
@@ -299,8 +314,9 @@ def profile():
     """Doctor profile page"""
     doctor_id = session['doctor_id']
     doctor_info = get_doctor_info(doctor_id)
+    pending_count = get_pending_count(doctor_id)
     
-    return render_template('doctor/profile.html', doctor=doctor_info)
+    return render_template('doctor/profile.html', doctor=doctor_info, pending_count=pending_count)
 
 @doctor_portal.route('/profile/update', methods=['POST'])
 @doctor_login_required
@@ -407,10 +423,12 @@ def availability():
     time_off = [dict(row) for row in cursor.fetchall()]
     
     conn.close()
+    pending_count = get_pending_count(doctor_id)
     
     return render_template('doctor/availability.html', 
                          schedules=schedules, 
-                         time_off=time_off)
+                         time_off=time_off,
+                         pending_count=pending_count)
 
 @doctor_portal.route('/availability/add', methods=['POST'])
 @doctor_login_required
@@ -540,9 +558,18 @@ def reservations():
     cursor.execute(query, params)
     reservations_list = [dict(row) for row in cursor.fetchall()]
     
+    # Get pending count for navigation badge
+    cursor.execute("""
+        SELECT COUNT(*) as count FROM reservations
+        WHERE doctor_id = ? AND status = 'pending'
+    """, (doctor_id,))
+    pending_count = cursor.fetchone()['count']
+    
     conn.close()
     
-    return render_template('doctor/reservations.html', reservations=reservations_list)
+    return render_template('doctor/reservations.html', 
+                         reservations=reservations_list,
+                         pending_count=pending_count)
 
 @doctor_portal.route('/reservations/<int:reservation_id>/confirm', methods=['POST'])
 @doctor_login_required
@@ -714,11 +741,13 @@ def reviews():
         rating_distribution = {i: 0 for i in range(1, 6)}
     
     conn.close()
+    pending_count = get_pending_count(doctor_id)
     
     return render_template('doctor/reviews.html',
                          reviews=reviews_list,
                          avg_rating=round(avg_rating, 1),
-                         rating_distribution=rating_distribution)
+                         rating_distribution=rating_distribution,
+                         pending_count=pending_count)
 
 # ==================== Statistics ====================
 
@@ -756,8 +785,9 @@ def statistics():
     monthly_stats.reverse()
     
     conn.close()
+    pending_count = get_pending_count(doctor_id)
     
-    return render_template('doctor/statistics.html', monthly_stats=monthly_stats)
+    return render_template('doctor/statistics.html', monthly_stats=monthly_stats, pending_count=pending_count)
 
 # ==================== API Endpoints ====================
 
