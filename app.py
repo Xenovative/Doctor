@@ -4413,23 +4413,31 @@ def admin_reservations():
         per_page = 50
         
         # ===== RESERVATIONS STATS =====
-        cursor.execute('SELECT COUNT(*) FROM reservations')
-        total_reservations = cursor.fetchone()[0]
+        # Check if reservations table exists
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='reservations'")
+        has_reservations_table = cursor.fetchone() is not None
         
-        cursor.execute("SELECT COUNT(*) FROM reservations WHERE status = 'pending'")
-        pending_reservations = cursor.fetchone()[0]
-        
-        cursor.execute("SELECT COUNT(*) FROM reservations WHERE status = 'confirmed'")
-        confirmed_reservations = cursor.fetchone()[0]
-        
-        cursor.execute("SELECT COUNT(*) FROM reservations WHERE status = 'completed'")
-        completed_reservations = cursor.fetchone()[0]
-        
-        cursor.execute("SELECT COUNT(*) FROM reservations WHERE status = 'cancelled'")
-        cancelled_reservations = cursor.fetchone()[0]
-        
-        cursor.execute("SELECT COUNT(*) FROM reservations WHERE DATE(created_at) = DATE('now')")
-        today_reservations = cursor.fetchone()[0]
+        if has_reservations_table:
+            cursor.execute('SELECT COUNT(*) FROM reservations')
+            total_reservations = cursor.fetchone()[0]
+            
+            cursor.execute("SELECT COUNT(*) FROM reservations WHERE status = 'pending'")
+            pending_reservations = cursor.fetchone()[0]
+            
+            cursor.execute("SELECT COUNT(*) FROM reservations WHERE status = 'confirmed'")
+            confirmed_reservations = cursor.fetchone()[0]
+            
+            cursor.execute("SELECT COUNT(*) FROM reservations WHERE status = 'completed'")
+            completed_reservations = cursor.fetchone()[0]
+            
+            cursor.execute("SELECT COUNT(*) FROM reservations WHERE status = 'cancelled'")
+            cancelled_reservations = cursor.fetchone()[0]
+            
+            cursor.execute("SELECT COUNT(*) FROM reservations WHERE DATE(created_at) = DATE('now')")
+            today_reservations = cursor.fetchone()[0]
+        else:
+            total_reservations = pending_reservations = confirmed_reservations = 0
+            completed_reservations = cancelled_reservations = today_reservations = 0
         
         # ===== REFERENCE CODES STATS =====
         cursor.execute('SELECT COUNT(*) FROM diagnosis_references')
@@ -4445,31 +4453,39 @@ def admin_reservations():
         total_billed_amount = cursor.fetchone()[0] or 0
         
         # ===== GET RESERVATIONS LIST =====
-        reservations_query = '''
-            SELECT r.*, 
-                   (SELECT name FROM doctors WHERE id = r.doctor_id) as doctor_name,
-                   (SELECT specialty FROM doctors WHERE id = r.doctor_id) as doctor_specialty
-            FROM reservations r
-        '''
-        where_clauses = []
-        params = []
-        
-        if filter_status != 'all' and view_tab == 'reservations':
-            where_clauses.append('r.status = ?')
-            params.append(filter_status)
-        
-        if filter_date:
-            where_clauses.append('DATE(r.created_at) = ?')
-            params.append(filter_date)
-        
-        if where_clauses:
-            reservations_query += ' WHERE ' + ' AND '.join(where_clauses)
-        
-        reservations_query += ' ORDER BY r.created_at DESC LIMIT ? OFFSET ?'
-        params.extend([per_page, (page - 1) * per_page])
-        
-        cursor.execute(reservations_query, params)
-        reservations = [dict(row) for row in cursor.fetchall()]
+        reservations = []
+        if has_reservations_table:
+            # Join with doctor_accounts table (from affiliation system)
+            reservations_query = '''
+                SELECT r.*, 
+                       COALESCE(da.full_name, r.doctor_name) as doctor_name,
+                       COALESCE(da.specialty, '') as doctor_specialty
+                FROM reservations r
+                LEFT JOIN doctor_accounts da ON r.doctor_id = da.id
+            '''
+            where_clauses = []
+            params = []
+            
+            if filter_status != 'all' and view_tab == 'reservations':
+                where_clauses.append('r.status = ?')
+                params.append(filter_status)
+            
+            if filter_date:
+                where_clauses.append('DATE(r.created_at) = ?')
+                params.append(filter_date)
+            
+            if where_clauses:
+                reservations_query += ' WHERE ' + ' AND '.join(where_clauses)
+            
+            reservations_query += ' ORDER BY r.created_at DESC LIMIT ? OFFSET ?'
+            params.extend([per_page, (page - 1) * per_page])
+            
+            try:
+                cursor.execute(reservations_query, params)
+                reservations = [dict(row) for row in cursor.fetchall()]
+            except sqlite3.OperationalError as e:
+                logger.warning(f"Reservations query failed: {e}")
+                reservations = []
         
         # ===== GET REFERENCE CODES LIST =====
         refs_query = 'SELECT * FROM diagnosis_references'
