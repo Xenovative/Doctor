@@ -211,7 +211,7 @@
                         {% if session.admin_role == 'super_admin' or session.admin_tab_permissions.get('reservations', False) %}
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('admin_reservations') }}">
-                                <i class="fas fa-calendar-check me-2"></i>預約管理
+                                <i class="fas fa-ticket-alt me-2"></i>參考編號
                             </a>
                         </li>
                         {% endif %}
@@ -1531,7 +1531,7 @@
                 'users': '用戶管理',
                 'bug_reports': '錯誤報告',
                 'severe_cases': '嚴重病例',
-                'reservations': '預約管理'
+                'reservations': '參考編號'
             };
 
             let html = '<div class="table-responsive"><table class="table table-bordered table-sm">';

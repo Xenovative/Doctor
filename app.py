@@ -7113,6 +7113,10 @@ def get_whatsapp_url():
         ''', (doctor_name, doctor_specialty, get_real_ip(), session_id, query_id))
         conn.commit()
         
+        # Initialize variables
+        reference_code = None
+        qr_code_data = None
+        
         # Get user query data for diagnosis report
         whatsapp_url = f"https://wa.me/{whatsapp_number}"
         
@@ -7214,14 +7218,14 @@ def get_whatsapp_url():
         # Log analytics
         log_analytics('doctor_click', {
             'doctor_name': doctor_name, 'doctor_specialty': doctor_specialty,
-            'reference_code': reference_code if 'reference_code' in dir() else None
+            'reference_code': reference_code
         }, get_real_ip(), request.user_agent.string, session_id)
         
         return jsonify({
             'success': True, 
             'whatsapp_url': whatsapp_url,
-            'reference_code': reference_code if 'reference_code' in dir() else None,
-            'qr_code': qr_code_data if 'qr_code_data' in dir() else None
+            'reference_code': reference_code,
+            'qr_code': qr_code_data
         })
     except Exception as e:
         print(f"WhatsApp URL generation error: {e}")
