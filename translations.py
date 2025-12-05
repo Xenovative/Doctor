@@ -147,6 +147,11 @@ TRANSLATIONS = {
         'ai_disclaimer': '此AI分析僅供參考，不構成醫療建議或診斷。請務必諮詢合格醫生進行專業評估。',
         'analysis_remark': '以上分析是基於您提供的不適症狀和病史，可能還有其他因素會影響分析結果。',
         
+        # Reference Code Section
+        'diagnosis_reference_code': '診斷參考編號',
+        'reference_code_instruction': '請保存此編號，預約醫生時需要提供此參考編號',
+        'reference_code_validity': '此編號有效期為30天',
+        
         # Medical Evidence Section
         'medical_evidence_title': '📚 醫學文獻參考',
         'evidence_introduction': '根據分析結果，您的症狀與以下醫學研究參考相關：',
@@ -463,6 +468,11 @@ TRANSLATIONS = {
         'ai_disclaimer': '此AI分析仅供参考，不构成医疗建议或诊断。请务必咨询合格医生进行专业评估。',
         'analysis_remark': '以上分析是基于您提供的不适症状和病史，可能还有其他因素会影响分析结果。',
         
+        # Reference Code Section
+        'diagnosis_reference_code': '诊断参考编号',
+        'reference_code_instruction': '请保存此编号，预约医生时需要提供此参考编号',
+        'reference_code_validity': '此编号有效期为30天',
+        
         # Medical Evidence Section
         'medical_evidence_title': '📚 医学文献参考',
         'evidence_introduction': '根据分析结果，您的症状与以下医学研究参考相关：',
@@ -733,6 +743,11 @@ TRANSLATIONS = {
         'important_reminder': 'Important Reminder:',
         'ai_disclaimer': 'This AI analysis is for reference only and cannot replace professional medical symptom analysis. Please consult a qualified physician for formal symptom analysis.',
         'analysis_remark': 'The above analysis is based on the discomforts and medical history you provided, there may be extra factors that contribute to the analysis result.',
+        
+        # Reference Code Section
+        'diagnosis_reference_code': 'Diagnosis Reference Code',
+        'reference_code_instruction': 'Please save this code. You will need to provide it when booking an appointment',
+        'reference_code_validity': 'This code is valid for 30 days',
         
         # Medical Evidence Section
         'medical_evidence_title': '📚 Medical Literature Reference',

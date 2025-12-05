@@ -1,0 +1,478 @@
+{% extends "admin/base.html" %}
+
+{% block title %}預約與參考編號管理{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-calendar-check me-2"></i>預約與參考編號管理</h2>
+        <div>
+            <a href="{{ url_for('admin_reservations', tab='reservations') }}" class="btn btn-outline-primary {{ 'active' if view_tab == 'reservations' else '' }}">
+                <i class="fas fa-calendar-alt me-1"></i>預約
+            </a>
+            <a href="{{ url_for('admin_reservations', tab='reference_codes') }}" class="btn btn-outline-primary {{ 'active' if view_tab == 'reference_codes' else '' }}">
+                <i class="fas fa-ticket-alt me-1"></i>參考編號
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        {% if view_tab == 'reservations' %}
+        <!-- Reservation Stats -->
+        <div class="col-md-2">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h3 class="mb-0">{{ total_reservations }}</h3>
+                    <small>總預約數</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-warning text-dark">
+                <div class="card-body text-center">
+                    <h3 class="mb-0">{{ pending_reservations }}</h3>
+                    <small>待處理</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <h3 class="mb-0">{{ confirmed_reservations }}</h3>
+                    <small>已確認</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h3 class="mb-0">{{ completed_reservations }}</h3>
+                    <small>已完成</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-secondary text-white">
+                <div class="card-body text-center">
+                    <h3 class="mb-0">{{ cancelled_reservations }}</h3>
+                    <small>已取消</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-dark text-white">
+                <div class="card-body text-center">
+                    <h3 class="mb-0">{{ today_reservations }}</h3>
+                    <small>今日預約</small>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <!-- Reference Code Stats -->
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h3 class="mb-0">{{ total_references }}</h3>
+                    <small>總參考編號</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h3 class="mb-0">{{ used_references }}</h3>
+                    <small>已使用</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <h3 class="mb-0">{{ billed_references }}</h3>
+                    <small>已收費</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body text-center">
+                    <h3 class="mb-0">${{ "%.2f"|format(total_billed_amount) }}</h3>
+                    <small>總收費金額</small>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3 align-items-end">
+                <input type="hidden" name="tab" value="{{ view_tab }}">
+                <div class="col-md-3">
+                    <label class="form-label">狀態篩選</label>
+                    <select name="status" class="form-select">
+                        <option value="all" {{ 'selected' if filter_status == 'all' else '' }}>全部</option>
+                        {% if view_tab == 'reservations' %}
+                        <option value="pending" {{ 'selected' if filter_status == 'pending' else '' }}>待處理</option>
+                        <option value="confirmed" {{ 'selected' if filter_status == 'confirmed' else '' }}>已確認</option>
+                        <option value="completed" {{ 'selected' if filter_status == 'completed' else '' }}>已完成</option>
+                        <option value="cancelled" {{ 'selected' if filter_status == 'cancelled' else '' }}>已取消</option>
+                        {% else %}
+                        <option value="used" {{ 'selected' if filter_status == 'used' else '' }}>已使用</option>
+                        <option value="unused" {{ 'selected' if filter_status == 'unused' else '' }}>未使用</option>
+                        <option value="billed" {{ 'selected' if filter_status == 'billed' else '' }}>已收費</option>
+                        <option value="unbilled" {{ 'selected' if filter_status == 'unbilled' else '' }}>待收費</option>
+                        {% endif %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">日期篩選</label>
+                    <input type="date" name="date" class="form-control" value="{{ filter_date }}">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-filter me-1"></i>篩選
+                    </button>
+                </div>
+                <div class="col-md-2">
+                    <a href="{{ url_for('admin_reservations', tab=view_tab) }}" class="btn btn-outline-secondary w-100">
+                        <i class="fas fa-undo me-1"></i>重置
+                    </a>
+                </div>
+                {% if view_tab == 'reference_codes' %}
+                <div class="col-md-2">
+                    <a href="{{ url_for('export_reference_codes', status=filter_status) }}" class="btn btn-success w-100">
+                        <i class="fas fa-download me-1"></i>匯出 CSV
+                    </a>
+                </div>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <!-- Data Table -->
+    <div class="card">
+        <div class="card-body">
+            {% if view_tab == 'reservations' %}
+            <!-- Reservations Table -->
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>確認碼</th>
+                            <th>患者姓名</th>
+                            <th>電話</th>
+                            <th>醫生</th>
+                            <th>預約日期</th>
+                            <th>預約時間</th>
+                            <th>狀態</th>
+                            <th>建立時間</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in reservations %}
+                        <tr>
+                            <td><code>{{ r.confirmation_code or 'N/A' }}</code></td>
+                            <td>{{ r.patient_name }}</td>
+                            <td>{{ r.patient_phone }}</td>
+                            <td>
+                                <strong>{{ r.doctor_name or 'N/A' }}</strong>
+                                <br><small class="text-muted">{{ r.doctor_specialty or '' }}</small>
+                            </td>
+                            <td>{{ r.reservation_date }}</td>
+                            <td>{{ r.reservation_time }}</td>
+                            <td>
+                                {% if r.status == 'pending' %}
+                                <span class="badge bg-warning text-dark">待處理</span>
+                                {% elif r.status == 'confirmed' %}
+                                <span class="badge bg-info">已確認</span>
+                                {% elif r.status == 'completed' %}
+                                <span class="badge bg-success">已完成</span>
+                                {% elif r.status == 'cancelled' %}
+                                <span class="badge bg-secondary">已取消</span>
+                                {% else %}
+                                <span class="badge bg-dark">{{ r.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td><small>{{ r.created_at }}</small></td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" onclick="viewReservation({{ r.id }})" title="查看詳情">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="9" class="text-center text-muted py-4">
+                                <i class="fas fa-inbox fa-2x mb-2"></i>
+                                <p>暫無預約記錄</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <!-- Reference Codes Table -->
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th><input type="checkbox" id="selectAll" onclick="toggleSelectAll()"></th>
+                            <th>參考編號</th>
+                            <th>症狀摘要</th>
+                            <th>推薦專科</th>
+                            <th>使用狀態</th>
+                            <th>收費狀態</th>
+                            <th>收費金額</th>
+                            <th>建立時間</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ref in references %}
+                        <tr>
+                            <td><input type="checkbox" class="ref-checkbox" value="{{ ref.reference_code }}"></td>
+                            <td>
+                                <code class="text-primary" style="font-size: 0.85rem; word-break: break-all;">{{ ref.reference_code }}</code>
+                                <button class="btn btn-sm btn-link p-0 ms-1" onclick="copyCode('{{ ref.reference_code }}')" title="複製">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </td>
+                            <td>
+                                <span title="{{ ref.symptoms }}">{{ ref.symptoms[:50] }}{{ '...' if ref.symptoms|length > 50 else '' }}</span>
+                            </td>
+                            <td>{{ ref.recommended_specialty or 'N/A' }}</td>
+                            <td>
+                                {% if ref.is_used %}
+                                <span class="badge bg-success">已使用</span>
+                                <br><small class="text-muted">{{ ref.used_by_doctor_name or '' }}</small>
+                                {% else %}
+                                <span class="badge bg-secondary">未使用</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if ref.is_billed %}
+                                <span class="badge bg-info">已收費</span>
+                                {% elif ref.is_used %}
+                                <span class="badge bg-warning text-dark">待收費</span>
+                                {% else %}
+                                <span class="badge bg-light text-dark">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if ref.is_billed %}
+                                ${{ "%.2f"|format(ref.billing_amount or 0) }}
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                            <td><small>{{ ref.created_at }}</small></td>
+                            <td>
+                                {% if ref.is_used and not ref.is_billed %}
+                                <button class="btn btn-sm btn-success" onclick="markBilled('{{ ref.reference_code }}')" title="標記已收費">
+                                    <i class="fas fa-dollar-sign"></i>
+                                </button>
+                                {% endif %}
+                                <button class="btn btn-sm btn-outline-primary" onclick="viewReference('{{ ref.reference_code }}')" title="查看詳情">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="9" class="text-center text-muted py-4">
+                                <i class="fas fa-inbox fa-2x mb-2"></i>
+                                <p>暫無參考編號記錄</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Bulk Actions -->
+            <div class="mt-3 d-flex gap-2">
+                <button class="btn btn-success" onclick="bulkBill()" id="bulkBillBtn" disabled>
+                    <i class="fas fa-dollar-sign me-1"></i>批量收費
+                </button>
+                <input type="number" id="bulkAmount" class="form-control" style="width: 150px;" placeholder="收費金額" step="0.01" min="0">
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- View Reference Modal -->
+<div class="modal fade" id="referenceModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-ticket-alt me-2"></i>參考編號詳情</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="referenceModalBody">
+                <!-- Content loaded dynamically -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Mark Billed Modal -->
+<div class="modal fade" id="billModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fas fa-dollar-sign me-2"></i>標記收費</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="billRefCode">
+                <div class="mb-3">
+                    <label class="form-label">參考編號</label>
+                    <input type="text" class="form-control" id="billRefCodeDisplay" readonly>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">收費金額 (HKD)</label>
+                    <input type="number" class="form-control" id="billAmount" step="0.01" min="0" value="100">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">備註</label>
+                    <textarea class="form-control" id="billNotes" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-success" onclick="confirmBill()">
+                    <i class="fas fa-check me-1"></i>確認收費
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyCode(code) {
+    navigator.clipboard.writeText(code).then(() => {
+        alert('已複製: ' + code);
+    });
+}
+
+function toggleSelectAll() {
+    const selectAll = document.getElementById('selectAll');
+    const checkboxes = document.querySelectorAll('.ref-checkbox');
+    checkboxes.forEach(cb => cb.checked = selectAll.checked);
+    updateBulkButton();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.ref-checkbox').forEach(cb => {
+        cb.addEventListener('change', updateBulkButton);
+    });
+});
+
+function updateBulkButton() {
+    const checked = document.querySelectorAll('.ref-checkbox:checked').length;
+    document.getElementById('bulkBillBtn').disabled = checked === 0;
+}
+
+function markBilled(refCode) {
+    document.getElementById('billRefCode').value = refCode;
+    document.getElementById('billRefCodeDisplay').value = refCode;
+    new bootstrap.Modal(document.getElementById('billModal')).show();
+}
+
+function confirmBill() {
+    const refCode = document.getElementById('billRefCode').value;
+    const amount = parseFloat(document.getElementById('billAmount').value) || 0;
+    const notes = document.getElementById('billNotes').value;
+    
+    fetch(`/admin/reference-codes/${refCode}/mark-billed`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: amount, notes: notes })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('錯誤: ' + (data.message || data.error));
+        }
+    })
+    .catch(err => alert('請求失敗: ' + err));
+}
+
+function bulkBill() {
+    const codes = Array.from(document.querySelectorAll('.ref-checkbox:checked')).map(cb => cb.value);
+    const amount = parseFloat(document.getElementById('bulkAmount').value) || 0;
+    
+    if (codes.length === 0) {
+        alert('請選擇要收費的參考編號');
+        return;
+    }
+    
+    if (!confirm(`確定要對 ${codes.length} 個參考編號進行收費嗎？`)) {
+        return;
+    }
+    
+    fetch('/admin/reference-codes/bulk-bill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ codes: codes, amount: amount, notes: '批量收費' })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('錯誤: ' + (data.message || data.error));
+        }
+    })
+    .catch(err => alert('請求失敗: ' + err));
+}
+
+function viewReference(refCode) {
+    fetch(`/api/reference/${refCode}`)
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            const ref = data.data;
+            document.getElementById('referenceModalBody').innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>參考編號:</strong><br><code>${ref.reference_code}</code></p>
+                        <p><strong>症狀:</strong><br>${ref.symptoms || 'N/A'}</p>
+                        <p><strong>推薦專科:</strong> ${ref.recommended_specialty || 'N/A'}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>使用狀態:</strong> ${ref.is_used ? '<span class="badge bg-success">已使用</span>' : '<span class="badge bg-secondary">未使用</span>'}</p>
+                        <p><strong>使用醫生:</strong> ${ref.used_by_doctor_name || 'N/A'}</p>
+                        <p><strong>收費狀態:</strong> ${ref.is_billed ? '<span class="badge bg-info">已收費</span>' : '<span class="badge bg-warning">未收費</span>'}</p>
+                        <p><strong>收費金額:</strong> $${ref.billing_amount || 0}</p>
+                        <p><strong>建立時間:</strong> ${ref.created_at}</p>
+                        <p><strong>到期時間:</strong> ${ref.expires_at}</p>
+                    </div>
+                </div>
+                <hr>
+                <p><strong>AI 分析:</strong></p>
+                <div class="bg-light p-3 rounded" style="max-height: 200px; overflow-y: auto;">
+                    ${ref.ai_analysis || 'N/A'}
+                </div>
+            `;
+            new bootstrap.Modal(document.getElementById('referenceModal')).show();
+        } else {
+            alert('無法載入詳情');
+        }
+    })
+    .catch(err => alert('請求失敗: ' + err));
+}
+
+function viewReservation(id) {
+    alert('預約詳情功能開發中 - ID: ' + id);
+}
+</script>
+{% endblock %}

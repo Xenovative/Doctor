@@ -535,25 +535,32 @@ def reservations():
     cursor = conn.cursor()
     
     query = """
-        SELECT * FROM reservations
-        WHERE doctor_id = ?
+        SELECT 
+            r.*,
+            uq.analysis_report,
+            uq.recommended_specialty,
+            uq.severity_level,
+            uq.created_at as query_created_at
+        FROM reservations r
+        LEFT JOIN user_queries uq ON r.query_id = uq.id
+        WHERE r.doctor_id = ?
     """
     params = [doctor_id]
     
     if status_filter != 'all':
-        query += " AND status = ?"
+        query += " AND r.status = ?"
         params.append(status_filter)
     
     if date_filter == 'today':
         today = datetime.now().strftime('%Y-%m-%d')
-        query += " AND reservation_date = ?"
+        query += " AND r.reservation_date = ?"
         params.append(today)
     elif date_filter == 'upcoming':
         today = datetime.now().strftime('%Y-%m-%d')
-        query += " AND reservation_date >= ?"
+        query += " AND r.reservation_date >= ?"
         params.append(today)
     
-    query += " ORDER BY reservation_date DESC, reservation_time DESC"
+    query += " ORDER BY r.reservation_date DESC, r.reservation_time DESC"
     
     cursor.execute(query, params)
     reservations_list = [dict(row) for row in cursor.fetchall()]

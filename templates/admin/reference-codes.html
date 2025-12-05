@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>診斷參考編號管理 - AI醫生配對系統</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='admin-mobile.css') }}" rel="stylesheet">
+    <script src="{{ url_for('static', filename='timestamp-formatter.js') }}"></script>
+    <style>
+        .stat-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .stat-card .stat-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .stat-card .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .stat-card.primary { border-top: 4px solid #667eea; }
+        .stat-card.primary .stat-value { color: #667eea; }
+        
+        .stat-card.success { border-top: 4px solid #28a745; }
+        .stat-card.success .stat-value { color: #28a745; }
+        
+        .stat-card.warning { border-top: 4px solid #ffc107; }
+        .stat-card.warning .stat-value { color: #ffc107; }
+        
+        .stat-card.info { border-top: 4px solid #17a2b8; }
+        .stat-card.info .stat-value { color: #17a2b8; }
+        
+        .stat-card.danger { border-top: 4px solid #dc3545; }
+        .stat-card.danger .stat-value { color: #dc3545; }
+        
+        .reference-table {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .reference-table table {
+            margin-bottom: 0;
+        }
+        
+        .reference-code {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            color: #667eea;
+            letter-spacing: 1px;
+        }
+        
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        
+        .status-unused { background: #e3f2fd; color: #1976d2; }
+        .status-used { background: #e8f5e9; color: #388e3c; }
+        .status-billed { background: #fff3e0; color: #f57c00; }
+        .status-expired { background: #ffebee; color: #c62828; }
+        
+        .filter-section {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .bulk-actions {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .bulk-actions.show {
+            display: block;
+        }
+        
+        .symptoms-preview {
+            max-width: 200px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .action-btn {
+            padding: 4px 10px;
+            font-size: 0.8rem;
+            border-radius: 5px;
+        }
+        
+        .pagination-info {
+            color: #666;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 d-md-block bg-dark sidebar collapse" style="min-height: 100vh;">
+                <div class="position-sticky pt-3">
+                    <div class="text-center mb-4">
+                        <h5 class="text-white">AI醫生配對系統</h5>
+                        <small class="text-muted">管理後台</small>
+                    </div>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link text-white" href="{{ url_for('admin_dashboard') }}">
+                                <i class="fas fa-tachometer-alt me-2"></i>儀表板
+                            </a>
+                        </li>
+                        {% if session.admin_role == 'super_admin' or session.admin_tab_permissions.get('analytics', False) %}
+                        <li class="nav-item">
+                            <a class="nav-link text-white" href="{{ url_for('admin_analytics') }}">
+                                <i class="fas fa-chart-bar me-2"></i>分析報告
+                            </a>
+                        </li>
+                        {% endif %}
+                        {% if session.admin_role == 'super_admin' or session.admin_tab_permissions.get('severe_cases', False) %}
+                        <li class="nav-item">
+                            <a class="nav-link text-white" href="{{ url_for('admin_severe_cases') }}">
+                                <i class="fas fa-exclamation-triangle me-2"></i>嚴重病例
+                            </a>
+                        </li>
+                        {% endif %}
+                        {% if session.admin_role == 'super_admin' or session.admin_tab_permissions.get('reservations', False) %}
+                        <li class="nav-item">
+                            <a class="nav-link active text-white" href="{{ url_for('admin_reservations') }}">
+                                <i class="fas fa-calendar-check me-2"></i>預約管理
+                            </a>
+                        </li>
+                        {% endif %}
+                        {% if session.admin_role == 'super_admin' or session.admin_tab_permissions.get('doctors', False) %}
+                        <li class="nav-item">
+                            <a class="nav-link text-white" href="{{ url_for('admin_doctors') }}">
+                                <i class="fas fa-user-md me-2"></i>醫生管理
+                            </a>
+                        </li>
+                        {% endif %}
+                        {% if session.admin_role == 'super_admin' or session.admin_tab_permissions.get('config', False) %}
+                        <li class="nav-item">
+                            <a class="nav-link text-white" href="{{ url_for('admin_config') }}">
+                                <i class="fas fa-cog me-2"></i>系統配置
+                            </a>
+                        </li>
+                        {% endif %}
+                        <li class="nav-item mt-3">
+                            <a class="nav-link text-danger" href="{{ url_for('admin_logout') }}">
+                                <i class="fas fa-sign-out-alt me-2"></i>登出
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Main content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
+                    <h1 class="h2">
+                        <i class="fas fa-ticket-alt me-2"></i>診斷參考編號管理
+                    </h1>
+                    <div class="btn-toolbar">
+                        <a href="{{ url_for('export_reference_codes', status=filter_status) }}" class="btn btn-outline-success">
+                            <i class="fas fa-download me-1"></i>匯出CSV
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Statistics Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-2 col-6 mb-3">
+                        <div class="stat-card primary">
+                            <div class="stat-value">{{ total_references }}</div>
+                            <div class="stat-label">總參考編號</div>
+                        </div>
+                    </div>
+                    <div class="col-md-2 col-6 mb-3">
+                        <div class="stat-card info">
+                            <div class="stat-value">{{ today_count }}</div>
+                            <div class="stat-label">今日新增</div>
+                        </div>
+                    </div>
+                    <div class="col-md-2 col-6 mb-3">
+                        <div class="stat-card success">
+                            <div class="stat-value">{{ used_count }}</div>
+                            <div class="stat-label">已使用</div>
+                        </div>
+                    </div>
+                    <div class="col-md-2 col-6 mb-3">
+                        <div class="stat-card warning">
+                            <div class="stat-value">{{ pending_billing }}</div>
+                            <div class="stat-label">待收費</div>
+                        </div>
+                    </div>
+                    <div class="col-md-2 col-6 mb-3">
+                        <div class="stat-card danger">
+                            <div class="stat-value">{{ billed_count }}</div>
+                            <div class="stat-label">已收費</div>
+                        </div>
+                    </div>
+                    <div class="col-md-2 col-6 mb-3">
+                        <div class="stat-card success">
+                            <div class="stat-value">${{ "%.2f"|format(total_billed) }}</div>
+                            <div class="stat-label">總收費金額</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="filter-section">
+                    <form method="GET" class="row g-3 align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label">狀態篩選</label>
+                            <select name="status" class="form-select" onchange="this.form.submit()">
+                                <option value="all" {{ 'selected' if filter_status == 'all' }}>全部</option>
+                                <option value="unused" {{ 'selected' if filter_status == 'unused' }}>未使用</option>
+                                <option value="used" {{ 'selected' if filter_status == 'used' }}>已使用</option>
+                                <option value="unbilled" {{ 'selected' if filter_status == 'unbilled' }}>待收費</option>
+                                <option value="billed" {{ 'selected' if filter_status == 'billed' }}>已收費</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">日期篩選</label>
+                            <input type="date" name="date" class="form-control" value="{{ filter_date }}" onchange="this.form.submit()">
+                        </div>
+                        <div class="col-md-2">
+                            <a href="{{ url_for('admin_reference_codes') }}" class="btn btn-outline-secondary w-100">
+                                <i class="fas fa-redo me-1"></i>重置
+                            </a>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Bulk Actions -->
+                <div class="bulk-actions" id="bulkActions">
+                    <div class="row align-items-center">
+                        <div class="col-md-4">
+                            <span id="selectedCount">0</span> 個項目已選擇
+                        </div>
+                        <div class="col-md-4">
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" id="bulkAmount" class="form-control" placeholder="收費金額" step="0.01">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <button class="btn btn-warning" onclick="bulkBill()">
+                                <i class="fas fa-dollar-sign me-1"></i>批量標記已收費
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reference Codes Table -->
+                <div class="reference-table">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th width="40">
+                                    <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+                                </th>
+                                <th>參考編號</th>
+                                <th>建立時間</th>
+                                <th>症狀</th>
+                                <th>推薦專科</th>
+                                <th>狀態</th>
+                                <th>使用醫生</th>
+                                <th>收費金額</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ref in references %}
+                            <tr>
+                                <td>
+                                    <input type="checkbox" class="ref-checkbox" value="{{ ref.reference_code }}" onchange="updateBulkActions()">
+                                </td>
+                                <td>
+                                    <span class="reference-code">{{ ref.reference_code }}</span>
+                                </td>
+                                <td>
+                                    <span class="timestamp" data-timestamp="{{ ref.created_at }}">{{ ref.created_at }}</span>
+                                </td>
+                                <td>
+                                    <span class="symptoms-preview" title="{{ ref.symptoms }}">
+                                        {{ ref.symptoms[:50] }}{% if ref.symptoms and ref.symptoms|length > 50 %}...{% endif %}
+                                    </span>
+                                </td>
+                                <td>{{ ref.recommended_specialty or '-' }}</td>
+                                <td>
+                                    {% if ref.is_billed %}
+                                    <span class="status-badge status-billed">已收費</span>
+                                    {% elif ref.is_used %}
+                                    <span class="status-badge status-used">已使用</span>
+                                    {% else %}
+                                    <span class="status-badge status-unused">未使用</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ ref.used_by_doctor_name or '-' }}</td>
+                                <td>
+                                    {% if ref.is_billed %}
+                                    ${{ "%.2f"|format(ref.billing_amount or 0) }}
+                                    {% else %}
+                                    -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if ref.is_used and not ref.is_billed %}
+                                    <button class="btn btn-sm btn-warning action-btn" onclick="showBillModal('{{ ref.reference_code }}')">
+                                        <i class="fas fa-dollar-sign"></i> 收費
+                                    </button>
+                                    {% endif %}
+                                    <button class="btn btn-sm btn-info action-btn" onclick="showDetails('{{ ref.reference_code }}')">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="9" class="text-center py-4 text-muted">
+                                    <i class="fas fa-inbox fa-3x mb-3"></i>
+                                    <p>暫無參考編號記錄</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                {% if total_pages > 1 %}
+                <nav class="mt-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="pagination-info">
+                            顯示 {{ (page - 1) * 50 + 1 }} - {{ min(page * 50, total_count) }} / 共 {{ total_count }} 條記錄
+                        </span>
+                        <ul class="pagination mb-0">
+                            {% if page > 1 %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page - 1 }}&status={{ filter_status }}&date={{ filter_date }}">上一頁</a>
+                            </li>
+                            {% endif %}
+                            
+                            {% for p in range(1, total_pages + 1) %}
+                                {% if p == page %}
+                                <li class="page-item active"><span class="page-link">{{ p }}</span></li>
+                                {% elif p == 1 or p == total_pages or (p >= page - 2 and p <= page + 2) %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ p }}&status={{ filter_status }}&date={{ filter_date }}">{{ p }}</a>
+                                </li>
+                                {% elif p == page - 3 or p == page + 3 %}
+                                <li class="page-item disabled"><span class="page-link">...</span></li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if page < total_pages %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page + 1 }}&status={{ filter_status }}&date={{ filter_date }}">下一頁</a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </nav>
+                {% endif %}
+            </main>
+        </div>
+    </div>
+
+    <!-- Bill Modal -->
+    <div class="modal fade" id="billModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">標記為已收費</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="billReferenceCode">
+                    <div class="mb-3">
+                        <label class="form-label">參考編號</label>
+                        <input type="text" id="billCodeDisplay" class="form-control" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">收費金額 ($)</label>
+                        <input type="number" id="billAmount" class="form-control" step="0.01" placeholder="輸入收費金額">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">備註</label>
+                        <textarea id="billNotes" class="form-control" rows="2" placeholder="可選備註"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-warning" onclick="confirmBill()">確認收費</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Details Modal -->
+    <div class="modal fade" id="detailsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">參考編號詳情</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="detailsContent">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">載入中...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let billModal, detailsModal;
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            billModal = new bootstrap.Modal(document.getElementById('billModal'));
+            detailsModal = new bootstrap.Modal(document.getElementById('detailsModal'));
+            
+            // Format timestamps
+            if (typeof formatTimestamps === 'function') {
+                formatTimestamps();
+            }
+        });
+        
+        function toggleSelectAll() {
+            const selectAll = document.getElementById('selectAll');
+            const checkboxes = document.querySelectorAll('.ref-checkbox');
+            checkboxes.forEach(cb => cb.checked = selectAll.checked);
+            updateBulkActions();
+        }
+        
+        function updateBulkActions() {
+            const checkboxes = document.querySelectorAll('.ref-checkbox:checked');
+            const bulkActions = document.getElementById('bulkActions');
+            const selectedCount = document.getElementById('selectedCount');
+            
+            if (checkboxes.length > 0) {
+                bulkActions.classList.add('show');
+                selectedCount.textContent = checkboxes.length;
+            } else {
+                bulkActions.classList.remove('show');
+            }
+        }
+        
+        function showBillModal(referenceCode) {
+            document.getElementById('billReferenceCode').value = referenceCode;
+            document.getElementById('billCodeDisplay').value = referenceCode;
+            document.getElementById('billAmount').value = '';
+            document.getElementById('billNotes').value = '';
+            billModal.show();
+        }
+        
+        async function confirmBill() {
+            const referenceCode = document.getElementById('billReferenceCode').value;
+            const amount = parseFloat(document.getElementById('billAmount').value) || 0;
+            const notes = document.getElementById('billNotes').value;
+            
+            try {
+                const response = await fetch(`/admin/reference-codes/${referenceCode}/mark-billed`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ amount, notes })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    billModal.hide();
+                    location.reload();
+                } else {
+                    alert(data.message || '操作失敗');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('操作失敗，請稍後再試');
+            }
+        }
+        
+        async function bulkBill() {
+            const checkboxes = document.querySelectorAll('.ref-checkbox:checked');
+            const codes = Array.from(checkboxes).map(cb => cb.value);
+            const amount = parseFloat(document.getElementById('bulkAmount').value) || 0;
+            
+            if (codes.length === 0) {
+                alert('請選擇要收費的參考編號');
+                return;
+            }
+            
+            if (!confirm(`確定要將 ${codes.length} 個參考編號標記為已收費嗎？`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/admin/reference-codes/bulk-bill', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ codes, amount, notes: '批量收費' })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert(data.message || '操作失敗');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('操作失敗，請稍後再試');
+            }
+        }
+        
+        async function showDetails(referenceCode) {
+            document.getElementById('detailsContent').innerHTML = `
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">載入中...</span>
+                    </div>
+                </div>
+            `;
+            detailsModal.show();
+            
+            try {
+                const response = await fetch(`/api/reference/${referenceCode}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('detailsContent').innerHTML = `
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>參考編號</h6>
+                                <p class="reference-code fs-4">${data.reference_code}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>建立時間</h6>
+                                <p>${data.created_at}</p>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <h6>年齡</h6>
+                                <p>${data.age || '-'}</p>
+                            </div>
+                            <div class="col-md-4">
+                                <h6>性別</h6>
+                                <p>${data.gender || '-'}</p>
+                            </div>
+                            <div class="col-md-4">
+                                <h6>地區</h6>
+                                <p>${data.location || '-'}</p>
+                            </div>
+                        </div>
+                        <hr>
+                        <h6>症狀描述</h6>
+                        <p class="bg-light p-3 rounded">${data.symptoms || '-'}</p>
+                        <h6>推薦專科</h6>
+                        <p>${data.recommended_specialty || '-'}</p>
+                        <h6>配對醫生數</h6>
+                        <p>${data.matched_doctors_count}</p>
+                        <hr>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>使用狀態</h6>
+                                <p>${data.is_used ? '<span class="badge bg-success">已使用</span>' : '<span class="badge bg-secondary">未使用</span>'}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>有效期至</h6>
+                                <p>${data.expires_at || '-'}</p>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('detailsContent').innerHTML = `
+                        <div class="alert alert-danger">
+                            ${data.message || '載入失敗'}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('detailsContent').innerHTML = `
+                    <div class="alert alert-danger">
+                        載入失敗，請稍後再試
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

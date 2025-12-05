@@ -208,6 +208,13 @@
                             </a>
                         </li>
                         {% endif %}
+                        {% if session.admin_role == 'super_admin' or session.admin_tab_permissions.get('reservations', False) %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_reservations') }}">
+                                <i class="fas fa-calendar-check me-2"></i>預約管理
+                            </a>
+                        </li>
+                        {% endif %}
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('admin_profile') }}">
                                 <i class="fas fa-user-cog me-2"></i>個人設定
@@ -1523,7 +1530,8 @@
                 'doctors': '醫生管理',
                 'users': '用戶管理',
                 'bug_reports': '錯誤報告',
-                'severe_cases': '嚴重病例'
+                'severe_cases': '嚴重病例',
+                'reservations': '預約管理'
             };
 
             let html = '<div class="table-responsive"><table class="table table-bordered table-sm">';

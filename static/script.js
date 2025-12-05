@@ -1356,6 +1356,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await whatsappResponse.json();
             
             if (data.success && data.whatsapp_url) {
+                // Show reference code if available
+                if (data.reference_code) {
+                    showReferenceCodeModal(data.reference_code, doctorName, data.qr_code);
+                }
+                
                 // Open WhatsApp with pre-filled analysis report
                 console.log('Opening WhatsApp URL:', data.whatsapp_url);
                 window.open(data.whatsapp_url, '_blank');
@@ -1983,3 +1988,200 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 });
+
+// Global function to copy reference code to clipboard
+window.copyReferenceCode = function(code) {
+    if (!code) return;
+    
+    // Try modern clipboard API first
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(code)
+            .then(() => {
+                showCopySuccess(code);
+            })
+            .catch(err => {
+                console.error('Clipboard write failed:', err);
+                fallbackCopyToClipboard(code);
+            });
+    } else {
+        fallbackCopyToClipboard(code);
+    }
+};
+
+function fallbackCopyToClipboard(text) {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-9999px';
+    document.body.appendChild(textArea);
+    textArea.select();
+    
+    try {
+        document.execCommand('copy');
+        showCopySuccess(text);
+    } catch (err) {
+        console.error('Fallback copy failed:', err);
+        alert('無法複製，請手動複製編號: ' + text);
+    }
+    
+    document.body.removeChild(textArea);
+}
+
+function showCopySuccess(code) {
+    // Find the reference code display element
+    const codeDisplay = document.querySelector('.reference-code-display');
+    if (codeDisplay) {
+        const originalHTML = codeDisplay.innerHTML;
+        codeDisplay.innerHTML = `
+            <i class="fas fa-check-circle" style="color: #4ade80;"></i>
+            已複製！
+        `;
+        codeDisplay.style.background = 'rgba(74, 222, 128, 0.3)';
+        
+        setTimeout(() => {
+            codeDisplay.innerHTML = originalHTML;
+            codeDisplay.style.background = 'rgba(255,255,255,0.2)';
+        }, 2000);
+    }
+    
+    console.log('Reference code copied:', code);
+}
+
+// Show reference code modal when user picks a doctor
+window.showReferenceCodeModal = function(referenceCode, doctorName, qrCodeData = null) {
+    // Store globally
+    window.lastReferenceCode = referenceCode;
+    
+    // Create modal if it doesn't exist
+    let modal = document.getElementById('referenceCodeModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'referenceCodeModal';
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            overflow-y: auto;
+            padding: 20px;
+        `;
+        document.body.appendChild(modal);
+    }
+    
+    const refCodeTitle = window.currentTranslations?.diagnosis_reference_code || '診斷參考編號';
+    const refCodeInstruction = window.currentTranslations?.reference_code_instruction || '請保存此編號，預約醫生時需要提供此參考編號';
+    const refCodeValidity = window.currentTranslations?.reference_code_validity || '此編號有效期為30天';
+    
+    // QR code section HTML
+    const qrCodeSection = qrCodeData ? `
+        <div style="
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            margin: 15px auto;
+            display: inline-block;
+        ">
+            <img src="${qrCodeData}" alt="QR Code" style="width: 150px; height: 150px; display: block;">
+        </div>
+        <p style="font-size: 0.85rem; opacity: 0.8; margin: 5px 0 0 0;">
+            掃描 QR Code 查詢診斷資料
+        </p>
+    ` : '';
+    
+    modal.innerHTML = `
+        <div style="
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: slideIn 0.3s ease;
+            max-height: 90vh;
+            overflow-y: auto;
+        ">
+            <div style="
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                border-radius: 12px;
+                padding: 25px;
+                margin-bottom: 20px;
+                color: white;
+            ">
+                <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 15px;">
+                    <i class="fas fa-ticket-alt" style="font-size: 1.8rem;"></i>
+                    <span style="font-size: 1.2rem; font-weight: 600;">${refCodeTitle}</span>
+                </div>
+                <div class="reference-code-display" style="
+                    background: rgba(255,255,255,0.2);
+                    border-radius: 8px;
+                    padding: 15px 20px;
+                    font-family: 'Courier New', monospace;
+                    font-size: 1.1rem;
+                    font-weight: bold;
+                    letter-spacing: 2px;
+                    margin: 15px 0;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    word-break: break-all;
+                " onclick="copyReferenceCode('${referenceCode}')" title="點擊複製">
+                    ${referenceCode}
+                    <i class="fas fa-copy" style="margin-left: 10px; font-size: 0.9rem; opacity: 0.8;"></i>
+                </div>
+                ${qrCodeSection}
+                <p style="font-size: 0.95rem; opacity: 0.95; margin: 12px 0 0 0;">
+                    ${refCodeInstruction}
+                </p>
+                <p style="font-size: 0.85rem; opacity: 0.75; margin: 8px 0 0 0;">
+                    ${refCodeValidity}
+                </p>
+            </div>
+            
+            <p style="color: #666; margin-bottom: 20px; font-size: 0.95rem;">
+                已為您與 <strong>${doctorName}</strong> 的預約生成參考編號
+            </p>
+            
+            <button onclick="closeReferenceCodeModal()" style="
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                border: none;
+                padding: 12px 35px;
+                border-radius: 25px;
+                font-size: 1rem;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.3s ease;
+            " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(102, 126, 234, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                <i class="fas fa-check"></i> 我已記下編號
+            </button>
+        </div>
+    `;
+    
+    modal.style.display = 'flex';
+    
+    // Add animation keyframes if not exists
+    if (!document.getElementById('refCodeModalStyles')) {
+        const style = document.createElement('style');
+        style.id = 'refCodeModalStyles';
+        style.textContent = `
+            @keyframes slideIn {
+                from { opacity: 0; transform: scale(0.9); }
+                to { opacity: 1; transform: scale(1); }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+};
+
+window.closeReferenceCodeModal = function() {
+    const modal = document.getElementById('referenceCodeModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+};

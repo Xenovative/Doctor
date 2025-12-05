@@ -162,6 +162,33 @@
                         <p class="mb-0">{{ reservation.chronic_conditions }}</p>
                     </div>
                     {% endif %}
+                    
+                    {% if reservation.analysis_report %}
+                    <div class="mb-2 mt-3">
+                        <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#analysisReport{{ reservation.id }}" aria-expanded="false">
+                            <i class="fas fa-file-medical me-1"></i>查看AI分析報告
+                        </button>
+                        <div class="collapse mt-2" id="analysisReport{{ reservation.id }}">
+                            <div class="card card-body bg-light">
+                                <div class="analysis-report-content">
+                                    {% if reservation.severity_level %}
+                                    <div class="mb-2">
+                                        <span class="badge bg-{{ 'danger' if reservation.severity_level == 'severe' else 'warning' if reservation.severity_level == 'moderate' else 'info' }}">
+                                            嚴重程度: {{ reservation.severity_level }}
+                                        </span>
+                                        {% if reservation.recommended_specialty %}
+                                        <span class="badge bg-secondary ms-1">
+                                            建議專科: {{ reservation.recommended_specialty }}
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
+                                    <div class="analysis-text" style="white-space: pre-wrap; font-size: 0.9em;">{{ reservation.analysis_report }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
                 
                 <div class="col-md-4">

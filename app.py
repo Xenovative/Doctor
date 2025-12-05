@@ -1640,12 +1640,14 @@ Doctor-AI香港醫療配對系統"""
     
     return message
 
-def format_whatsapp_message(doctor_data: dict, report_url: str) -> str:
+def format_whatsapp_message(doctor_data: dict, report_url: str, reference_code: str = None) -> str:
     """格式化WhatsApp消息，包含症狀分析報告鏈接 (發送給管理員)"""
+    ref_section = f"\n🎫 診斷參考編號：{reference_code}\n（預約時請提供此編號）\n" if reference_code else ""
+    
     message = f"""AI症狀分析報告
 
 您好！我通過AI症狀分析系統獲得了您的資訊。
-
+{ref_section}
 醫生信息
 姓名: {doctor_data.get('doctor_name', 'N/A')}
 專科: {doctor_data.get('doctor_specialty', 'N/A')}
@@ -1660,7 +1662,7 @@ Doctor-AI香港醫療配對系統"""
     
     return message
 
-def format_whatsapp_message_for_doctor(doctor_data: dict, report_url: str, user_query_data: dict) -> str:
+def format_whatsapp_message_for_doctor(doctor_data: dict, report_url: str, user_query_data: dict, reference_code: str = None) -> str:
     """格式化WhatsApp消息給醫生，包含患者症狀分析報告鏈接"""
     # Extract key patient info
     age = user_query_data.get('age', 'N/A')
@@ -1674,12 +1676,14 @@ def format_whatsapp_message_for_doctor(doctor_data: dict, report_url: str, user_
         'other': '其他'
     }.get(gender, gender)
     
+    ref_section = f"\n🎫 診斷參考編號：{reference_code}" if reference_code else ""
+    
     message = f"""👨‍⚕️ 新患者諮詢 - Doctor AI
 
 尊敬的{doctor_data.get('doctor_name', '醫生')}：
 
 您好！有一位患者通過Doctor AI症狀分析系統希望諮詢您的專業意見。
-
+{ref_section}
 📋 患者基本資料：
 • 年齡：{age}歲
 • 性別：{gender_text}
@@ -1717,6 +1721,171 @@ def clean_phone_number_for_whatsapp(phone: str) -> str:
     cleaned = cleaned.lstrip('+')
     
     return cleaned
+
+def generate_diagnosis_reference_code() -> str:
+    """Generate a unique reference code for diagnosis.
+    Format: DR-XXXXXXXXXXXXXXXXXXXXXXXX (DR = Doctor Reference, 24 alphanumeric chars)
+    """
+    import string
+    chars = string.ascii_uppercase + string.digits
+    code = ''.join(secrets.choice(chars) for _ in range(24))
+    return f"DR-{code}"
+
+def generate_reference_qr_code(reference_code: str, base_url: str = None) -> str:
+    """Generate a QR code for the reference code and return as base64 data URL."""
+    try:
+        import qrcode
+        from io import BytesIO
+        import base64
+        
+        # Create QR code with the reference lookup URL
+        if base_url:
+            qr_data = f"{base_url}/api/reference/{reference_code}"
+        else:
+            qr_data = reference_code
+        
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_H,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(qr_data)
+        qr.make(fit=True)
+        
+        # Create image with custom colors
+        img = qr.make_image(fill_color="#667eea", back_color="white")
+        
+        # Convert to base64
+        buffer = BytesIO()
+        img.save(buffer, format='PNG')
+        buffer.seek(0)
+        img_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+        
+        return f"data:image/png;base64,{img_base64}"
+        
+    except ImportError:
+        logger.warning("qrcode library not installed. Run: pip install qrcode[pil]")
+        return None
+    except Exception as e:
+        logger.error(f"Error generating QR code: {e}")
+        return None
+
+def create_diagnosis_reference(query_id: int, session_id: str, user_ip: str, 
+                                symptoms: str, ai_analysis: str, 
+                                recommended_specialty: str, matched_doctors_count: int) -> str:
+    """Create a diagnosis reference record and return the reference code."""
+    try:
+        reference_code = generate_diagnosis_reference_code()
+        
+        # Set expiry to 30 days from now
+        from datetime import datetime, timedelta
+        expires_at = (datetime.now() + timedelta(days=30)).isoformat()
+        
+        conn = sqlite3.connect('admin_data.db')
+        cursor = conn.cursor()
+        
+        # Ensure table exists
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS diagnosis_references (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                reference_code TEXT UNIQUE NOT NULL,
+                query_id INTEGER NOT NULL,
+                session_id TEXT,
+                user_ip TEXT,
+                symptoms TEXT,
+                ai_analysis TEXT,
+                recommended_specialty TEXT,
+                matched_doctors_count INTEGER DEFAULT 0,
+                is_used INTEGER DEFAULT 0,
+                used_at DATETIME,
+                used_by_doctor_id INTEGER,
+                used_by_doctor_name TEXT,
+                is_billed INTEGER DEFAULT 0,
+                billed_at DATETIME,
+                billing_amount REAL DEFAULT 0,
+                billing_notes TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                expires_at DATETIME,
+                FOREIGN KEY (query_id) REFERENCES user_queries (id)
+            )
+        """)
+        
+        cursor.execute("""
+            INSERT INTO diagnosis_references 
+            (reference_code, query_id, session_id, user_ip, symptoms, ai_analysis, 
+             recommended_specialty, matched_doctors_count, expires_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (reference_code, query_id, session_id, user_ip, symptoms, ai_analysis,
+              recommended_specialty, matched_doctors_count, expires_at))
+        
+        # Also update user_queries with the reference code
+        cursor.execute("""
+            UPDATE user_queries SET reference_code = ? WHERE id = ?
+        """, (reference_code, query_id))
+        
+        conn.commit()
+        conn.close()
+        
+        logger.info(f"Created diagnosis reference: {reference_code} for query {query_id}")
+        return reference_code
+        
+    except Exception as e:
+        logger.error(f"Error creating diagnosis reference: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+def get_diagnosis_by_reference(reference_code: str) -> dict:
+    """Look up a diagnosis by reference code."""
+    try:
+        conn = sqlite3.connect('admin_data.db')
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT dr.*, uq.age, uq.gender, uq.chronic_conditions, uq.language, uq.location
+            FROM diagnosis_references dr
+            LEFT JOIN user_queries uq ON dr.query_id = uq.id
+            WHERE dr.reference_code = ?
+        """, (reference_code,))
+        
+        row = cursor.fetchone()
+        conn.close()
+        
+        if row:
+            return dict(row)
+        return None
+        
+    except Exception as e:
+        logger.error(f"Error looking up diagnosis reference: {e}")
+        return None
+
+def mark_reference_as_used(reference_code: str, doctor_id: int, doctor_name: str) -> bool:
+    """Mark a reference code as used by a doctor."""
+    try:
+        conn = sqlite3.connect('admin_data.db')
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            UPDATE diagnosis_references 
+            SET is_used = 1, used_at = CURRENT_TIMESTAMP, 
+                used_by_doctor_id = ?, used_by_doctor_name = ?
+            WHERE reference_code = ? AND is_used = 0
+        """, (doctor_id, doctor_name, reference_code))
+        
+        updated = cursor.rowcount > 0
+        conn.commit()
+        conn.close()
+        
+        if updated:
+            logger.info(f"Reference {reference_code} marked as used by doctor {doctor_name}")
+        
+        return updated
+        
+    except Exception as e:
+        logger.error(f"Error marking reference as used: {e}")
+        return False
 
 def get_real_ip():
     """Get the real client IP address, considering proxies and load balancers"""
@@ -1848,7 +2017,8 @@ def tab_permission_required(tab_name):
                                 "doctors": True,
                                 "users": True,
                                 "bug_reports": True,
-                                "severe_cases": True
+                                "severe_cases": True,
+                                "reservations": True
                             }
                         session['admin_tab_permissions'] = tab_permissions
                     except Exception as e:
@@ -1861,7 +2031,8 @@ def tab_permission_required(tab_name):
                             "doctors": True,
                             "users": True,
                             "bug_reports": True,
-                            "severe_cases": True
+                            "severe_cases": True,
+                            "reservations": True
                         }
                         session['admin_tab_permissions'] = tab_permissions
                 else:
@@ -3595,7 +3766,8 @@ def admin_login():
                                 "doctors": True,
                                 "users": True,
                                 "bug_reports": True,
-                                "severe_cases": True
+                                "severe_cases": True,
+                                "reservations": True
                             }
                         
                         # Handle remember me for 2FA
@@ -3709,7 +3881,8 @@ def admin_login():
                     "doctors": True,
                     "users": True,
                     "bug_reports": True,
-                    "severe_cases": True
+                    "severe_cases": True,
+                    "reservations": True
                 }
             
             # Handle remember me functionality
@@ -3822,7 +3995,8 @@ def admin_login():
                 "doctors": True,
                 "users": True,
                 "bug_reports": True,
-                "severe_cases": True
+                "severe_cases": True,
+                "reservations": True
             }
             
             # Handle remember me functionality for super admin
@@ -4221,6 +4395,503 @@ def review_severe_case(case_id):
     except Exception as e:
         logger.error(f"Error reviewing severe case {case_id}: {e}")
         return jsonify({'success': False, 'error': '審核病例時發生錯誤'}), 500
+
+@app.route('/admin/reservations')
+@tab_permission_required('reservations')
+def admin_reservations():
+    """Combined reservations and reference codes management page"""
+    try:
+        conn = sqlite3.connect('admin_data.db')
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        # Get filter parameters
+        filter_status = request.args.get('status', 'all')
+        filter_date = request.args.get('date', '')
+        view_tab = request.args.get('tab', 'reservations')  # reservations or reference_codes
+        page = int(request.args.get('page', 1))
+        per_page = 50
+        
+        # ===== RESERVATIONS STATS =====
+        cursor.execute('SELECT COUNT(*) FROM reservations')
+        total_reservations = cursor.fetchone()[0]
+        
+        cursor.execute("SELECT COUNT(*) FROM reservations WHERE status = 'pending'")
+        pending_reservations = cursor.fetchone()[0]
+        
+        cursor.execute("SELECT COUNT(*) FROM reservations WHERE status = 'confirmed'")
+        confirmed_reservations = cursor.fetchone()[0]
+        
+        cursor.execute("SELECT COUNT(*) FROM reservations WHERE status = 'completed'")
+        completed_reservations = cursor.fetchone()[0]
+        
+        cursor.execute("SELECT COUNT(*) FROM reservations WHERE status = 'cancelled'")
+        cancelled_reservations = cursor.fetchone()[0]
+        
+        cursor.execute("SELECT COUNT(*) FROM reservations WHERE DATE(created_at) = DATE('now')")
+        today_reservations = cursor.fetchone()[0]
+        
+        # ===== REFERENCE CODES STATS =====
+        cursor.execute('SELECT COUNT(*) FROM diagnosis_references')
+        total_references = cursor.fetchone()[0]
+        
+        cursor.execute('SELECT COUNT(*) FROM diagnosis_references WHERE is_used = 1')
+        used_references = cursor.fetchone()[0]
+        
+        cursor.execute('SELECT COUNT(*) FROM diagnosis_references WHERE is_billed = 1')
+        billed_references = cursor.fetchone()[0]
+        
+        cursor.execute('SELECT COALESCE(SUM(billing_amount), 0) FROM diagnosis_references WHERE is_billed = 1')
+        total_billed_amount = cursor.fetchone()[0] or 0
+        
+        # ===== GET RESERVATIONS LIST =====
+        reservations_query = '''
+            SELECT r.*, 
+                   (SELECT name FROM doctors WHERE id = r.doctor_id) as doctor_name,
+                   (SELECT specialty FROM doctors WHERE id = r.doctor_id) as doctor_specialty
+            FROM reservations r
+        '''
+        where_clauses = []
+        params = []
+        
+        if filter_status != 'all' and view_tab == 'reservations':
+            where_clauses.append('r.status = ?')
+            params.append(filter_status)
+        
+        if filter_date:
+            where_clauses.append('DATE(r.created_at) = ?')
+            params.append(filter_date)
+        
+        if where_clauses:
+            reservations_query += ' WHERE ' + ' AND '.join(where_clauses)
+        
+        reservations_query += ' ORDER BY r.created_at DESC LIMIT ? OFFSET ?'
+        params.extend([per_page, (page - 1) * per_page])
+        
+        cursor.execute(reservations_query, params)
+        reservations = [dict(row) for row in cursor.fetchall()]
+        
+        # ===== GET REFERENCE CODES LIST =====
+        refs_query = 'SELECT * FROM diagnosis_references'
+        refs_where = []
+        refs_params = []
+        
+        if view_tab == 'reference_codes':
+            if filter_status == 'used':
+                refs_where.append('is_used = 1')
+            elif filter_status == 'unused':
+                refs_where.append('is_used = 0')
+            elif filter_status == 'billed':
+                refs_where.append('is_billed = 1')
+            elif filter_status == 'unbilled':
+                refs_where.append('is_used = 1 AND is_billed = 0')
+        
+        if filter_date:
+            refs_where.append('DATE(created_at) = ?')
+            refs_params.append(filter_date)
+        
+        if refs_where:
+            refs_query += ' WHERE ' + ' AND '.join(refs_where)
+        
+        refs_query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?'
+        refs_params.extend([per_page, (page - 1) * per_page])
+        
+        cursor.execute(refs_query, refs_params)
+        references = [dict(row) for row in cursor.fetchall()]
+        
+        conn.close()
+        
+        return render_template('admin/reservations.html',
+                             # Reservation stats
+                             total_reservations=total_reservations,
+                             pending_reservations=pending_reservations,
+                             confirmed_reservations=confirmed_reservations,
+                             completed_reservations=completed_reservations,
+                             cancelled_reservations=cancelled_reservations,
+                             today_reservations=today_reservations,
+                             # Reference code stats
+                             total_references=total_references,
+                             used_references=used_references,
+                             billed_references=billed_references,
+                             total_billed_amount=total_billed_amount,
+                             # Lists
+                             reservations=reservations,
+                             references=references,
+                             # Filters
+                             filter_status=filter_status,
+                             filter_date=filter_date,
+                             view_tab=view_tab,
+                             page=page)
+                             
+    except Exception as e:
+        logger.error(f"Error loading reservations page: {e}")
+        import traceback
+        traceback.print_exc()
+        flash('載入預約資料時發生錯誤', 'error')
+        return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/reference-codes')
+@tab_permission_required('reservations')
+def admin_reference_codes():
+    """Reference codes management page for billing"""
+    try:
+        conn = sqlite3.connect('admin_data.db')
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        # Get filter parameters
+        filter_status = request.args.get('status', 'all')  # all, used, unused, billed
+        filter_date = request.args.get('date', '')
+        page = int(request.args.get('page', 1))
+        per_page = 50
+        
+        # Build query based on filters
+        where_clauses = []
+        params = []
+        
+        if filter_status == 'used':
+            where_clauses.append('dr.is_used = 1')
+        elif filter_status == 'unused':
+            where_clauses.append('dr.is_used = 0')
+        elif filter_status == 'billed':
+            where_clauses.append('dr.is_billed = 1')
+        elif filter_status == 'unbilled':
+            where_clauses.append('dr.is_used = 1 AND dr.is_billed = 0')
+        
+        if filter_date:
+            where_clauses.append('DATE(dr.created_at) = ?')
+            params.append(filter_date)
+        
+        where_sql = ' AND '.join(where_clauses) if where_clauses else '1=1'
+        
+        # Get total count
+        cursor.execute(f'''
+            SELECT COUNT(*) FROM diagnosis_references dr WHERE {where_sql}
+        ''', params)
+        total_count = cursor.fetchone()[0]
+        
+        # Get reference codes with pagination
+        offset = (page - 1) * per_page
+        cursor.execute(f'''
+            SELECT dr.*, uq.age, uq.gender, uq.location
+            FROM diagnosis_references dr
+            LEFT JOIN user_queries uq ON dr.query_id = uq.id
+            WHERE {where_sql}
+            ORDER BY dr.created_at DESC
+            LIMIT ? OFFSET ?
+        ''', params + [per_page, offset])
+        
+        references = [dict(row) for row in cursor.fetchall()]
+        
+        # Get statistics
+        cursor.execute('SELECT COUNT(*) FROM diagnosis_references')
+        total_references = cursor.fetchone()[0]
+        
+        cursor.execute('SELECT COUNT(*) FROM diagnosis_references WHERE is_used = 1')
+        used_count = cursor.fetchone()[0]
+        
+        cursor.execute('SELECT COUNT(*) FROM diagnosis_references WHERE is_billed = 1')
+        billed_count = cursor.fetchone()[0]
+        
+        cursor.execute('SELECT SUM(billing_amount) FROM diagnosis_references WHERE is_billed = 1')
+        total_billed = cursor.fetchone()[0] or 0
+        
+        cursor.execute('''
+            SELECT COUNT(*) FROM diagnosis_references 
+            WHERE is_used = 1 AND is_billed = 0
+        ''')
+        pending_billing = cursor.fetchone()[0]
+        
+        # Get today's stats
+        cursor.execute('''
+            SELECT COUNT(*) FROM diagnosis_references 
+            WHERE DATE(created_at) = DATE('now')
+        ''')
+        today_count = cursor.fetchone()[0]
+        
+        conn.close()
+        
+        total_pages = (total_count + per_page - 1) // per_page
+        
+        return render_template('admin/reference-codes.html',
+                             references=references,
+                             total_references=total_references,
+                             used_count=used_count,
+                             billed_count=billed_count,
+                             total_billed=total_billed,
+                             pending_billing=pending_billing,
+                             today_count=today_count,
+                             filter_status=filter_status,
+                             filter_date=filter_date,
+                             page=page,
+                             total_pages=total_pages,
+                             total_count=total_count)
+        
+    except Exception as e:
+        logger.error(f"Error loading reference codes: {e}")
+        import traceback
+        traceback.print_exc()
+        return render_template('admin/reference-codes.html',
+                             references=[],
+                             total_references=0,
+                             used_count=0,
+                             billed_count=0,
+                             total_billed=0,
+                             pending_billing=0,
+                             today_count=0,
+                             filter_status='all',
+                             filter_date='',
+                             page=1,
+                             total_pages=1,
+                             total_count=0)
+
+@app.route('/admin/reference-codes/<reference_code>/mark-billed', methods=['POST'])
+@tab_permission_required('reservations')
+def mark_reference_billed(reference_code):
+    """Mark a reference code as billed"""
+    try:
+        data = request.get_json()
+        billing_amount = float(data.get('amount', 0))
+        billing_notes = data.get('notes', '')
+        
+        conn = sqlite3.connect('admin_data.db')
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            UPDATE diagnosis_references 
+            SET is_billed = 1, billed_at = CURRENT_TIMESTAMP,
+                billing_amount = ?, billing_notes = ?
+            WHERE reference_code = ?
+        ''', (billing_amount, billing_notes, reference_code))
+        
+        updated = cursor.rowcount > 0
+        conn.commit()
+        conn.close()
+        
+        if updated:
+            logger.info(f"Reference {reference_code} marked as billed: ${billing_amount}")
+            return jsonify({'success': True, 'message': '已標記為已收費'})
+        else:
+            return jsonify({'success': False, 'message': '找不到該參考編號'}), 404
+        
+    except Exception as e:
+        logger.error(f"Error marking reference as billed: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/reference-codes/bulk-bill', methods=['POST'])
+@tab_permission_required('reservations')
+def bulk_bill_references():
+    """Bulk mark multiple references as billed"""
+    try:
+        data = request.get_json()
+        reference_codes = data.get('codes', [])
+        billing_amount = float(data.get('amount', 0))
+        billing_notes = data.get('notes', '')
+        
+        if not reference_codes:
+            return jsonify({'success': False, 'message': '請選擇要收費的參考編號'}), 400
+        
+        conn = sqlite3.connect('admin_data.db')
+        cursor = conn.cursor()
+        
+        updated_count = 0
+        for code in reference_codes:
+            cursor.execute('''
+                UPDATE diagnosis_references 
+                SET is_billed = 1, billed_at = CURRENT_TIMESTAMP,
+                    billing_amount = ?, billing_notes = ?
+                WHERE reference_code = ? AND is_billed = 0
+            ''', (billing_amount, billing_notes, code))
+            updated_count += cursor.rowcount
+        
+        conn.commit()
+        conn.close()
+        
+        logger.info(f"Bulk billed {updated_count} references at ${billing_amount} each")
+        return jsonify({
+            'success': True, 
+            'message': f'已標記 {updated_count} 個參考編號為已收費',
+            'updated_count': updated_count
+        })
+        
+    except Exception as e:
+        logger.error(f"Error bulk billing references: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/reference/<reference_code>')
+def lookup_reference_code(reference_code):
+    """Public API to look up a diagnosis by reference code.
+    Used by doctors to verify patient appointments.
+    """
+    try:
+        diagnosis = get_diagnosis_by_reference(reference_code)
+        
+        if not diagnosis:
+            return jsonify({
+                'success': False, 
+                'message': '找不到該參考編號或已過期'
+            }), 404
+        
+        # Check if expired
+        from datetime import datetime
+        if diagnosis.get('expires_at'):
+            try:
+                expires = datetime.fromisoformat(diagnosis['expires_at'].replace('Z', '+00:00'))
+                if datetime.now() > expires:
+                    return jsonify({
+                        'success': False,
+                        'message': '該參考編號已過期'
+                    }), 410
+            except:
+                pass
+        
+        # Return limited info for privacy
+        return jsonify({
+            'success': True,
+            'reference_code': diagnosis['reference_code'],
+            'created_at': diagnosis['created_at'],
+            'expires_at': diagnosis['expires_at'],
+            'symptoms': diagnosis['symptoms'],
+            'recommended_specialty': diagnosis['recommended_specialty'],
+            'matched_doctors_count': diagnosis['matched_doctors_count'],
+            'is_used': bool(diagnosis['is_used']),
+            'age': diagnosis.get('age'),
+            'gender': diagnosis.get('gender'),
+            'location': diagnosis.get('location')
+        })
+        
+    except Exception as e:
+        logger.error(f"Error looking up reference code: {e}")
+        return jsonify({'success': False, 'error': '查詢時發生錯誤'}), 500
+
+@app.route('/api/reference/<reference_code>/use', methods=['POST'])
+def use_reference_code(reference_code):
+    """Mark a reference code as used by a doctor.
+    Called when a doctor confirms an appointment using this reference.
+    """
+    try:
+        data = request.get_json()
+        doctor_id = data.get('doctor_id')
+        doctor_name = data.get('doctor_name', 'Unknown')
+        
+        if not doctor_id:
+            return jsonify({'success': False, 'message': '請提供醫生ID'}), 400
+        
+        # First check if reference exists and is valid
+        diagnosis = get_diagnosis_by_reference(reference_code)
+        if not diagnosis:
+            return jsonify({'success': False, 'message': '找不到該參考編號'}), 404
+        
+        if diagnosis['is_used']:
+            return jsonify({
+                'success': False, 
+                'message': '該參考編號已被使用',
+                'used_at': diagnosis['used_at'],
+                'used_by': diagnosis['used_by_doctor_name']
+            }), 409
+        
+        # Mark as used
+        success = mark_reference_as_used(reference_code, doctor_id, doctor_name)
+        
+        if success:
+            return jsonify({
+                'success': True, 
+                'message': '參考編號已標記為已使用',
+                'diagnosis': {
+                    'symptoms': diagnosis['symptoms'],
+                    'recommended_specialty': diagnosis['recommended_specialty'],
+                    'age': diagnosis.get('age'),
+                    'gender': diagnosis.get('gender')
+                }
+            })
+        else:
+            return jsonify({'success': False, 'message': '標記失敗'}), 500
+        
+    except Exception as e:
+        logger.error(f"Error using reference code: {e}")
+        return jsonify({'success': False, 'error': '處理時發生錯誤'}), 500
+
+@app.route('/admin/reference-codes/export')
+@tab_permission_required('reservations')
+def export_reference_codes():
+    """Export reference codes to CSV"""
+    try:
+        import csv
+        from io import StringIO
+        
+        filter_status = request.args.get('status', 'all')
+        
+        conn = sqlite3.connect('admin_data.db')
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        where_clause = '1=1'
+        if filter_status == 'used':
+            where_clause = 'dr.is_used = 1'
+        elif filter_status == 'unused':
+            where_clause = 'dr.is_used = 0'
+        elif filter_status == 'billed':
+            where_clause = 'dr.is_billed = 1'
+        elif filter_status == 'unbilled':
+            where_clause = 'dr.is_used = 1 AND dr.is_billed = 0'
+        
+        cursor.execute(f'''
+            SELECT dr.reference_code, dr.created_at, dr.symptoms, 
+                   dr.recommended_specialty, dr.matched_doctors_count,
+                   dr.is_used, dr.used_at, dr.used_by_doctor_name,
+                   dr.is_billed, dr.billed_at, dr.billing_amount,
+                   uq.age, uq.gender, uq.location
+            FROM diagnosis_references dr
+            LEFT JOIN user_queries uq ON dr.query_id = uq.id
+            WHERE {where_clause}
+            ORDER BY dr.created_at DESC
+        ''')
+        
+        rows = cursor.fetchall()
+        conn.close()
+        
+        # Create CSV
+        output = StringIO()
+        writer = csv.writer(output)
+        
+        # Header
+        writer.writerow([
+            '參考編號', '建立時間', '症狀', '推薦專科', '配對醫生數',
+            '已使用', '使用時間', '使用醫生', '已收費', '收費時間', '收費金額',
+            '年齡', '性別', '地區'
+        ])
+        
+        # Data
+        for row in rows:
+            writer.writerow([
+                row['reference_code'],
+                row['created_at'],
+                row['symptoms'][:100] if row['symptoms'] else '',
+                row['recommended_specialty'],
+                row['matched_doctors_count'],
+                '是' if row['is_used'] else '否',
+                row['used_at'] or '',
+                row['used_by_doctor_name'] or '',
+                '是' if row['is_billed'] else '否',
+                row['billed_at'] or '',
+                row['billing_amount'] or 0,
+                row['age'] or '',
+                row['gender'] or '',
+                row['location'] or ''
+            ])
+        
+        output.seek(0)
+        
+        from flask import Response
+        return Response(
+            output.getvalue(),
+            mimetype='text/csv',
+            headers={'Content-Disposition': f'attachment; filename=reference_codes_{filter_status}.csv'}
+        )
+        
+    except Exception as e:
+        logger.error(f"Error exporting reference codes: {e}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/admin/profile')
 @require_admin
@@ -4941,7 +5612,8 @@ def create_admin_user():
             "doctors": True,
             "users": True,
             "bug_reports": True,
-            "severe_cases": True
+            "severe_cases": True,
+            "reservations": True
         }
         
         try:
@@ -5026,7 +5698,8 @@ def get_user_permissions():
                 "doctors": True,
                 "users": True,
                 "bug_reports": True,
-                "severe_cases": True
+                "severe_cases": True,
+                "reservations": True
             }
             
             user_data = {
@@ -6502,15 +7175,32 @@ def get_whatsapp_url():
                          get_current_time().isoformat()))
                 conn.commit()
                 
+                # Generate diagnosis reference code when user picks a doctor
+                reference_code = create_diagnosis_reference(
+                    query_id=query_id,
+                    session_id=session_id,
+                    user_ip=get_real_ip(),
+                    symptoms=user_query_data.get('symptoms', ''),
+                    ai_analysis=user_query_data.get('ai_analysis', ''),
+                    recommended_specialty=user_query_data.get('related_specialty', ''),
+                    matched_doctors_count=1  # User selected this specific doctor
+                )
+                session['last_reference_code'] = reference_code
+                logger.info(f"Generated reference code {reference_code} for doctor selection: {doctor_name}")
+                
+                # Generate QR code for the reference
+                base_url = f"{request.scheme}://{request.host}"
+                qr_code_data = generate_reference_qr_code(reference_code, base_url)
+                
                 # Generate report URL
                 report_url = f"{request.scheme}://{request.host}/report/{report_id}"
                 
-                # Generate WhatsApp message with report link
+                # Generate WhatsApp message with report link and reference code
                 # Different message format based on contact mode
                 if contact_mode == 'doctor':
-                    message = format_whatsapp_message_for_doctor(doctor_data, report_url, user_query_data)
+                    message = format_whatsapp_message_for_doctor(doctor_data, report_url, user_query_data, reference_code)
                 else:
-                    message = format_whatsapp_message(doctor_data, report_url)
+                    message = format_whatsapp_message(doctor_data, report_url, reference_code)
                 print(f"DEBUG: Generated message length: {len(message)} (mode: {contact_mode})")
                 
                 # URL encode the message for WhatsApp web - use quote instead of quote_plus for better emoji handling
@@ -6523,10 +7213,16 @@ def get_whatsapp_url():
         
         # Log analytics
         log_analytics('doctor_click', {
-            'doctor_name': doctor_name, 'doctor_specialty': doctor_specialty
+            'doctor_name': doctor_name, 'doctor_specialty': doctor_specialty,
+            'reference_code': reference_code if 'reference_code' in dir() else None
         }, get_real_ip(), request.user_agent.string, session_id)
         
-        return jsonify({'success': True, 'whatsapp_url': whatsapp_url})
+        return jsonify({
+            'success': True, 
+            'whatsapp_url': whatsapp_url,
+            'reference_code': reference_code if 'reference_code' in dir() else None,
+            'qr_code': qr_code_data if 'qr_code_data' in dir() else None
+        })
     except Exception as e:
         print(f"WhatsApp URL generation error: {e}")
         import traceback
