@@ -1356,14 +1356,14 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await whatsappResponse.json();
             
             if (data.success && data.whatsapp_url) {
-                // Show reference code if available
+                // Show reference code modal if available, with WhatsApp URL for continue button
                 if (data.reference_code) {
-                    showReferenceCodeModal(data.reference_code, doctorName, data.qr_code);
+                    showReferenceCodeModal(data.reference_code, doctorName, data.qr_code, data.whatsapp_url);
+                } else {
+                    // No reference code, open WhatsApp directly
+                    console.log('Opening WhatsApp URL:', data.whatsapp_url);
+                    window.open(data.whatsapp_url, '_blank');
                 }
-                
-                // Open WhatsApp with pre-filled analysis report
-                console.log('Opening WhatsApp URL:', data.whatsapp_url);
-                window.open(data.whatsapp_url, '_blank');
             } else {
                 // Smart fallback based on affiliation
                 if (isAffiliated && doctorPhone) {
@@ -2048,9 +2048,10 @@ function showCopySuccess(code) {
 }
 
 // Show reference code modal when user picks a doctor
-window.showReferenceCodeModal = function(referenceCode, doctorName, qrCodeData = null) {
+window.showReferenceCodeModal = function(referenceCode, doctorName, qrCodeData = null, whatsappUrl = null) {
     // Store globally
     window.lastReferenceCode = referenceCode;
+    window.pendingWhatsAppUrl = whatsappUrl;
     
     // Create modal if it doesn't exist
     let modal = document.getElementById('referenceCodeModal');
@@ -2147,18 +2148,32 @@ window.showReferenceCodeModal = function(referenceCode, doctorName, qrCodeData =
                 已為您與 <strong>${doctorName}</strong> 的預約生成參考編號
             </p>
             
-            <button onclick="closeReferenceCodeModal()" style="
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            <button onclick="continueToWhatsApp()" style="
+                background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
                 color: white;
                 border: none;
-                padding: 12px 35px;
+                padding: 14px 40px;
                 border-radius: 25px;
-                font-size: 1rem;
+                font-size: 1.05rem;
                 font-weight: 600;
                 cursor: pointer;
                 transition: all 0.3s ease;
-            " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(102, 126, 234, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
-                <i class="fas fa-check"></i> 我已記下編號
+                margin-bottom: 10px;
+            " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(37, 211, 102, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                <i class="fab fa-whatsapp"></i> 繼續聯繫醫生
+            </button>
+            <br>
+            <button onclick="closeReferenceCodeModal()" style="
+                background: transparent;
+                color: #666;
+                border: 1px solid #ddd;
+                padding: 10px 25px;
+                border-radius: 20px;
+                font-size: 0.9rem;
+                cursor: pointer;
+                transition: all 0.3s ease;
+            " onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='transparent'">
+                稍後再聯繫
             </button>
         </div>
     `;
@@ -2183,5 +2198,17 @@ window.closeReferenceCodeModal = function() {
     const modal = document.getElementById('referenceCodeModal');
     if (modal) {
         modal.style.display = 'none';
+    }
+};
+
+window.continueToWhatsApp = function() {
+    // Close the modal first
+    closeReferenceCodeModal();
+    
+    // Open WhatsApp with the stored URL
+    if (window.pendingWhatsAppUrl) {
+        console.log('Opening WhatsApp URL:', window.pendingWhatsAppUrl);
+        window.open(window.pendingWhatsAppUrl, '_blank');
+        window.pendingWhatsAppUrl = null;
     }
 };
