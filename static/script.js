@@ -1354,14 +1354,21 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Handle WhatsApp response
             const data = await whatsappResponse.json();
+            console.log('DEBUG: WhatsApp response:', JSON.stringify({
+                success: data.success,
+                has_whatsapp_url: !!data.whatsapp_url,
+                reference_code: data.reference_code,
+                has_qr_code: !!data.qr_code
+            }));
             
             if (data.success && data.whatsapp_url) {
                 // Show reference code modal if available, with WhatsApp URL for continue button
                 if (data.reference_code) {
+                    console.log('DEBUG: Showing reference code modal');
                     showReferenceCodeModal(data.reference_code, doctorName, data.qr_code, data.whatsapp_url);
                 } else {
                     // No reference code, open WhatsApp directly
-                    console.log('Opening WhatsApp URL:', data.whatsapp_url);
+                    console.log('DEBUG: No reference code, opening WhatsApp directly');
                     window.open(data.whatsapp_url, '_blank');
                 }
             } else {

@@ -7237,6 +7237,8 @@ def get_whatsapp_url():
             'reference_code': reference_code
         }, get_real_ip(), request.user_agent.string, session_id)
         
+        print(f"DEBUG: Returning reference_code={reference_code}, qr_code_data={'present' if qr_code_data else 'None'}")
+        
         return jsonify({
             'success': True, 
             'whatsapp_url': whatsapp_url,
