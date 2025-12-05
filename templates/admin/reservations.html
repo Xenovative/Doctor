@@ -560,9 +560,8 @@ function bulkBill() {
 function viewReference(refCode) {
     fetch(`/api/reference/${refCode}`)
     .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            const ref = data.data;
+    .then(ref => {
+        if (ref.success) {
             document.getElementById('referenceModalBody').innerHTML = `
                 <div class="row">
                     <div class="col-md-6">
@@ -579,15 +578,10 @@ function viewReference(refCode) {
                         <p><strong>到期時間:</strong> ${ref.expires_at}</p>
                     </div>
                 </div>
-                <hr>
-                <p><strong>AI 分析:</strong></p>
-                <div class="bg-light p-3 rounded" style="max-height: 200px; overflow-y: auto;">
-                    ${ref.ai_analysis || 'N/A'}
-                </div>
             `;
             new bootstrap.Modal(document.getElementById('referenceModal')).show();
         } else {
-            alert('無法載入詳情');
+            alert('無法載入詳情: ' + (ref.message || ref.error || '未知錯誤'));
         }
     })
     .catch(err => alert('請求失敗: ' + err));
