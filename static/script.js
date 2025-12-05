@@ -1976,18 +1976,31 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Handle WhatsApp
             const whatsappData = await whatsappResponse.json();
+            console.log('DEBUG: Affiliated doctor WhatsApp response:', JSON.stringify({
+                success: whatsappData.success,
+                reference_code: whatsappData.reference_code,
+                has_qr_code: !!whatsappData.qr_code
+            }));
+            
+            // Close modals first
+            closeTimeSlotModal();
+            closeDoctorModal();
             
             if (whatsappData.success && whatsappData.whatsapp_url) {
-                window.open(whatsappData.whatsapp_url, '_blank');
+                // Show reference code modal if available
+                if (whatsappData.reference_code) {
+                    console.log('DEBUG: Showing reference code modal for affiliated doctor');
+                    showReferenceCodeModal(whatsappData.reference_code, doctorName, whatsappData.qr_code, whatsappData.whatsapp_url);
+                } else {
+                    // No reference code, open WhatsApp directly
+                    console.log('DEBUG: No reference code for affiliated doctor, opening WhatsApp');
+                    window.open(whatsappData.whatsapp_url, '_blank');
+                }
             } else {
                 // Fallback
                 const cleanPhone = doctorPhone.replace(/[^0-9+]/g, '');
                 window.open(`https://wa.me/${cleanPhone}`, '_blank');
             }
-            
-            // Close modals
-            closeTimeSlotModal();
-            closeDoctorModal();
             
         } catch (error) {
             console.error('Error selecting time slot:', error);
