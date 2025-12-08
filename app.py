@@ -2291,32 +2291,96 @@ def call_ai_api(prompt: str) -> str:
         return f"不支援的AI提供商: {provider}"
 
 def get_available_specialties() -> list:
-    """獲取資料庫中所有可用的專科"""
+    """獲取資料庫中所有可用的專科 - 返回中文專科名稱供AI使用"""
+    # English to Chinese specialty mapping for AI prompt
+    # This ensures AI recommends specialties that can be matched to doctors in the database
+    SPECIALTY_EN_TO_ZH = {
+        'General Practitioner': '普通科',
+        'Specialist in Family Medicine': '家庭醫學科',
+        'Internist - Internal Medicine': '內科',
+        'General Surgeon': '外科',
+        'Paediatrician': '兒科',
+        'Paediatric Surgeon': '兒科外科',
+        'Obstetrician & Gynecologist - Ob-Gyn': '婦產科',
+        'Gynaecological Oncologist': '婦科腫瘤科',
+        'Specialist in Orthopaedics & Traumatology': '骨科',
+        'Dermatologist & Venereologist': '皮膚科',
+        'Ophthalmologist': '眼科',
+        'Otorhinolaryngologist - ENT Doctors': '耳鼻喉科',
+        'Psychiatrist': '精神科',
+        'Clinical Psychologist': '臨床心理學',
+        'Counselling Psychologist': '輔導心理學',
+        'Neurologist': '神經科',
+        'Neurosurgeon': '神經外科',
+        'Cardiologist': '心臟科',
+        'Cardiothoracic Surgeon': '心胸外科',
+        'Specialist in Emergency Medicine': '急診科',
+        'Specialist in Infectious Disease': '感染科',
+        'Specialist in Clinical Microbiology & Infection': '臨床微生物及感染科',
+        'Nephrologist': '腎臟科',
+        'Specialist in Gastroenterology & Hepatology': '腸胃肝臟科',
+        'Specialist in Respiratory Medicine': '呼吸科',
+        'Specialist in Haematology & Haematological Oncology': '血液及血液腫瘤科',
+        'Clinical Oncologist': '臨床腫瘤科',
+        'Oncologist': '腫瘤科',
+        'Rheumatologist': '風濕科',
+        'Endocrinologist - Thyroid, Diabetes & Metabolism': '內分泌科',
+        'Urologist': '泌尿科',
+        'Radiologist': '放射科',
+        'Pathologist': '病理科',
+        'Anatomical Pathologist': '解剖病理科',
+        'Anaesthesiologist': '麻醉科',
+        'Physical Therapist': '物理治療',
+        'Plastic Surgeon': '整形外科',
+        'Specialist in Geriatric Medicine': '老人科',
+        'Specialist in Community Medicine': '社區醫學科',
+        'Specialist in Pain Medicine': '痛症科',
+        'Specialist in Reproductive Medicine': '生殖醫學科',
+        'Dentist': '牙科',
+        'Oral & Maxillofacial Surgery': '口腔頜面外科',
+        'Prosthodontist': '牙科修復科',
+        'Chinese Medicine Practitioner': '中醫',
+        'Dietitian': '營養師',
+    }
+    
     try:
         conn = sqlite3.connect('doctors.db')
         cursor = conn.cursor()
-        # Try different specialty columns with encoding handling
-        cursor.execute("SELECT DISTINCT specialty FROM doctors WHERE specialty IS NOT NULL AND specialty != '' AND LENGTH(specialty) > 0")
-        specialties = []
+        # Use specialty_en which doesn't have encoding issues
+        cursor.execute("SELECT DISTINCT specialty_en FROM doctors WHERE specialty_en IS NOT NULL AND specialty_en != '' AND LENGTH(specialty_en) > 0")
+        en_specialties = []
         for row in cursor.fetchall():
             try:
                 if row[0] and isinstance(row[0], str) and len(row[0].strip()) > 0:
-                    specialties.append(row[0].strip())
+                    en_specialties.append(row[0].strip())
             except (UnicodeDecodeError, AttributeError):
                 continue
         conn.close()
         
+        # Convert English specialties to Chinese for AI prompt
+        zh_specialties = set()
+        for en_spec in en_specialties:
+            # Direct mapping
+            if en_spec in SPECIALTY_EN_TO_ZH:
+                zh_specialties.add(SPECIALTY_EN_TO_ZH[en_spec])
+            else:
+                # Try partial matching for combined specialties like "Dentist,Clinical Psychologist"
+                for en_key, zh_value in SPECIALTY_EN_TO_ZH.items():
+                    if en_key in en_spec:
+                        zh_specialties.add(zh_value)
+        
         # Remove duplicates and sort
-        specialties = sorted(list(set(specialties)))
+        specialties = sorted(list(zh_specialties))
         
         if not specialties:
             # Fallback list
-            specialties = ['內科', '外科', '小兒科', '婦產科', '骨科', '皮膚科', '眼科', '耳鼻喉科', '精神科', '神經科', '心臟科', '急診科']
+            specialties = ['內科', '外科', '兒科', '婦產科', '骨科', '皮膚科', '眼科', '耳鼻喉科', '精神科', '神經科', '心臟科', '急診科', '普通科', '家庭醫學科']
         
+        print(f"DEBUG - Available specialties for AI: {specialties}")
         return specialties
     except Exception as e:
         print(f"Error fetching specialties: {e}")
-        return ['內科', '外科', '小兒科', '婦產科', '骨科', '皮膚科', '眼科', '耳鼻喉科', '精神科', '神經科', '心臟科', '急診科']
+        return ['內科', '外科', '兒科', '婦產科', '骨科', '皮膚科', '眼科', '耳鼻喉科', '精神科', '神經科', '心臟科', '急診科', '普通科', '家庭醫學科']
 
 def validate_symptoms_with_llm(symptoms: str, user_language: str = 'zh-TW') -> dict:
     """使用LLM驗證症狀描述是否有效"""
@@ -2811,14 +2875,19 @@ def extract_specialties_from_analysis(analysis_text: str) -> list:
         specialty_mapping[specialty] = {'variations': variations}
     
     # 使用正則表達式提取專科資訊 (支援中英文)
+    # IMPORTANT: These patterns must match the AI output format from translations.py
+    # zh-TW: 相關專科：, zh-CN: 建议专科：, en: Recommended Specialty:
     specialty_patterns = [
+        # Exact matches for translation formats (highest priority)
+        r'相關專科[：:]\s*([^\n\r]+)',  # zh-TW format from translations.py
+        r'建议专科[：:]\s*([^\n\r]+)',  # zh-CN format (simplified)
+        r'建議專科[：:]\s*([^\n\r]+)',  # zh-CN format (traditional fallback)
+        r'Recommended Specialty[：:]?\s*([^\n\r]+)',  # English format
+        # Alternative patterns
         r'推薦專科[：:]\s*([^\n\r]+)',
-        r'建議專科[：:]\s*([^\n\r]+)', 
         r'專科[：:]\s*([^\n\r]+)',
         r'科別[：:]\s*([^\n\r]+)',
-        r'Recommended specialty[：:]?\s*([^\n\r]+)',
         r'Specialty[：:]?\s*([^\n\r]+)',
-        r'([^。\n\r]*(?:科|Specialist|Medicine|Surgery|ology|ics))\s*(?:醫師|專科|doctor)?',
     ]
     
     found_specialties = set()
@@ -3080,11 +3149,68 @@ def filter_doctors(recommended_specialty: str, language: str, location: str, sym
     
     matched_doctors = []
     
+    # Chinese to English specialty mapping for matching
+    # AI recommends Chinese names, but database may have English names due to encoding issues
+    SPECIALTY_ZH_TO_EN = {
+        '普通科': ['General Practitioner'],
+        '家庭醫學科': ['Specialist in Family Medicine', 'Family Medicine'],
+        '內科': ['Internist - Internal Medicine', 'Internal Medicine', 'Internist'],
+        '外科': ['General Surgeon', 'Surgeon'],
+        '兒科': ['Paediatrician', 'Pediatrician', 'Paediatric'],
+        '兒科外科': ['Paediatric Surgeon', 'Pediatric Surgeon'],
+        '婦產科': ['Obstetrician & Gynecologist - Ob-Gyn', 'Ob-Gyn', 'Gynecologist', 'Obstetrician'],
+        '婦科腫瘤科': ['Gynaecological Oncologist'],
+        '骨科': ['Specialist in Orthopaedics & Traumatology', 'Orthopaedics', 'Orthopedics', 'Orthopaedic'],
+        '皮膚科': ['Dermatologist & Venereologist', 'Dermatologist', 'Dermatology'],
+        '眼科': ['Ophthalmologist', 'Ophthalmology'],
+        '耳鼻喉科': ['Otorhinolaryngologist - ENT Doctors', 'ENT', 'Otorhinolaryngologist'],
+        '精神科': ['Psychiatrist', 'Psychiatry'],
+        '臨床心理學': ['Clinical Psychologist'],
+        '輔導心理學': ['Counselling Psychologist'],
+        '神經科': ['Neurologist', 'Neurology'],
+        '神經外科': ['Neurosurgeon', 'Neurosurgery'],
+        '心臟科': ['Cardiologist', 'Cardiology'],
+        '心胸外科': ['Cardiothoracic Surgeon'],
+        '急診科': ['Specialist in Emergency Medicine', 'Emergency Medicine', 'Emergency'],
+        '感染科': ['Specialist in Infectious Disease', 'Infectious Disease'],
+        '臨床微生物及感染科': ['Specialist in Clinical Microbiology & Infection'],
+        '腎臟科': ['Nephrologist', 'Nephrology'],
+        '腸胃肝臟科': ['Specialist in Gastroenterology & Hepatology', 'Gastroenterology', 'Gastroenterologist'],
+        '呼吸科': ['Specialist in Respiratory Medicine', 'Respiratory', 'Pulmonologist'],
+        '血液及血液腫瘤科': ['Specialist in Haematology & Haematological Oncology', 'Haematology'],
+        '臨床腫瘤科': ['Clinical Oncologist'],
+        '腫瘤科': ['Oncologist', 'Oncology'],
+        '風濕科': ['Rheumatologist', 'Rheumatology'],
+        '內分泌科': ['Endocrinologist - Thyroid, Diabetes & Metabolism', 'Endocrinologist', 'Endocrinology'],
+        '泌尿科': ['Urologist', 'Urology'],
+        '放射科': ['Radiologist', 'Radiology'],
+        '病理科': ['Pathologist', 'Pathology'],
+        '解剖病理科': ['Anatomical Pathologist'],
+        '麻醉科': ['Anaesthesiologist', 'Anesthesiologist'],
+        '物理治療': ['Physical Therapist', 'Physiotherapist'],
+        '整形外科': ['Plastic Surgeon', 'Plastic Surgery'],
+        '老人科': ['Specialist in Geriatric Medicine', 'Geriatric'],
+        '社區醫學科': ['Specialist in Community Medicine'],
+        '痛症科': ['Specialist in Pain Medicine', 'Pain Medicine'],
+        '生殖醫學科': ['Specialist in Reproductive Medicine'],
+        '牙科': ['Dentist', 'Dental'],
+        '口腔頜面外科': ['Oral & Maxillofacial Surgery'],
+        '牙科修復科': ['Prosthodontist'],
+        '中醫': ['Chinese Medicine Practitioner', 'Chinese Medicine'],
+        '營養師': ['Dietitian', 'Nutritionist'],
+    }
+    
+    # Get English equivalents for the recommended specialty
+    specialty_search_terms = [recommended_specialty]  # Always include original
+    if recommended_specialty in SPECIALTY_ZH_TO_EN:
+        specialty_search_terms.extend(SPECIALTY_ZH_TO_EN[recommended_specialty])
+    
     # Debug logging
     print(f"DEBUG - filter_doctors called with:")
     print(f"  location: {location}")
     print(f"  location_details: {location_details}")
     print(f"  recommended_specialty: {recommended_specialty}")
+    print(f"  specialty_search_terms: {specialty_search_terms}")
     
     total_processed = 0
     total_matched = 0
@@ -3096,12 +3222,25 @@ def filter_doctors(recommended_specialty: str, language: str, location: str, sym
         
         # 專科匹配 (降低分數，優先考慮地區)
         doctor_specialty = doctor.get('specialty', '')
+        doctor_specialty_en = doctor.get('specialty_en', '')  # Also check English specialty
         if doctor_specialty and not pd.isna(doctor_specialty):
             doctor_specialty = str(doctor_specialty)
-            if safe_str_check(doctor_specialty, recommended_specialty):
+            doctor_specialty_en = str(doctor_specialty_en) if doctor_specialty_en and not pd.isna(doctor_specialty_en) else ''
+            
+            # Check if any search term matches the doctor's specialty
+            specialty_matched = False
+            for search_term in specialty_search_terms:
+                if (safe_str_check(doctor_specialty, search_term) or 
+                    safe_str_check(doctor_specialty_en, search_term)):
+                    specialty_matched = True
+                    break
+            
+            if specialty_matched:
                 score += 25  # 從50降到25
                 match_reasons.append(f"專科匹配：{doctor_specialty}")
-            elif safe_str_check(doctor_specialty, '普通科') or safe_str_check(doctor_specialty, '內科'):
+            elif (safe_str_check(doctor_specialty, '普通科') or safe_str_check(doctor_specialty, '內科') or
+                  safe_str_check(doctor_specialty_en, 'General Practitioner') or 
+                  safe_str_check(doctor_specialty_en, 'Internal Medicine')):
                 score += 15  # 從30降到15
                 match_reasons.append("可處理一般症狀")
         
