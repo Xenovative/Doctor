@@ -955,6 +955,12 @@ AI_CONFIG = {
         'model': os.getenv('OPENAI_MODEL', 'gpt-4'),
         'max_tokens': int(os.getenv('OPENAI_MAX_TOKENS', '4000'))
     },
+    'volcengine': {
+        'api_key': os.getenv('VOLCENGINE_API_KEY', ''),
+        'base_url': os.getenv('VOLCENGINE_BASE_URL', 'https://ark.cn-beijing.volces.com/api/v3/chat/completions'),
+        'model': os.getenv('VOLCENGINE_MODEL', 'doubao-pro-32k'),
+        'max_tokens': int(os.getenv('VOLCENGINE_MAX_TOKENS', '4000'))
+    },
     'ollama': {
         'base_url': 'http://localhost:11434/api/generate',
         'model': os.getenv('OLLAMA_MODEL', 'llama3.1:8b')
@@ -2277,6 +2283,45 @@ def get_openai_models(api_key: str = None) -> list:
         print(f"Error fetching OpenAI models: {e}")
         return ['gpt-4', 'gpt-4-turbo', 'gpt-3.5-turbo']  # fallback
 
+def call_volcengine_api(prompt: str) -> str:
+    """調用Volcano Engine (豆包) API進行AI分析"""
+    try:
+        if not AI_CONFIG['volcengine']['api_key']:
+            return "AI服務配置不完整，請聯繫系統管理員"
+            
+        headers = {
+            "Authorization": f"Bearer {AI_CONFIG['volcengine']['api_key']}",
+            "Content-Type": "application/json"
+        }
+        
+        data = {
+            "model": AI_CONFIG['volcengine']['model'],
+            "messages": [
+                {"role": "user", "content": prompt}
+            ],
+            "max_tokens": AI_CONFIG['volcengine']['max_tokens'],
+            "temperature": 0.3,
+            "top_p": 0.9
+        }
+        
+        response = requests.post(
+            AI_CONFIG['volcengine']['base_url'], 
+            headers=headers, 
+            json=data, 
+            timeout=60
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            return result['choices'][0]['message']['content']
+        else:
+            logger.error(f"Volcano Engine API Error: {response.text}")
+            return "AI分析服務暫時不可用，請稍後再試"
+            
+    except Exception as e:
+        logger.error(f"Volcano Engine connection error: {e}")
+        return "AI分析服務暫時不可用，請稍後再試"
+
 def call_ai_api(prompt: str) -> str:
     """根據配置調用相應的AI API"""
     provider = AI_CONFIG['provider'].lower()
@@ -2285,6 +2330,8 @@ def call_ai_api(prompt: str) -> str:
         return call_openrouter_api(prompt)
     elif provider == 'openai':
         return call_openai_api(prompt)
+    elif provider == 'volcengine':
+        return call_volcengine_api(prompt)
     elif provider == 'ollama':
         return call_ollama_api(prompt)
     else:
@@ -5515,6 +5562,125 @@ def update_env_file(key: str, value: str) -> None:
     except Exception as e:
         logger.error(f"Error writing to .env file: {e}")
 
+@app.route('/admin/api/test-ai', methods=['POST'])
+@require_admin
+def test_ai_connection():
+    """Test AI connection with provided configuration"""
+    try:
+        provider = request.form.get('provider')
+        
+        if not provider:
+            return jsonify({'success': False, 'message': '未選擇提供商'}), 400
+            
+        prompt = "Hello, this is a connection test."
+        
+        if provider == 'volcengine':
+            api_key = request.form.get('volcengine_api_key')
+            base_url = request.form.get('volcengine_base_url')
+            model = request.form.get('volcengine_model')
+            
+            if not api_key or not base_url or not model:
+                return jsonify({'success': False, 'message': '請填寫所有必要欄位'}), 400
+                
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }
+            
+            data = {
+                "model": model,
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": 50,
+                "temperature": 0.3
+            }
+            
+            response = requests.post(base_url, headers=headers, json=data, timeout=10)
+            
+            if response.status_code == 200:
+                result = response.json()
+                content = result['choices'][0]['message']['content']
+                return jsonify({'success': True, 'message': f'連接成功！回應: {content[:50]}...'})
+            else:
+                return jsonify({'success': False, 'message': f'API錯誤: {response.text}'}), 400
+
+        elif provider == 'openai':
+            api_key = request.form.get('openai_api_key')
+            model = request.form.get('openai_model')
+            
+            if not api_key:
+                return jsonify({'success': False, 'message': '請填寫API密鑰'}), 400
+                
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }
+            
+            data = {
+                "model": model,
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": 50
+            }
+            
+            response = requests.post('https://api.openai.com/v1/chat/completions', headers=headers, json=data, timeout=10)
+            
+            if response.status_code == 200:
+                return jsonify({'success': True, 'message': '連接成功！'})
+            else:
+                return jsonify({'success': False, 'message': f'API錯誤: {response.text}'}), 400
+                
+        elif provider == 'openrouter':
+            api_key = request.form.get('openrouter_api_key')
+            model = request.form.get('openrouter_model')
+            
+            if not api_key:
+                return jsonify({'success': False, 'message': '請填寫API密鑰'}), 400
+                
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "http://localhost:5000",
+                "X-Title": "Doctor AI Test"
+            }
+            
+            data = {
+                "model": model,
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": 50
+            }
+            
+            response = requests.post('https://openrouter.ai/api/v1/chat/completions', headers=headers, json=data, timeout=10)
+            
+            if response.status_code == 200:
+                return jsonify({'success': True, 'message': '連接成功！'})
+            else:
+                return jsonify({'success': False, 'message': f'API錯誤: {response.text}'}), 400
+                
+        elif provider == 'ollama':
+            base_url = request.form.get('ollama_base_url')
+            model = request.form.get('ollama_model')
+            
+            if not base_url or not model:
+                return jsonify({'success': False, 'message': '請填寫URL和模型'}), 400
+                
+            data = {
+                "model": model,
+                "prompt": prompt,
+                "stream": False
+            }
+            
+            response = requests.post(base_url, json=data, timeout=10)
+            
+            if response.status_code == 200:
+                return jsonify({'success': True, 'message': '連接成功！'})
+            else:
+                return jsonify({'success': False, 'message': f'API錯誤: {response.text}'}), 400
+        
+        return jsonify({'success': False, 'message': '未知提供商'}), 400
+        
+    except Exception as e:
+        logger.error(f"Test AI connection error: {e}")
+        return jsonify({'success': False, 'message': f'測試失敗: {str(e)}'}), 500
+
 @app.route('/admin/update_ai_config', methods=['POST'])
 @require_admin
 def update_ai_config():
@@ -5546,6 +5712,20 @@ def update_ai_config():
             update_env_file('AI_PROVIDER', 'openai')
             update_env_file('OPENAI_API_KEY', AI_CONFIG['openai']['api_key'])
             
+        elif provider == 'volcengine':
+            AI_CONFIG['volcengine'].update({
+                'api_key': request.form.get('volcengine_api_key', ''),
+                'base_url': request.form.get('volcengine_base_url', 'https://ark.cn-beijing.volces.com/api/v3/chat/completions'),
+                'model': request.form.get('volcengine_model', 'doubao-pro-32k'),
+                'max_tokens': int(request.form.get('volcengine_max_tokens', '4000'))
+            })
+            # Update .env file
+            update_env_file('AI_PROVIDER', 'volcengine')
+            update_env_file('VOLCENGINE_API_KEY', AI_CONFIG['volcengine']['api_key'])
+            update_env_file('VOLCENGINE_BASE_URL', AI_CONFIG['volcengine']['base_url'])
+            update_env_file('VOLCENGINE_MODEL', AI_CONFIG['volcengine']['model'])
+            update_env_file('VOLCENGINE_MAX_TOKENS', str(AI_CONFIG['volcengine']['max_tokens']))
+
         elif provider == 'ollama':
             AI_CONFIG['ollama'].update({
                 'model': request.form.get('ollama_model', 'llama3.1:8b'),

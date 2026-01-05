@@ -348,6 +348,55 @@
                                         </div>
                                     </div>
 
+                                    <!-- Volcano Engine -->
+                                    <div class="provider-card" data-provider="volcengine">
+                                        <div class="card-body">
+                                            <div class="d-flex align-items-center mb-3">
+                                                <input type="radio" name="provider" value="volcengine" id="provider-volcengine" 
+                                                       class="form-check-input me-3" {{ 'checked' if ai_config.provider == 'volcengine' else '' }}>
+                                                <label for="provider-volcengine" class="form-check-label flex-grow-1">
+                                                    <div class="d-flex align-items-center">
+                                                        <i class="fas fa-fire me-2 text-danger"></i>
+                                                        <div>
+                                                            <h6 class="mb-0">Volcano Engine (豆包)</h6>
+                                                            <small class="text-muted">字節跳動火山引擎，豆包大模型</small>
+                                                        </div>
+                                                    </div>
+                                                </label>
+                                            </div>
+                                            
+                                            <div class="provider-config" id="volcengine-config" style="display: none;">
+                                                <div class="row">
+                                                    <div class="col-md-6 mb-3">
+                                                        <label class="form-label">API密鑰</label>
+                                                        <input type="password" class="form-control" name="volcengine_api_key" 
+                                                               value="{{ ai_config.volcengine.api_key if ai_config.volcengine else '' }}" 
+                                                               placeholder="sk-...">
+                                                    </div>
+                                                    <div class="col-md-6 mb-3">
+                                                        <label class="form-label">Endpoint URL</label>
+                                                        <input type="text" class="form-control" name="volcengine_base_url" 
+                                                               value="{{ ai_config.volcengine.base_url if ai_config.volcengine else 'https://ark.cn-beijing.volces.com/api/v3/chat/completions' }}" 
+                                                               placeholder="https://ark.cn-beijing.volces.com/api/v3/chat/completions">
+                                                    </div>
+                                                    <div class="col-md-6 mb-3">
+                                                        <label class="form-label">模型 (Endpoint ID)</label>
+                                                        <input type="text" class="form-control" name="volcengine_model" 
+                                                               value="{{ ai_config.volcengine.model if ai_config.volcengine else 'doubao-pro-32k' }}" 
+                                                               placeholder="ep-20240604...">
+                                                        <small class="text-muted">請輸入已部署的 Endpoint ID</small>
+                                                    </div>
+                                                    <div class="col-md-6 mb-3">
+                                                        <label class="form-label">Max Tokens</label>
+                                                        <input type="number" class="form-control" name="volcengine_max_tokens" 
+                                                               value="{{ ai_config.volcengine.max_tokens if ai_config.volcengine else '4000' }}" 
+                                                               placeholder="4000">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <!-- OpenRouter -->
                                     <div class="provider-card" data-provider="openrouter">
                                         <div class="card-body">
