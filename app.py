@@ -5213,23 +5213,14 @@ def admin_config():
                 logger.error(f"Failed to fetch admin users: {e}")
                 flash('獲取管理員列表失敗', 'error')
         
-        # Get AI configuration (placeholder for now)
-        ai_config = {
-            'provider': 'openai',
-            'openai': {'api_key': '', 'model': 'gpt-4o'},
-            'openrouter': {'api_key': '', 'model': 'anthropic/claude-3.5-sonnet'},
-            'ollama': {'model': 'llama3.1:8b', 'base_url': 'http://localhost:11434/api/generate'}
-        }
+        # Get AI configuration
+        ai_config = AI_CONFIG
         
-        # Get timezone configuration (placeholder for now)
-        timezone_config = {'timezone': 'Asia/Hong_Kong'}
+        # Get timezone configuration
+        timezone_config = TIMEZONE_CONFIG
         
-        # Get WhatsApp configuration (placeholder for now)
-        whatsapp_config = {
-            'target_number': '85294974070',
-            'socket_url': 'http://localhost:3000',
-            'api_key': ''
-        }
+        # Get WhatsApp configuration
+        whatsapp_config = WHATSAPP_CONFIG
         
         # Get 2FA status for super admin
         admin_2fa_status = False
